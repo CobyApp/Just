@@ -1,0 +1,20 @@
+# Tuist
+Derived/
+*.xcodeproj
+*.xcworkspace
+.tuist-version
+Tuist/.build/
+.build/
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+
+# macOS
+.DS_Store
