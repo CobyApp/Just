@@ -44,7 +44,7 @@ struct SearchScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        if !app.isAuthorized {
+        if !app.isAuthorized && !hasDebugSamples {
             authorizationGate
         } else {
             switch state {
@@ -86,7 +86,7 @@ struct SearchScreen: View {
 
     @ViewBuilder
     private var idleState: some View {
-        if recents.isEmpty {
+        if recents.isEmpty && !hasDebugSamples {
             ContentUnavailableView {
                 Label("좋아하는 노래로 시작하세요", systemImage: "music.note")
             } description: {
@@ -94,20 +94,44 @@ struct SearchScreen: View {
             }
         } else {
             List {
+                if !recents.isEmpty {
+                    Section {
+                        ForEach(recents.prefix(15)) { song in
+                            TrackRow(track: song.track, progress: song.studyProgress)
+                                .contentShape(.rect)
+                                .onTapGesture { app.open(song.track) }
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("최근 들은 곡").justSectionHeader()
+                    }
+                }
+                #if DEBUG
                 Section {
-                    ForEach(recents.prefix(15)) { song in
-                        TrackRow(track: song.track, progress: song.studyProgress)
+                    ForEach(DebugSamples.all) { track in
+                        TrackRow(track: track)
                             .contentShape(.rect)
-                            .onTapGesture { app.open(song.track) }
+                            .onTapGesture { app.open(track) }
                             .listRowBackground(Color.clear)
                     }
                 } header: {
-                    Text("최근 들은 곡").justSectionHeader()
+                    Text("샘플 (개발용)").justSectionHeader()
                 }
+                #endif
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
         }
+    }
+
+    /// The sample section only exists in debug builds, so the empty state has
+    /// to know whether anything would render below it.
+    private var hasDebugSamples: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
     }
 
     private func trackList(_ tracks: [Track]) -> some View {

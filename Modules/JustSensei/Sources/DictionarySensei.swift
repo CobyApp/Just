@@ -83,6 +83,21 @@ public struct DictionarySensei: Sendable {
         return nil
     }
 
+    /// Looks a word up by its written form only, never by reading.
+    ///
+    /// The spelling in the lyric is ground truth in a way the model's answer is
+    /// not: when the model reports 帰る as 「かえる」, the reading index is free
+    /// to hand back 変える instead, because both are かえる. Matching on the
+    /// kanji the singer actually wrote removes that whole class of mistake.
+    public func entry(forSpelling spelling: String) -> Entry? {
+        guard spelling.containsKanji else { return nil }
+        if let hit = byLemma[spelling] { return hit }
+        for candidate in Deinflector.candidates(for: spelling) {
+            if let hit = byLemma[candidate] { return hit }
+        }
+        return nil
+    }
+
     public func analyze(line: String, lineIndex: Int) -> LineStudy {
         let words = tokenizer.studyCandidates(in: line).compactMap { token -> StudyWord? in
             guard let entry = lookup(lemma: token.lemma, reading: token.reading) else {

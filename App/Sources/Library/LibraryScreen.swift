@@ -199,6 +199,7 @@ struct VocabDetailView: View {
                             JustChip(entry.jlpt.label, tint: entry.jlpt.tint)
                             JustChip(entry.partOfSpeech.rawValue)
                         }
+                        KanjiGlossStrip(word: entry.lemma)
                         if !entry.note.isEmpty {
                             Text(entry.note)
                                 .font(JustTheme.Font.body)

@@ -195,6 +195,8 @@ struct WordCard: View {
                 }
             }
 
+            KanjiGlossStrip(word: word.dictionaryForm)
+
             if !word.note.isEmpty {
                 Text(word.note)
                     .font(JustTheme.Font.caption)

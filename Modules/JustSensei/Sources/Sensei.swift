@@ -94,7 +94,13 @@ public final class Sensei {
         let words = study.words.filter { appears($0, in: study.original) }.map { word -> StudyWord in
             let lemma = repairedLemma(for: word)
 
-            guard let entry = dictionary.lookup(lemma: lemma, reading: word.reading) else {
+            // The lyric's own spelling is consulted first; only if the written
+            // form is unknown does the model's dictionary form and reading get
+            // a say.
+            let match = dictionary.entry(forSpelling: word.surface)
+                ?? dictionary.lookup(lemma: lemma, reading: word.reading)
+
+            guard let entry = match else {
                 return StudyWord(
                     surface: word.surface,
                     dictionaryForm: lemma,
@@ -140,13 +146,25 @@ public final class Sensei {
     private func appears(_ word: StudyWord, in line: String) -> Bool {
         for form in [word.surface, word.dictionaryForm] where !form.isEmpty {
             if line.contains(form) { return true }
-            // Conjugated forms share their stem with the dictionary form:
-            // 帰る appears in the line as 帰る, but 忘れる appears as 忘れた.
+
+            // Conjugated forms only share their stem with the dictionary form:
+            // 帰る appears verbatim, but 忘れる appears as 忘れた. The stem is
+            // therefore allowed to stand in — but only for something short
+            // enough to be a single word.
+            //
+            // Without the length bound the model can glue a whole clause
+            // together (取り帰るように out of 取りに帰るように) and have it
+            // admitted on the strength of one shared kanji. Real headwords in
+            // lyrics do not run past five characters; longer strings that are
+            // not literally in the line are phrases, not vocabulary.
+            guard form.count <= Self.maximumHeadwordLength else { continue }
             let stem = String(form.prefix(while: { $0.isKanji }))
-            if stem.count >= 1, line.contains(stem) { return true }
+            if !stem.isEmpty, line.contains(stem) { return true }
         }
         return false
     }
+
+    private static let maximumHeadwordLength = 5
 
     /// Drops notes that talk about JLPT levels.
     ///
