@@ -38,6 +38,10 @@ struct LyricsPane: View {
                 .presentationBackground(.ultraThinMaterial)
         }
         .onChange(of: player.currentTime) { _, time in
+            if let rewind = session.loopRewindTarget(at: time) {
+                player.seek(to: rewind)
+                return
+            }
             guard let index = session.activeLine(at: time), index != activeLine else { return }
             activeLine = index
         }
@@ -54,6 +58,7 @@ struct LyricsPane: View {
                             showsFurigana: session.showsFurigana,
                             scale: session.textSize.scale,
                             translation: session.translation(for: line.id),
+                            isLooping: session.loopingLine == line.id,
                             isAnalyzing: app.sensei.isAnalyzing(line.id)
                         )
                         .id(line.id)
@@ -95,7 +100,7 @@ struct LyricsPane: View {
                         .font(JustTheme.Font.caption.monospacedDigit())
                         .foregroundStyle(JustTheme.Ink.secondary)
                     Button("중지") { session.cancelBulk() }
-                        .font(JustTheme.Font.caption)
+                        .buttonStyle(.justSecondary)
                 }
                 ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
                     .tint(JustTheme.Ink.primary)
@@ -129,6 +134,7 @@ private struct LyricRow: View {
     let showsFurigana: Bool
     let scale: Double
     let translation: String?
+    let isLooping: Bool
     let isAnalyzing: Bool
 
     /// Ruby segmentation walks the tokenizer, so it is computed once per row
@@ -164,6 +170,12 @@ private struct LyricRow: View {
                 Text(line.text)
                     .font(lyricFont)
                     .foregroundStyle(isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
+            }
+
+            if isLooping {
+                Label("이 줄 반복 중", systemImage: "repeat")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Accent.end)
             }
 
             if isAnalyzing {

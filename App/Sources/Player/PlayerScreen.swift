@@ -103,7 +103,7 @@ struct PlayerScreen: View {
                 .font(.system(size: 15, weight: .semibold))
             }
             .buttonStyle(.glass)
-            .tint(session.showsFurigana ? JustTheme.Ink.primary : JustTheme.Ink.tertiary)
+            .tint(session.showsFurigana ? JustTheme.Accent.end : JustTheme.Ink.primary)
 
             Menu {
                 Button {
@@ -169,16 +169,24 @@ struct PlayerScreen: View {
                     .lineLimit(1)
                 if let album = track.album, album != track.title {
                     Button { showsAlbum = true } label: {
-                        HStack(spacing: 3) {
-                            Text(album)
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.stack")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text(album).lineLimit(1)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 9, weight: .semibold))
                         }
                         .font(JustTheme.Font.caption)
-                        .foregroundStyle(JustTheme.Ink.tertiary)
-                        .lineLimit(1)
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(JustTheme.Surface.raised, in: .capsule)
+                        .overlay {
+                            Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                        }
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 2)
                 }
             }
             .frame(maxWidth: .infinity)

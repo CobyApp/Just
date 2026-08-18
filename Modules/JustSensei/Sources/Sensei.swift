@@ -185,8 +185,22 @@ public final class Sensei {
     private static let maximumHeadwordLength = 5
 
     private static func sanitize(_ note: String, hasDictionaryLevel: Bool) -> String {
+        guard isKorean(note) else { return "" }
         let cleaned = strippingSchemaTalk(note)
         return hasDictionaryLevel ? strippingLevelClaims(cleaned) : cleaned
+    }
+
+    /// Drops notes the model wrote in the wrong language.
+    ///
+    /// The instructions ask for Korean, and the model mostly complies — but it
+    /// sometimes answers in Japanese, and a Japanese explanation of a Japanese
+    /// word is no help to the reader it was written for. Presence of Hangul is
+    /// the whole test: a genuine Korean note cannot lack it.
+    private static func isKorean(_ note: String) -> Bool {
+        guard !note.isEmpty else { return true }
+        return note.unicodeScalars.contains {
+            (0xAC00...0xD7A3).contains($0.value) || (0x3130...0x318F).contains($0.value)
+        }
     }
 
     /// Drops notes that talk about JLPT levels.

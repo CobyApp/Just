@@ -158,6 +158,7 @@ struct ReviewScreen: View {
             )
         } actions: {
             Button("다시 확인") { reload() }
+                .buttonStyle(.justSecondary)
         }
     }
 
@@ -171,6 +172,7 @@ struct ReviewScreen: View {
     }
 
     private func submit(_ grade: ReviewGrade, for entry: VocabEntry) {
+        grade == .again ? Haptics.wrong() : Haptics.tick()
         store.grade(entry, grade)
         completed += 1
         withAnimation(.snappy) {

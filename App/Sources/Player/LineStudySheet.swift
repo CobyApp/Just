@@ -44,6 +44,22 @@ struct LineStudySheet: View {
                             .foregroundStyle(JustTheme.Ink.tertiary)
                     }
                 }
+                if session.canLoop {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            session.toggleLoop(lineIndex)
+                            Haptics.tick()
+                        } label: {
+                            Label("이 줄 반복", systemImage: "repeat")
+                                .labelStyle(.iconOnly)
+                        }
+                        .tint(
+                            session.loopingLine == lineIndex
+                                ? JustTheme.Accent.end
+                                : JustTheme.Ink.secondary
+                        )
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { session.selectedLine = nil }
                 }
@@ -82,7 +98,7 @@ struct LineStudySheet: View {
                         Text("단어").justSectionHeader()
                         Spacer()
                         Button("모두 저장") { saveAll(study) }
-                            .font(JustTheme.Font.caption)
+                            .buttonStyle(.justSecondary)
                             .disabled(study.words.allSatisfy { savedWords.contains($0.id) })
                     }
                     ForEach(study.words) { word in
@@ -175,9 +191,17 @@ struct WordCard: View {
                 Spacer(minLength: JustTheme.Space.tight)
 
                 Button(action: toggle) {
-                    Image(systemName: isSaved ? "checkmark.circle.fill" : "plus.circle")
-                        .font(.system(size: 22))
-                        .foregroundStyle(isSaved ? Color.green : JustTheme.Ink.secondary)
+                    Image(systemName: isSaved ? "checkmark" : "plus")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(isSaved ? JustTheme.Surface.base : JustTheme.Ink.primary)
+                        .frame(width: 30, height: 30)
+                        .background(
+                            isSaved ? Color.green : JustTheme.Surface.raised,
+                            in: .circle
+                        )
+                        .overlay {
+                            Circle().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                        }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isSaved ? "단어장에서 빼기" : "단어장에 넣기")

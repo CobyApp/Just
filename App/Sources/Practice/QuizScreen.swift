@@ -301,6 +301,12 @@ struct QuizScreen: View {
         if result == .correct { correctCount += 1 }
         isTyping = false
 
+        switch result {
+        case .correct: Haptics.correct()
+        case .close: Haptics.nearMiss()
+        case .wrong: Haptics.wrong()
+        }
+
         if let entry = store.vocab(key: question.entryKey) {
             store.grade(entry, result.grade)
         }

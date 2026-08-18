@@ -118,6 +118,36 @@ public extension ButtonStyle where Self == JustPrimaryButtonStyle {
     static var justPrimary: JustPrimaryButtonStyle { JustPrimaryButtonStyle() }
 }
 
+/// The bordered button, for actions that are real but not the main one on the
+/// screen — "모두 저장", "중지", "다시 확인".
+///
+/// These were bare tinted text at caption size, which is the same treatment the
+/// app gives passive labels. An outline is the cheapest way to say "this is a
+/// control" without competing with the filled button.
+public struct JustSecondaryButtonStyle: ButtonStyle {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(JustTheme.Font.caption.weight(.semibold))
+            .foregroundStyle(JustTheme.Ink.primary)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 14)
+            .background(
+                JustTheme.Surface.raised.opacity(configuration.isPressed ? 0.4 : 1),
+                in: .capsule
+            )
+            .overlay {
+                Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+            }
+            .contentShape(.capsule)
+    }
+}
+
+public extension ButtonStyle where Self == JustSecondaryButtonStyle {
+    static var justSecondary: JustSecondaryButtonStyle { JustSecondaryButtonStyle() }
+}
+
 /// A small pill used for JLPT levels and parts of speech.
 public struct JustChip: View {
     private let text: String

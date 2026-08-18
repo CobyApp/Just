@@ -93,7 +93,7 @@ private struct PracticeRow: View {
         HStack(spacing: JustTheme.Space.snug) {
             Image(systemName: symbol)
                 .font(.system(size: 20))
-                .foregroundStyle(isProminent ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
+                .foregroundStyle(isProminent ? JustTheme.Accent.end : JustTheme.Ink.primary)
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -102,7 +102,7 @@ private struct PracticeRow: View {
                     .foregroundStyle(JustTheme.Ink.primary)
                 Text(detail)
                     .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Ink.tertiary)
+                    .foregroundStyle(JustTheme.Ink.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -118,7 +118,7 @@ private struct PracticeRow: View {
             }
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(JustTheme.Ink.tertiary)
+                .foregroundStyle(JustTheme.Ink.secondary)
         }
         .padding(JustTheme.Space.snug)
         .frame(maxWidth: .infinity, alignment: .leading)

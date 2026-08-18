@@ -27,6 +27,8 @@ final class SongSession {
     var textSize: LyricTextSize = .stored {
         didSet { textSize.store() }
     }
+    /// Line being repeated, if any.
+    var loopingLine: Int?
     var followsPlayback = true
 
     private let store: JustStore
@@ -188,6 +190,27 @@ final class SongSession {
     }
 
     // MARK: - Playback follow
+
+    func toggleLoop(_ lineIndex: Int) {
+        loopingLine = loopingLine == lineIndex ? nil : lineIndex
+    }
+
+    var canLoop: Bool { lyrics?.isSynced == true }
+
+    /// Seek target when playback has run past the end of the looping line.
+    ///
+    /// Returns nil while still inside the line, so the caller can call this on
+    /// every clock tick without tracking state of its own.
+    func loopRewindTarget(at time: TimeInterval) -> TimeInterval? {
+        guard let loopingLine,
+              let lyrics,
+              let range = lyrics.range(of: loopingLine)
+        else { return nil }
+        // Also rewinds when playback has jumped *before* the line, so a loop
+        // survives the user scrubbing away from it.
+        guard time >= range.end || time < range.start - 0.5 else { return nil }
+        return range.start
+    }
 
     /// Index the lyric view should keep centred, or nil when the user has
     /// taken over scrolling.

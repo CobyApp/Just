@@ -157,3 +157,49 @@ struct SongDifficultyTests {
         #expect(difficulty.counts[.beyond] == 1)
     }
 }
+
+@Suite("가사 구간")
+struct LyricRangeTests {
+    private func lyrics(_ lrc: String) -> Lyrics {
+        // Built by hand so the test does not depend on the LRC parser.
+        let lines = lrc.split(separator: "|").enumerated().map { index, spec in
+            let parts = spec.split(separator: "@")
+            return LyricLine(
+                id: index,
+                time: parts.count > 1 ? TimeInterval(parts[1]) : nil,
+                text: String(parts[0])
+            )
+        }
+        return Lyrics(lines: lines, isSynced: true, source: "test")
+    }
+
+    @Test("구간은 다음 줄이 시작할 때 끝난다")
+    func endsAtNextLine() {
+        let range = lyrics("a@0|b@10|c@20").range(of: 1)
+        #expect(range?.start == 10)
+        #expect(range?.end == 20)
+    }
+
+    /// A blank "♪" line between verses must not cut the loop short.
+    @Test("타임스탬프 없는 빈 줄은 건너뛴다")
+    func skipsUntimedLines() {
+        let range = lyrics("a@0|b@10|♪|c@30").range(of: 1)
+        #expect(range?.end == 30)
+    }
+
+    @Test("마지막 줄은 정해진 길이만큼만 반복한다")
+    func lastLineUsesFallback() {
+        let range = lyrics("a@0|b@10").range(of: 1, fallbackLength: 8)
+        #expect(range?.end == 18)
+    }
+
+    @Test("동기화되지 않은 가사에는 구간이 없다")
+    func plainLyricsHaveNoRange() {
+        let plain = Lyrics(
+            lines: [LyricLine(id: 0, time: nil, text: "a")],
+            isSynced: false,
+            source: "test"
+        )
+        #expect(plain.range(of: 0) == nil)
+    }
+}

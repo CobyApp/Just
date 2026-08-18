@@ -11,6 +11,7 @@ struct LibraryScreen: View {
 
     @State private var levelFilter: JLPTLevel?
     @State private var search = ""
+    @State private var order: WordOrder = .added
 
     @Environment(AppModel.self) private var app
 
@@ -19,13 +20,14 @@ struct LibraryScreen: View {
     private var store: JustStore { JustStore(context: context) }
 
     private var filteredWords: [VocabEntry] {
-        words.filter { entry in
+        let matches = words.filter { entry in
             if let levelFilter, entry.jlpt != levelFilter { return false }
             guard !search.isEmpty else { return true }
             return entry.lemma.contains(search)
                 || entry.reading.contains(search)
                 || entry.meaningKo.localizedCaseInsensitiveContains(search)
         }
+        return order.sort(matches)
     }
 
     var body: some View {
@@ -36,6 +38,17 @@ struct LibraryScreen: View {
             }
             .navigationTitle("단어장")
             .searchable(text: $search, prompt: "단어, 뜻")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("정렬", selection: $order) {
+                            ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
+                        }
+                    } label: {
+                        Label("정렬", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+            }
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
@@ -113,7 +126,7 @@ struct LibraryScreen: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(JustTheme.Ink.tertiary)
+                    .foregroundStyle(JustTheme.Ink.secondary)
             }
             .padding(JustTheme.Space.snug)
             .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
@@ -141,14 +154,20 @@ struct LibraryScreen: View {
             levelFilter = isSelected ? nil : level
         } label: {
             Text(label)
-                .font(JustTheme.Font.caption)
-                .foregroundStyle(isSelected ? JustTheme.Surface.base : JustTheme.Ink.secondary)
+                .font(JustTheme.Font.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? JustTheme.Surface.base : JustTheme.Ink.primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     isSelected ? JustTheme.Ink.primary : JustTheme.Surface.raised,
                     in: .capsule
                 )
+                .overlay {
+                    Capsule().strokeBorder(
+                        isSelected ? .clear : JustTheme.Ink.hairline,
+                        lineWidth: 0.5
+                    )
+                }
         }
         .buttonStyle(.plain)
     }
@@ -278,5 +297,41 @@ struct OccurrenceCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .justCard()
+    }
+}
+
+/// How the word list is ordered.
+enum WordOrder: String, CaseIterable, Identifiable {
+    case added
+    case level
+    case due
+    case frequency
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .added: "담은 순"
+        case .level: "등급 순"
+        case .due: "복습 임박 순"
+        case .frequency: "여러 곡에 나온 순"
+        }
+    }
+
+    func sort(_ entries: [VocabEntry]) -> [VocabEntry] {
+        switch self {
+        case .added:
+            entries.sorted { $0.createdAt > $1.createdAt }
+        case .level:
+            entries.sorted { $0.jlpt < $1.jlpt }
+        case .due:
+            entries.sorted {
+                ($0.review?.due ?? .distantFuture) < ($1.review?.due ?? .distantFuture)
+            }
+        case .frequency:
+            // The words worth prioritising: recurring across songs means
+            // recurring in the language.
+            entries.sorted { $0.occurrences.count > $1.occurrences.count }
+        }
     }
 }

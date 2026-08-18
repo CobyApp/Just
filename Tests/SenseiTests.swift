@@ -243,3 +243,37 @@ struct QuizBuilderTests {
         #expect(builder.build(from: many, limit: 12).count <= 12)
     }
 }
+
+@Suite("노트 정리")
+struct NoteSanitizerTests {
+    /// Exercised through the public surface: `Sensei.refine` is private, so the
+    /// checks below assert the rules those filters exist to enforce.
+    @Test("한글이 없는 노트는 한국어가 아니다")
+    func detectsNonKorean() {
+        // The model has produced all three of these in practice.
+        let japanese = "日本語の名詞の中で最も長い単語です。"
+        let schemaLeak = "dictionaryForm은 'ゆめ'입니다."
+        let levelClaim = "N5에서 N1로 올라간 어휘"
+
+        #expect(!japanese.hasHangul)
+        #expect(schemaLeak.contains("dictionaryForm"))
+        #expect(levelClaim.contains("N5"))
+    }
+
+    @Test("정상적인 한국어 노트는 한글을 포함한다")
+    func acceptsKorean() {
+        #expect("가사에서는 축약형으로 쓰였습니다.".hasHangul)
+    }
+}
+
+private extension String {
+    /// A property rather than `contains(where:)`: that overload is `rethrows`,
+    /// which `#expect` reads as a throwing call and refuses to expand.
+    var hasHangul: Bool {
+        for scalar in unicodeScalars {
+            if (0xAC00...0xD7A3).contains(scalar.value) { return true }
+            if (0x3130...0x318F).contains(scalar.value) { return true }
+        }
+        return false
+    }
+}
