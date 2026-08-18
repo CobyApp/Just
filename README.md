@@ -155,3 +155,15 @@ CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 시뮬레이터에는 Apple Music 계정이 없어 곡을 열 방법이 없으므로, DEBUG 빌드에서만
 검색 화면에 샘플 곡 3개가 나옵니다 (`App/Sources/Search/DebugSamples.swift`).
 재생은 실패하지만 가사·해석·저장·복습은 실제로 동작합니다.
+
+## 라이선스
+
+MIT. 다만 번들 데이터의 출처는 구분해서 봐 주세요.
+
+- `Scripts/curated.json` (149단어), `Modules/JustSensei/Resources/kanji-ko.json`
+  (한자 1,591자 음훈), 그리고 `seed-dictionary.json`의 대부분은 이 저장소 소유자의
+  다른 프로젝트에서 가져온 데이터입니다.
+- 가사는 저장소에 포함되지 않습니다. 실행 시 [LRCLIB](https://lrclib.net)에서
+  받아 기기에만 저장됩니다.
+- 곡 정보와 아트워크는 Apple Music 카탈로그에서 옵니다. Apple Media Services
+  이용약관이 적용됩니다.
