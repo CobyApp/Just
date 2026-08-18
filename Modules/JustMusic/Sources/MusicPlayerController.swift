@@ -70,10 +70,16 @@ public final class MusicPlayerController {
             startTicking()
             if autoplay { play() }
         } catch {
+            // A subscription check that could not run is not the same as a
+            // subscription that is absent — on the Simulator it always fails —
+            // so only name the subscription when access was actually granted
+            // and the account genuinely cannot stream.
+            let blameSubscription = AppleMusicClient.access == .authorized
+                && !canPlayFullTracks
             status = .failed(
-                canPlayFullTracks
-                    ? error.localizedDescription
-                    : AppleMusicClient.Failure.noSubscription.localizedDescription
+                blameSubscription
+                    ? AppleMusicClient.Failure.noSubscription.localizedDescription
+                    : error.localizedDescription
             )
         }
     }

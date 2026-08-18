@@ -24,8 +24,15 @@ struct PlayerScreen: View {
                         // iPad: artwork and transport sit beside the lyrics so
                         // the lyric column keeps a comfortable measure.
                         HStack(alignment: .top, spacing: JustTheme.Space.loose) {
-                            stage
-                                .frame(maxWidth: 420)
+                            // Centred vertically: the artwork column is much
+                            // shorter than a full lyric sheet, and pinning it
+                            // to the top leaves a conspicuous void beneath.
+                            VStack {
+                                Spacer(minLength: 0)
+                                stage
+                                Spacer(minLength: 0)
+                            }
+                            .frame(maxWidth: 420)
                             LyricsPane(session: session, player: app.player)
                         }
                         .padding(.horizontal, JustTheme.Space.loose)
