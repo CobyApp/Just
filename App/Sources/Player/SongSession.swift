@@ -29,6 +29,8 @@ final class SongSession {
     }
     /// Line being repeated, if any.
     var loopingLine: Int?
+    /// Hides the artwork and transport so the lyrics get the whole screen.
+    var isLyricsFullscreen = false
     var followsPlayback = true
 
     private let store: JustStore

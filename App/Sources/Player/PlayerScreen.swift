@@ -40,10 +40,17 @@ struct PlayerScreen: View {
                         .padding(.horizontal, JustTheme.Space.loose)
                     } else {
                         VStack(spacing: 0) {
-                            stage
+                            if !session.isLyricsFullscreen {
+                                stage
+                            }
                             LyricsPane(session: session, player: app.player)
                         }
                         .padding(.horizontal, JustTheme.Space.regular)
+                        .safeAreaInset(edge: .bottom) {
+                            if session.isLyricsFullscreen {
+                                CompactTransport(player: app.player)
+                            }
+                        }
                     }
                 }
                 .safeAreaInset(edge: .top) { header(session: session) }
@@ -127,6 +134,17 @@ struct PlayerScreen: View {
 
             Menu {
                 Button {
+                    withAnimation(.snappy) { session.isLyricsFullscreen.toggle() }
+                } label: {
+                    Label(
+                        session.isLyricsFullscreen ? "플레이어 보기" : "가사 전체화면",
+                        systemImage: session.isLyricsFullscreen
+                            ? "arrow.down.right.and.arrow.up.left"
+                            : "arrow.up.left.and.arrow.down.right"
+                    )
+                }
+
+                Button {
                     session.analyzeAll()
                 } label: {
                     Label("남은 줄 분석", systemImage: "sparkles")
@@ -168,14 +186,21 @@ struct PlayerScreen: View {
 
     private var stage: some View {
         VStack(spacing: JustTheme.Space.regular) {
-            ArtworkView(
-                image: artwork.image,
-                cornerRadius: JustTheme.Radius.card,
-                seed: track.id
-            )
+            Button {
+                withAnimation(.snappy) { session?.isLyricsFullscreen = true }
+                Haptics.tick()
+            } label: {
+                ArtworkView(
+                    image: artwork.image,
+                    cornerRadius: JustTheme.Radius.card,
+                    seed: track.id
+                )
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: sizeClass == .regular ? .infinity : 260)
                 .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("가사 전체화면")
 
             VStack(spacing: 2) {
                 Text(track.title)
@@ -283,5 +308,42 @@ private struct TransportControls: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+/// The transport in fullscreen lyrics: position, one control, nothing else.
+///
+/// Kept separate from `TransportControls` rather than parameterised, because the
+/// two have different jobs — that one is the focus of the player screen, this one
+/// has to stay out of the way of the text it sits under.
+private struct CompactTransport: View {
+    @Bindable var player: MusicPlayerController
+
+    var body: some View {
+        HStack(spacing: JustTheme.Space.regular) {
+            Button { player.togglePlayback() } label: {
+                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(JustTheme.Ink.primary)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+
+            ProgressView(
+                value: min(player.currentTime, max(player.duration, 1)),
+                total: max(player.duration, 1)
+            )
+            .tint(JustTheme.Ink.primary)
+
+            Text(player.currentTime.clockString)
+                .font(JustTheme.Font.caption.monospacedDigit())
+                .foregroundStyle(JustTheme.Ink.secondary)
+        }
+        .padding(.horizontal, JustTheme.Space.regular)
+        .padding(.vertical, JustTheme.Space.tight)
+        .background(.ultraThinMaterial, in: .capsule)
+        .overlay { Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5) }
+        .padding(.horizontal, JustTheme.Space.regular)
+        .padding(.bottom, JustTheme.Space.tight)
     }
 }
