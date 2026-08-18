@@ -8,11 +8,18 @@ import JustCore
 /// to `LineStudy` so the UI can say which one answered.
 public struct DictionarySensei: Sendable {
     public struct Entry: Codable, Sendable {
-        let l: String  // lemma
-        let r: String  // reading
-        let k: String  // Korean meaning
-        let p: String  // part of speech
-        let j: String  // JLPT tag
+        let l: String   // lemma
+        let r: String   // reading
+        let k: String   // Korean meaning
+        /// Part of speech and JLPT level are present only on hand-checked
+        /// entries. The bulk-imported rows carry neither, and nil means
+        /// "unknown" rather than "none" — callers must leave the model's own
+        /// answer alone instead of overwriting it with a default.
+        let p: String?
+        let j: String?
+
+        var partOfSpeech: PartOfSpeech? { p.map(PartOfSpeech.init(rawTag:)) }
+        var jlpt: JLPTLevel? { j.map(JLPTLevel.init(rawTag:)) }
     }
 
     private let byLemma: [String: Entry]
@@ -52,15 +59,23 @@ public struct DictionarySensei: Sendable {
 
     public func lookup(lemma: String, reading: String? = nil) -> Entry? {
         if let hit = byLemma[lemma] { return hit }
-        if let reading, let hit = byReading[reading] { return hit }
 
-        // Both indexes are tried for every de-inflected candidate: the model
-        // often answers in kana ("わすれた"), which matches no kanji headword
-        // but does match a reading once it is put back into dictionary form.
+        // The reading index is consulted only when the lemma carries no kanji
+        // of its own. Readings are heavily shared once the dictionary is a few
+        // thousand entries deep — かえる alone is 帰る, 変える and 蛙 — so
+        // letting a reading outvote an explicit kanji spelling would quietly
+        // swap in the wrong word. When the lemma *is* bare kana it has no
+        // spelling to contradict, which is exactly the ゆめ→夢 case worth
+        // recovering.
+        let lemmaIsAmbiguous = !lemma.containsKanji
+
+        if lemmaIsAmbiguous, let reading, let hit = byReading[reading] { return hit }
+
         for candidate in Deinflector.candidates(for: lemma) {
-            if let hit = byLemma[candidate] ?? byReading[candidate] { return hit }
+            if let hit = byLemma[candidate] { return hit }
+            if lemmaIsAmbiguous, let hit = byReading[candidate] { return hit }
         }
-        if let reading {
+        if lemmaIsAmbiguous, let reading {
             for candidate in Deinflector.candidates(for: reading) {
                 if let hit = byReading[candidate] ?? byLemma[candidate] { return hit }
             }
@@ -78,8 +93,8 @@ public struct DictionarySensei: Sendable {
                 dictionaryForm: entry.l,
                 reading: entry.r,
                 meaningKo: entry.k,
-                partOfSpeech: PartOfSpeech(rawTag: entry.p),
-                jlpt: JLPTLevel(rawTag: entry.j),
+                partOfSpeech: entry.partOfSpeech ?? .other,
+                jlpt: entry.jlpt ?? .beyond,
                 note: token.surface == entry.l ? "" : "가사에서는 「\(token.surface)」 형태로 쓰였습니다."
             )
         }

@@ -113,9 +113,11 @@ public final class Sensei {
                 // The model's gloss is kept: it is written for this line's
                 // context, whereas the dictionary gloss is generic.
                 meaningKo: word.meaningKo.isEmpty ? entry.k : word.meaningKo,
-                partOfSpeech: PartOfSpeech(rawTag: entry.p),
-                jlpt: JLPTLevel(rawTag: entry.j),
-                note: Self.strippingLevelClaims(word.note)
+                // Only the curated tier knows these; for imported words the
+                // model's guess is the best available answer.
+                partOfSpeech: entry.partOfSpeech ?? word.partOfSpeech,
+                jlpt: entry.jlpt ?? word.jlpt,
+                note: entry.jlpt == nil ? word.note : Self.strippingLevelClaims(word.note)
             )
         }
 
