@@ -74,6 +74,14 @@ struct DiscoveryView: View {
                                 .tint(JustTheme.Ink.secondary)
                                 .frame(width: 148)
                         }
+                        if !song.difficulty.isEmpty {
+                            DifficultyBar(
+                                difficulty: song.difficulty,
+                                height: 4,
+                                showsLegend: false
+                            )
+                            .frame(width: 148)
+                        }
                     }
                 }
                 .buttonStyle(.plain)

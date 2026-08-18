@@ -108,7 +108,7 @@ public final class Sensei {
                     meaningKo: word.meaningKo,
                     partOfSpeech: word.partOfSpeech,
                     jlpt: word.jlpt,
-                    note: word.note
+                    note: Self.sanitize(word.note, hasDictionaryLevel: false)
                 )
             }
 
@@ -123,7 +123,7 @@ public final class Sensei {
                 // model's guess is the best available answer.
                 partOfSpeech: entry.partOfSpeech ?? word.partOfSpeech,
                 jlpt: entry.jlpt ?? word.jlpt,
-                note: entry.jlpt == nil ? word.note : Self.strippingLevelClaims(word.note)
+                note: Self.sanitize(word.note, hasDictionaryLevel: entry.jlpt != nil)
             )
         }
 
@@ -166,6 +166,11 @@ public final class Sensei {
 
     private static let maximumHeadwordLength = 5
 
+    private static func sanitize(_ note: String, hasDictionaryLevel: Bool) -> String {
+        let cleaned = strippingSchemaTalk(note)
+        return hasDictionaryLevel ? strippingLevelClaims(cleaned) : cleaned
+    }
+
     /// Drops notes that talk about JLPT levels.
     ///
     /// The model volunteers level trivia — "N5에서 N1로 올라간 어휘" — that is
@@ -173,6 +178,16 @@ public final class Sensei {
     /// would contradict the chip sitting right next to it.
     private static func strippingLevelClaims(_ note: String) -> String {
         note.contains(/[Nn][1-5]/) ? "" : note
+    }
+
+    /// Drops notes that quote the generation schema back at the user.
+    ///
+    /// Guided generation puts field names in the prompt, and the model
+    /// occasionally answers with them — "dictionaryForm은 'ゆめ'입니다" is a
+    /// leak of the plumbing, not an explanation.
+    private static func strippingSchemaTalk(_ note: String) -> String {
+        let leaks = ["dictionaryForm", "surface", "meaningKo", "partOfSpeech", "jlpt", "reading"]
+        return leaks.contains(where: note.contains) ? "" : note
     }
 
     /// Recovers the written form when the model answered with kana.
@@ -216,18 +231,4 @@ public final class Sensei {
         }
     }
 
-    /// Seeds the cache from translations already persisted on a saved song.
-    public func restore(translations: [Int: String], lyrics: Lyrics) {
-        for (index, translation) in translations where cache[index] == nil {
-            guard let line = lyrics.lines.first(where: { $0.id == index }) else { continue }
-            cache[index] = LineStudy(
-                lineIndex: index,
-                original: line.text,
-                translationKo: translation,
-                words: [],
-                grammar: [],
-                engine: .onDevice
-            )
-        }
-    }
 }

@@ -12,8 +12,11 @@ struct LibraryScreen: View {
     @State private var levelFilter: JLPTLevel?
     @State private var search = ""
 
+    @Environment(AppModel.self) private var app
+
+    @State private var stats: StudyStats = .empty
+
     private var store: JustStore { JustStore(context: context) }
-    private var dueCount: Int { store.dueEntries(limit: 200).count }
 
     private var filteredWords: [VocabEntry] {
         words.filter { entry in
@@ -36,6 +39,16 @@ struct LibraryScreen: View {
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
+        // Recomputed on appear rather than observed: the counts change only
+        // when the user grades or saves something, both of which leave and
+        // return to this screen.
+        .onAppear(perform: refresh)
+        .task(id: words.count) { refresh() }
+    }
+
+    private func refresh() {
+        stats = store.stats()
+        Task { await app.reminder.updateBadge(dueCount: stats.dueCount) }
     }
 
     @ViewBuilder
@@ -49,6 +62,10 @@ struct LibraryScreen: View {
         } else {
             List {
                 Section {
+                    StatsHeader(stats: stats)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     reviewCard
                         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
@@ -78,14 +95,18 @@ struct LibraryScreen: View {
     private var reviewCard: some View {
         NavigationLink(value: ReviewRoute()) {
             HStack(spacing: JustTheme.Space.snug) {
-                Image(systemName: dueCount > 0 ? "sparkles" : "checkmark.circle")
+                Image(systemName: stats.dueCount > 0 ? "sparkles" : "checkmark.circle")
                     .font(.system(size: 20))
                     .foregroundStyle(JustTheme.Ink.primary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(dueCount > 0 ? "복습할 단어 \(dueCount)개" : "오늘 복습 끝")
+                    Text(stats.dueCount > 0 ? "복습 시작" : "오늘 복습 끝")
                         .font(JustTheme.Font.body.weight(.semibold))
                         .foregroundStyle(JustTheme.Ink.primary)
-                    Text(dueCount > 0 ? "가사 예문으로 복습합니다" : "다음 카드는 일정에 맞춰 올라옵니다")
+                    Text(
+                        stats.dueCount > 0
+                            ? "가사 예문과 함께 \(stats.dueCount)개"
+                            : "다음 카드는 일정에 맞춰 올라옵니다"
+                    )
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
                 }
@@ -132,10 +153,6 @@ struct LibraryScreen: View {
         .buttonStyle(.plain)
     }
 }
-
-/// Empty route value — the review screen takes no parameters, it just needs to
-/// be pushable.
-struct ReviewRoute: Hashable {}
 
 struct VocabRow: View {
     let entry: VocabEntry

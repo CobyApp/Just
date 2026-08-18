@@ -7,6 +7,7 @@ public enum JustSchema {
         VocabEntry.self,
         VocabOccurrence.self,
         ReviewState.self,
+        StudyDay.self,
     ]
 
     public static func container(inMemory: Bool = false) throws -> ModelContainer {
@@ -104,6 +105,13 @@ public struct JustStore {
         return entry
     }
 
+    public func vocab(key: String) -> VocabEntry? {
+        let descriptor = FetchDescriptor<VocabEntry>(
+            predicate: #Predicate { $0.key == key }
+        )
+        return try? context.fetch(descriptor).first
+    }
+
     public func remove(_ entry: VocabEntry) {
         context.delete(entry)
     }
@@ -129,6 +137,70 @@ public struct JustStore {
             entry.review = new
             return new
         }()
+        let wasNew = state.phase == .new
         state.apply(scheduler.schedule(state, grade: grade))
+        record { day in
+            day.reviewed += 1
+            // A word graded for the first time counts as learned today.
+            if wasNew { day.learned += 1 }
+        }
+    }
+
+    // MARK: - Activity
+
+    /// Applies `change` to today's record, creating it if this is the first
+    /// activity of the day.
+    private func record(_ change: (StudyDay) -> Void) {
+        let today = Calendar.current.startOfDay(for: .now)
+        let descriptor = FetchDescriptor<StudyDay>(
+            predicate: #Predicate { $0.day == today }
+        )
+        let day = (try? context.fetch(descriptor).first) ?? {
+            let new = StudyDay(day: today)
+            context.insert(new)
+            return new
+        }()
+        change(day)
+    }
+
+    public func stats(weekLength: Int = 7) -> StudyStats {
+        let days = (try? context.fetch(FetchDescriptor<StudyDay>())) ?? []
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let todayRecord = days.first { $0.day == today }
+
+        let entries = (try? context.fetch(FetchDescriptor<VocabEntry>())) ?? []
+        var levels: [JLPTLevel: Int] = [:]
+        for entry in entries {
+            levels[entry.jlpt, default: 0] += 1
+        }
+
+        let byDay = Dictionary(
+            days.map { (calendar.startOfDay(for: $0.day), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        // Built by walking the calendar rather than by grouping the records, so
+        // days with no activity still appear as zero-height bars.
+        let week: [DayActivity] = (0..<weekLength).reversed().compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else {
+                return nil
+            }
+            let record = byDay[day]
+            return DayActivity(
+                day: day,
+                reviewed: record?.reviewed ?? 0,
+                learned: record?.learned ?? 0
+            )
+        }
+
+        return StudyStats(
+            reviewedToday: todayRecord?.reviewed ?? 0,
+            learnedToday: todayRecord?.learned ?? 0,
+            streak: StreakCalculator.streak(days: days.map(\.day)),
+            totalWords: entries.count,
+            dueCount: dueEntries(limit: 500).count,
+            levelCounts: levels,
+            week: week
+        )
     }
 }

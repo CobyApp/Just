@@ -23,6 +23,12 @@ public final class StudySong {
     /// Line index -> Korean translation, for lines the user has analysed.
     public var translations: [Int: String] = [:]
 
+    /// JLPT level -> how many words the analyser found at that level.
+    ///
+    /// Accumulated as lines are analysed so a song can describe its own
+    /// difficulty without re-running the model.
+    public var levelCounts: [String: Int] = [:]
+
     @Relationship(deleteRule: .cascade, inverse: \VocabOccurrence.song)
     public var occurrences: [VocabOccurrence] = []
 
@@ -59,6 +65,10 @@ public final class StudySong {
         set {
             lyricsData = newValue.flatMap { try? JSONEncoder().encode($0) }
         }
+    }
+
+    public var difficulty: SongDifficulty {
+        SongDifficulty(raw: levelCounts)
     }
 
     /// Fraction of lyric lines that have been analysed at least once.

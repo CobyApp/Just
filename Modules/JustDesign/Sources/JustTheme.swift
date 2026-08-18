@@ -17,6 +17,28 @@ public enum JustTheme {
         public static let sunken = Color.black.opacity(0.28)
     }
 
+    /// The one saturated element in an otherwise monochrome app. Used for
+    /// progress and achievement, where a number alone reads as flat.
+    public enum Accent {
+        public static let start = Color(red: 0.55, green: 0.42, blue: 0.98)
+        public static let end = Color(red: 0.96, green: 0.44, blue: 0.72)
+
+        public static var gradient: LinearGradient {
+            LinearGradient(
+                colors: [start, end],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        public static var angular: AngularGradient {
+            AngularGradient(
+                colors: [start, end, start],
+                center: .center
+            )
+        }
+    }
+
     public enum Radius {
         public static let card: CGFloat = 20
         public static let chip: CGFloat = 10

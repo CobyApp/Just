@@ -15,6 +15,7 @@ final class AppModel {
     let player = MusicPlayerController()
     let sensei = Sensei()
     let music = AppleMusicClient()
+    let reminder = ReviewReminder()
 
     /// The song the player screen is showing, if any.
     var openTrack: Track?

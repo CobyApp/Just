@@ -30,6 +30,32 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    Toggle("매일 복습 알림", isOn: Binding(
+                        get: { app.reminder.isEnabled },
+                        set: { app.reminder.isEnabled = $0 }
+                    ))
+                    if app.reminder.isEnabled {
+                        DatePicker(
+                            "알림 시각",
+                            selection: Binding(
+                                get: { app.reminder.timeAsDate },
+                                set: { app.reminder.setTime(from: $0) }
+                            ),
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+                    if app.reminder.isDenied {
+                        Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > Just에서 켜 주세요.")
+                            .font(JustTheme.Font.caption)
+                            .foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("복습")
+                } footer: {
+                    Text("복습 간격은 FSRS로 계산합니다. 알림을 켜두면 그날 올라온 카드를 놓치지 않습니다.")
+                }
+
+                Section {
                     LabeledContent("해석 엔진") {
                         Text(app.sensei.usesOnDeviceModel ? "Apple Intelligence" : "사전 (오프라인)")
                             .foregroundStyle(JustTheme.Ink.secondary)

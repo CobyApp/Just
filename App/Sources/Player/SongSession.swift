@@ -44,6 +44,19 @@ final class SongSession {
 
     var isBulkAnalyzing: Bool { bulkProgress != nil }
 
+    /// The Korean line, from the persisted cache or from this session's
+    /// analysis.
+    ///
+    /// Kept separate from the analysis cache: seeding that cache with
+    /// translation-only entries made `analyze` short-circuit, so a reopened
+    /// song showed its translations but could never produce word cards again.
+    func translation(for lineIndex: Int) -> String? {
+        if let study = sensei.cached(lineIndex), !study.translationKo.isEmpty {
+            return study.translationKo
+        }
+        return song?.translations[lineIndex]
+    }
+
     // MARK: - Loading
 
     func start() async {
@@ -54,7 +67,6 @@ final class SongSession {
 
         if let cached = record.lyrics, !cached.isEmpty {
             lyricsState = .ready(cached)
-            sensei.restore(translations: record.translations, lyrics: cached)
             return
         }
 
@@ -119,9 +131,29 @@ final class SongSession {
     /// Caches the Korean translation on the song so a reopened song shows its
     /// translations immediately, without re-running the model.
     private func persist(_ study: LineStudy?) {
-        guard let study, !study.translationKo.isEmpty, let song else { return }
-        song.translations[study.lineIndex] = study.translationKo
+        guard let study, let song else { return }
+        if !study.translationKo.isEmpty {
+            song.translations[study.lineIndex] = study.translationKo
+        }
+
+        // Recount from scratch for this line rather than adding to a running
+        // total: a line can be re-analysed, and blind accumulation would
+        // inflate the histogram every time it is.
+        var counts = song.levelCounts
+        for previous in analyzedLevels[study.lineIndex] ?? [] {
+            counts[previous, default: 0] = max(0, (counts[previous] ?? 0) - 1)
+        }
+        let levels = study.words.map(\.jlpt.rawValue)
+        for level in levels {
+            counts[level, default: 0] += 1
+        }
+        analyzedLevels[study.lineIndex] = levels
+        song.levelCounts = counts.filter { $0.value > 0 }
     }
+
+    /// Levels already counted per line, so a re-analysis replaces rather than
+    /// double-counts.
+    private var analyzedLevels: [Int: [String]] = [:]
 
     // MARK: - Vocabulary
 

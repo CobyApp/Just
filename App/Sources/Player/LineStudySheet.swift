@@ -63,8 +63,8 @@ struct LineStudySheet: View {
                 font: JustTheme.Font.japanese,
                 color: JustTheme.Ink.primary
             )
-            if let study, !study.translationKo.isEmpty {
-                Text(study.translationKo)
+            if let translation = session.translation(for: lineIndex), !translation.isEmpty {
+                Text(translation)
                     .font(JustTheme.Font.body)
                     .foregroundStyle(JustTheme.Ink.secondary)
             }
@@ -205,19 +205,5 @@ struct WordCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .justCard()
-    }
-}
-
-extension JLPTLevel {
-    /// Green through red as the level gets harder; grey for out-of-syllabus.
-    var tint: Color {
-        switch self {
-        case .n5: Color(red: 0.42, green: 0.78, blue: 0.55)
-        case .n4: Color(red: 0.55, green: 0.76, blue: 0.45)
-        case .n3: Color(red: 0.86, green: 0.74, blue: 0.40)
-        case .n2: Color(red: 0.90, green: 0.58, blue: 0.36)
-        case .n1: Color(red: 0.88, green: 0.44, blue: 0.44)
-        case .beyond: JustTheme.Ink.tertiary
-        }
     }
 }

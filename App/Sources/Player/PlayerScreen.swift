@@ -152,6 +152,11 @@ struct PlayerScreen: View {
             }
             .frame(maxWidth: .infinity)
 
+            if let difficulty = session?.song?.difficulty, !difficulty.isEmpty {
+                DifficultyBar(difficulty: difficulty)
+                    .frame(maxWidth: 260)
+            }
+
             TransportControls(player: app.player)
         }
     }

@@ -52,7 +52,7 @@ struct LyricsPane: View {
                             line: line,
                             isActive: line.id == activeLine,
                             showsFurigana: session.showsFurigana,
-                            study: app.sensei.cached(line.id),
+                            translation: session.translation(for: line.id),
                             isAnalyzing: app.sensei.isAnalyzing(line.id)
                         )
                         .id(line.id)
@@ -120,7 +120,7 @@ private struct LyricRow: View {
     let line: LyricLine
     let isActive: Bool
     let showsFurigana: Bool
-    let study: LineStudy?
+    let translation: String?
     let isAnalyzing: Bool
 
     /// Ruby segmentation walks the tokenizer, so it is computed once per row
@@ -149,8 +149,8 @@ private struct LyricRow: View {
 
             if isAnalyzing {
                 ProgressView().controlSize(.mini)
-            } else if let study, !study.translationKo.isEmpty {
-                Text(study.translationKo)
+            } else if let translation, !translation.isEmpty {
+                Text(translation)
                     .font(JustTheme.Font.translation)
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }

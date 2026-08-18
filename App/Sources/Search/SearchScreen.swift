@@ -124,6 +124,7 @@ struct SearchScreen: View {
 struct TrackRow: View {
     let track: Track
     var progress: Double?
+    var difficulty: SongDifficulty?
 
     @State private var artwork = ArtworkLoader()
 
@@ -143,6 +144,12 @@ struct TrackRow: View {
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .lineLimit(1)
+                if let difficulty, !difficulty.isEmpty {
+                    Text(difficulty.summary)
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                        .lineLimit(1)
+                }
                 if let progress, progress > 0 {
                     ProgressView(value: progress)
                         .tint(JustTheme.Ink.secondary)
