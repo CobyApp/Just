@@ -46,14 +46,17 @@ public final class Sensei {
     /// to generate for those lines.
     public func preload(_ studies: [Int: LineStudy]) {
         for (index, study) in studies where cache[index] == nil {
+            guard Self.isComplete(study) else { continue }
             cache[index] = study
         }
     }
 
-    /// Lines with no analysis yet.
+    /// Lines still needing work — never analysed, or analysed into nothing.
     public func pendingLines(in lyrics: Lyrics) -> [LyricLine] {
-        lyrics.lines.filter {
-            cache[$0.id] == nil && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty
+        lyrics.lines.filter { line in
+            guard !line.text.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+            guard let cached = cache[line.id] else { return true }
+            return !Self.isComplete(cached)
         }
     }
 
@@ -93,8 +96,23 @@ public final class Sensei {
         }
 
         let refined = refine(result)
-        cache[lineIndex] = refined
+        // A model call that produced no translation is a failure, not an answer.
+        // Caching it made the line permanently blank: the cache short-circuits
+        // `analyze`, so it would never be attempted again and the song kept a
+        // hole in it forever.
+        if Self.isComplete(refined) {
+            cache[lineIndex] = refined
+        }
         return refined
+    }
+
+    /// Whether a result is worth keeping.
+    ///
+    /// The dictionary engine cannot translate at all, so its results are
+    /// complete by definition — judging them by the same rule would retry every
+    /// line forever on a device without Apple Intelligence.
+    private static func isComplete(_ study: LineStudy) -> Bool {
+        study.engine == .dictionary || !study.translationKo.isEmpty
     }
 
     // MARK: - Refinement
@@ -248,9 +266,7 @@ public final class Sensei {
         artist: String,
         onProgress: @MainActor (Int, Int) -> Void = { _, _ in }
     ) async {
-        let pending = lyrics.lines.filter {
-            cache[$0.id] == nil && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty
-        }
+        let pending = pendingLines(in: lyrics)
         for (offset, line) in pending.enumerated() {
             if Task.isCancelled { return }
             await analyze(

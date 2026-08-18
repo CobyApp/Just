@@ -66,10 +66,23 @@ final class AppModel {
 
     var isAuthorized: Bool { access == .authorized }
 
+    /// Re-reads the system state without prompting.
+    ///
+    /// Needed because the user can change the permission in Settings while the
+    /// app is suspended, and nothing tells the app when they do.
+    func refreshAccess() async {
+        access = AppleMusicClient.access
+        if access == .authorized {
+            canPlayFullTracks = await AppleMusicClient.canPlayFullTracks()
+            await checkCatalog()
+        }
+    }
+
     func requestAccess() async {
         access = await AppleMusicClient.requestAccess()
         if access == .authorized {
             canPlayFullTracks = await AppleMusicClient.canPlayFullTracks()
+            await checkCatalog()
         }
     }
 
@@ -87,6 +100,71 @@ final class AppModel {
             catalogStatus = .ok
         } catch {
             catalogStatus = .failed(error.localizedDescription)
+        }
+    }
+
+    var engineLabel: String {
+        sensei.usesOnDeviceModel ? "Apple Intelligence (온디바이스)" : "사전 (오프라인)"
+    }
+
+    var playbackLabel: String {
+        canPlayFullTracks ? "전곡" : "미리듣기 30초"
+    }
+
+    /// The single thing standing between the user and a working catalog, or nil.
+    ///
+    /// Collapsing access, subscription and catalog state into one optional is
+    /// what lets Settings show a problem only when there is one — listing all
+    /// three unconditionally is what made the screen read as a diagnostics dump.
+    var connectionProblem: ConnectionProblem? {
+        switch access {
+        case .notDetermined: .needsAuthorization
+        case .denied: .denied
+        case .restricted: .restricted
+        case .authorized:
+            if case .failed(let message) = catalogStatus { .catalog(message) } else { nil }
+        }
+    }
+
+    enum ConnectionProblem {
+        case needsAuthorization
+        case denied
+        case restricted
+        case catalog(String)
+
+        var message: String {
+            switch self {
+            case .needsAuthorization:
+                "아직 Apple Music 접근을 허용하지 않았습니다. 곡 검색과 재생에 필요합니다."
+            case .denied:
+                "접근이 거부되어 있습니다. iOS는 한 번 거부한 권한을 앱에서 다시 물어볼 수 없으므로, 설정에서 직접 켜 주세요."
+            case .restricted:
+                "스크린 타임이나 기기 관리 정책으로 Apple Music 접근이 제한되어 있습니다."
+            case .catalog(let message):
+                message
+            }
+        }
+
+        var actionTitle: String {
+            switch self {
+            case .needsAuthorization: "허용하기"
+            case .denied, .restricted: "설정 열기"
+            case .catalog: "다시 확인"
+            }
+        }
+
+        @MainActor
+        func act(openURL: OpenURLAction, app: AppModel) {
+            switch self {
+            case .needsAuthorization:
+                Task { await app.requestAccess() }
+            case .denied, .restricted:
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(url)
+                }
+            case .catalog:
+                Task { await app.checkCatalog() }
+            }
         }
     }
 

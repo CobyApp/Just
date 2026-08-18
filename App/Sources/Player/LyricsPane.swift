@@ -15,12 +15,15 @@ struct LyricsPane: View {
         Group {
             switch session.lyricsState {
             case .loading:
-                VStack(spacing: JustTheme.Space.snug) {
-                    ProgressView()
-                    Text("가사를 찾는 중").font(JustTheme.Font.caption)
+                VStack(alignment: .leading, spacing: JustTheme.Space.regular) {
+                    Text("가사를 찾는 중")
+                        .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
+                    SkeletonLyrics()
+                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, JustTheme.Space.loose)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             case .missing(let message):
                 MissingLyricsView(session: session, message: message)

@@ -48,7 +48,14 @@ struct PlayerScreen: View {
                 }
                 .safeAreaInset(edge: .top) { header(session: session) }
             } else {
-                ProgressView().controlSize(.large)
+                VStack(spacing: JustTheme.Space.regular) {
+                    Skeleton(cornerRadius: JustTheme.Radius.card)
+                        .frame(width: 260, height: 260)
+                    Skeleton().frame(width: 160, height: 22)
+                    Skeleton().frame(width: 110, height: 15)
+                    Spacer()
+                }
+                .padding(.top, JustTheme.Space.section)
             }
         }
         .task {
@@ -92,18 +99,31 @@ struct PlayerScreen: View {
 
             // Furigana stays a one-tap control: it is toggled constantly while
             // reading. Everything else is once-per-song and belongs in a menu.
+            // `textformat.size.ja.smaller` does not exist in SF Symbols, so the
+            // off state used to render an empty button. One real symbol now,
+            // with the state shown by fill rather than by swapping the glyph.
             Button {
                 session.showsFurigana.toggle()
+                Haptics.tick()
             } label: {
-                Label(
-                    "후리가나",
-                    systemImage: session.showsFurigana ? "textformat.size.ja" : "textformat.size.ja.smaller"
-                )
-                .labelStyle(.iconOnly)
-                .font(.system(size: 15, weight: .semibold))
+                Image(systemName: "textformat.size.ja")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(
+                        session.showsFurigana ? JustTheme.Surface.base : JustTheme.Ink.primary
+                    )
+                    .frame(width: 34, height: 34)
+                    .background(
+                        session.showsFurigana ? AnyShapeStyle(JustTheme.Accent.gradient)
+                            : AnyShapeStyle(JustTheme.Surface.raised),
+                        in: .circle
+                    )
+                    .overlay {
+                        Circle().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                    }
             }
-            .buttonStyle(.glass)
-            .tint(session.showsFurigana ? JustTheme.Accent.end : JustTheme.Ink.primary)
+            .buttonStyle(.plain)
+            .accessibilityLabel("후리가나")
+            .accessibilityValue(session.showsFurigana ? "켜짐" : "꺼짐")
 
             Menu {
                 Button {

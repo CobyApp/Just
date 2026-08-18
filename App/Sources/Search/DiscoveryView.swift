@@ -32,25 +32,14 @@ struct DiscoveryView: View {
                 }
 
                 if isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
+                    // Two shelves' worth, so the screen has the shape of what
+                    // is coming instead of a spinner in the middle of nothing.
+                    SkeletonShelf()
+                    SkeletonShelf()
                 } else if isEmpty {
                     emptyState
                 }
 
-                // Last, and quiet: this is scaffolding for the Simulator, not
-                // something to greet the user with.
-                #if DEBUG
-                shelf(
-                    title: "샘플 (개발용)",
-                    subtitle: "시뮬레이터에서 가사·해석을 확인할 때 씁니다",
-                    tracks: DebugSamples.all,
-                    muted: true
-                )
-                #endif
             }
             .padding(.vertical, JustTheme.Space.regular)
         }

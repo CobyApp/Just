@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Draws the app icon.
 
-The mark is 歌 ("song") carrying its own furigana, うた. That pairing *is* the
-app: a Japanese word with its reading printed above it. The ruby is sized so it
-reads as an annotation at large sizes and settles into a light accent stroke at
-40pt, leaving the kanji to carry recognition on its own.
+One character: 歌, "song". The earlier version stacked its furigana above it,
+which was a neat summary of what the app does and too much for an icon — at
+40pt the reading was texture, not information, and the kanji was already
+carrying recognition on its own. An app called Just should not need two marks.
 
 Usage:  python3 Scripts/make-icon.py
 """
@@ -19,9 +19,9 @@ SIZE = 1024
 JAPANESE = "/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc"
 
 # Same family as the player's mesh background: deep indigo drifting to plum.
-TOP_LEFT = (18, 19, 34)
-BOTTOM_RIGHT = (58, 36, 74)
-GLOW = (128, 96, 168)
+TOP_LEFT = (20, 20, 32)
+BOTTOM_RIGHT = (52, 34, 68)
+GLOW = (104, 78, 150)
 
 
 def background():
@@ -40,7 +40,7 @@ def background():
     glow = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
     draw = ImageDraw.Draw(glow)
     centre = SIZE * 0.54
-    radius = SIZE * 0.42
+    radius = SIZE * 0.48
     # Concentric discs approximate a radial falloff without a blur pass.
     steps = 60
     for step in range(steps, 0, -1):
@@ -86,15 +86,10 @@ def main():
     image = background()
     draw = ImageDraw.Draw(image)
 
-    # Sized so the pair sits inside the ~80% safe area an iOS mask leaves;
-    # a glyph that reaches the edge looks cramped once the corners round off.
-    kanji = ImageFont.truetype(JAPANESE, 400)
-    ruby = ImageFont.truetype(JAPANESE, 104)
-
-    centre_x = SIZE / 2
-    centred(draw, "歌", kanji, centre_x, SIZE * 0.568, (255, 255, 255))
-    # Sits above the kanji the way furigana does, in the app's muted ink.
-    centred(draw, "うた", ruby, centre_x, SIZE * 0.285, (198, 188, 222))
+    # Sized to sit inside the ~80% safe area an iOS mask leaves; a glyph that
+    # reaches the edge looks cramped once the corners round off.
+    kanji = ImageFont.truetype(JAPANESE, 470)
+    centred(draw, "歌", kanji, SIZE / 2, SIZE / 2, (255, 255, 255))
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     image.save(OUTPUT)

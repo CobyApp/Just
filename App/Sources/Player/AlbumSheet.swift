@@ -33,7 +33,18 @@ struct AlbumSheet: View {
                             Text(failure)
                         }
                     } else {
-                        ProgressView().controlSize(.large)
+                        VStack(spacing: JustTheme.Space.loose) {
+                            Skeleton(cornerRadius: JustTheme.Radius.card)
+                                .frame(width: 260, height: 260)
+                            Skeleton().frame(width: 180, height: 20)
+                            VStack(spacing: JustTheme.Space.snug) {
+                                ForEach(0..<6, id: \.self) { _ in
+                                    Skeleton().frame(height: 16)
+                                }
+                            }
+                            .padding(.horizontal, JustTheme.Space.loose)
+                        }
+                        .padding(JustTheme.Space.regular)
                     }
                 }
             }

@@ -6,6 +6,7 @@ import SwiftUI
 /// collected, and being tested on it.
 struct RootView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: Destination = .today
 
     enum Destination: Hashable {
@@ -32,6 +33,13 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .fullScreenCover(item: $app.openTrack) { track in
             PlayerScreen(track: track)
+        }
+        .task { await app.refreshAccess() }
+        .onChange(of: scenePhase) { _, phase in
+            // The permission can be flipped in Settings while the app is
+            // backgrounded, and iOS gives no callback for it.
+            guard phase == .active else { return }
+            Task { await app.refreshAccess() }
         }
     }
 }

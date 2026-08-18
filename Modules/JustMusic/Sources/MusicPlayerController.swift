@@ -47,7 +47,22 @@ public final class MusicPlayerController {
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
 
-    public init() {}
+    public init() {
+        configureAudioSession()
+    }
+
+    /// Declares this as a playback app.
+    ///
+    /// Without a category the session defaults to `.soloAmbient`, which obeys
+    /// the ringer switch — so the app went silent in vibrate mode, which is
+    /// baffling behaviour for something you opened to listen to a song. This was
+    /// lost in the move from the web player to MusicKit and has to be set for
+    /// the preview path in particular, which is a plain AVPlayer.
+    private func configureAudioSession() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
+    }
 
     deinit {
         ticker?.cancel()

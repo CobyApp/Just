@@ -36,17 +36,20 @@ struct SearchScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        // Debug builds fall through to the browse screen, which carries the
-        // sample songs — a Simulator can never be authorized, and gating it
-        // here would make the whole app unreachable there.
-        if !app.isAuthorized && !Self.allowsUnauthorizedBrowsing {
+        if !app.isAuthorized {
             authorizationGate
         } else {
             switch state {
             case .idle:
                 DiscoveryView()
             case .loading:
-                ProgressView().controlSize(.large)
+                List(0..<8, id: \.self) { _ in
+                    SkeletonTrackRow()
+                        .listRowBackground(Color.clear)
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .allowsHitTesting(false)
             case .failed(let message):
                 ContentUnavailableView {
                     Label("검색할 수 없습니다", systemImage: "exclamationmark.triangle")
@@ -71,24 +74,7 @@ struct SearchScreen: View {
     }
 
     private var authorizationGate: some View {
-        ContentUnavailableView {
-            Label("Apple Music 접근 허용", systemImage: "music.note")
-        } description: {
-            Text("곡을 검색하고 재생하려면 Apple Music 라이브러리 접근을 허용해 주세요. 계정 정보는 앱 밖으로 나가지 않습니다.")
-        } actions: {
-            Button("허용하기") {
-                Task { await app.requestAccess() }
-            }
-            .buttonStyle(.justPrimary)
-        }
-    }
-
-    private static var allowsUnauthorizedBrowsing: Bool {
-        #if DEBUG
-        true
-        #else
-        false
-        #endif
+        AppleMusicGate()
     }
 
     private func trackList(_ tracks: [Track]) -> some View {

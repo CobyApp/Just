@@ -130,10 +130,13 @@ public struct ArtworkView: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .transition(.opacity)
             } else {
                 placeholder
+                    .transition(.opacity)
             }
         }
+        .animation(.easeOut(duration: 0.28), value: image == nil)
         .clipShape(.rect(cornerRadius: cornerRadius))
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius)
