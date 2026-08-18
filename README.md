@@ -148,6 +148,22 @@ JLPT 등급까지 신뢰할 수 있고, 나머지 6.8천개는 옆 프로젝트�
 가사는 여기에 앱 자체의 4단계 조절이 곱해집니다. 시스템 설정과 앱 설정이
 같은 텍스트에 함께 작용하므로, 접근성 크기에서는 가사 크기를 낮춰 쓰면 됩니다.
 
+## MusicKit App ID 설정 (필수, 1회)
+
+검색이 "개발자 토큰 요청 실패"로 죽으면 이것 때문입니다.
+
+MusicKit은 개발자 토큰을 자동으로 발급하지만, **명시적 App ID에 MusicKit
+서비스가 켜져 있을 때만** 가능합니다. 와일드카드 팀 프로비저닝
+프로파일(`TEAM.*`)로 서명하면 실패하고, 오류 메시지는 토큰만 말하고 정작
+원인인 포털 스위치는 언급하지 않습니다.
+
+1. developer.apple.com > Certificates, Identifiers & Profiles > **Identifiers**
+2. **+** > App IDs > App > Bundle ID는 **Explicit**로 `com.coby.just`
+3. 그 App ID의 **App Services**에서 **MusicKit** 체크 후 저장
+4. 다시 빌드 (`-allowProvisioningUpdates`가 새 프로파일을 받아옵니다)
+
+설정 화면의 **카탈로그 연결 > 연결 확인**으로 실제 성공 여부를 볼 수 있습니다.
+
 ## 빌드와 배포
 
 옆 프로젝트 `mana`와 같은 구성입니다.

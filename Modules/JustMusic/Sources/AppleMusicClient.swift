@@ -18,6 +18,9 @@ public struct AppleMusicClient: Sendable {
         case noSubscription
         case notFound
         case noPreview
+        /// MusicKit refused to mint a developer token.
+        case developerTokenUnavailable
+        case notSignedIn
         case transport(String)
 
         public var errorDescription: String? {
@@ -30,9 +33,20 @@ public struct AppleMusicClient: Sendable {
                 "곡을 찾지 못했습니다."
             case .noPreview:
                 "이 곡은 미리듣기도 제공되지 않습니다. 전곡 재생에는 Apple Music 구독이 필요합니다."
+            case .developerTokenUnavailable:
+                "Apple Music 개발자 토큰을 받지 못했습니다. App ID에 MusicKit 서비스가 켜져 있어야 합니다 — developer.apple.com > Identifiers에서 com.coby.just를 명시적 App ID로 만들고 MusicKit을 켠 뒤 다시 빌드해 주세요."
+            case .notSignedIn:
+                "기기에 Apple Music 계정이 로그인되어 있지 않습니다. 설정 > Apple 계정에서 로그인해 주세요."
             case .transport(let message):
                 message
             }
+        }
+
+        /// True when the error carries no specific diagnosis, so a caller with
+        /// more context is free to offer a better one.
+        var isGeneric: Bool {
+            if case .transport = self { return true }
+            return false
         }
     }
 
@@ -65,6 +79,38 @@ public struct AppleMusicClient: Sendable {
     }
 
     public init() {}
+
+    /// Translates MusicKit's own errors into something actionable.
+    ///
+    /// The failure that matters here is the developer token: MusicKit mints one
+    /// automatically, but only for an *explicit* App ID with the MusicKit
+    /// service enabled. Signed with a wildcard team profile it fails, and the
+    /// raw error says nothing about the portal switch that fixes it — which is
+    /// a long detour to discover from a build that otherwise looks fine.
+    static func failure(from error: Error) -> Failure {
+        if let failure = error as? Failure { return failure }
+
+        if let tokenError = error as? MusicTokenRequestError {
+            switch tokenError {
+            case .developerTokenRequestFailed:
+                return .developerTokenUnavailable
+            case .userNotSignedIn:
+                return .notSignedIn
+            case .permissionDenied, .privacyAcknowledgementRequired:
+                return .notAuthorized
+            default:
+                return .transport(error.localizedDescription)
+            }
+        }
+
+        // Not every path surfaces a typed error; the description still carries
+        // the token failure when MusicKit wraps it.
+        let description = error.localizedDescription
+        if description.localizedCaseInsensitiveContains("developer token") {
+            return .developerTokenUnavailable
+        }
+        return .transport(description)
+    }
 
     // MARK: - Authorization
 
@@ -99,7 +145,7 @@ public struct AppleMusicClient: Sendable {
             let response = try await request.response()
             return response.songs.map(Self.track(from:))
         } catch {
-            throw Failure.transport(error.localizedDescription)
+            throw Self.failure(from: error)
         }
     }
 
@@ -121,10 +167,8 @@ public struct AppleMusicClient: Sendable {
                 throw Failure.notFound
             }
             return song
-        } catch let failure as Failure {
-            throw failure
         } catch {
-            throw Failure.transport(error.localizedDescription)
+            throw Self.failure(from: error)
         }
     }
 

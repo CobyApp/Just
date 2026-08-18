@@ -23,6 +23,20 @@ struct SettingsScreen: View {
                             Task { await app.requestAccess() }
                         }
                     }
+                    LabeledContent("카탈로그 연결") {
+                        Text(app.catalogStatus.label)
+                            .foregroundStyle(
+                                app.catalogStatus == .ok ? JustTheme.Ink.secondary : .orange
+                            )
+                    }
+                    if let advice = app.catalogStatus.advice {
+                        Text(advice)
+                            .font(JustTheme.Font.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    Button("연결 확인") {
+                        Task { await app.checkCatalog() }
+                    }
                 } header: {
                     Text("Apple Music")
                 } footer: {

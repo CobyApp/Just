@@ -53,8 +53,12 @@ struct SearchScreen: View {
                 } description: {
                     Text(message)
                 } actions: {
-                    Button("다시 시도") { retry() }
-                        .buttonStyle(.justPrimary)
+                    VStack(spacing: JustTheme.Space.snug) {
+                        Button("다시 시도") { retry() }
+                            .buttonStyle(.justPrimary)
+                        Button("설정에서 연결 확인") { showsSettings = true }
+                            .buttonStyle(.justSecondary)
+                    }
                 }
             case .loaded:
                 if results.isEmpty {
