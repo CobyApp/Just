@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import JustCore
 // MusicKit's player types are not Sendable-audited yet; the player is only
@@ -30,11 +31,17 @@ public final class MusicPlayerController {
     /// False when the account cannot stream catalog content, so the UI can say
     /// why nothing plays instead of failing silently.
     public private(set) var canPlayFullTracks = true
+    /// True while playing a catalog preview clip rather than the full song.
+    public private(set) var isPreview = false
 
     public var isPlaying: Bool { status == .playing }
 
     @ObservationIgnored
     private let player = ApplicationMusicPlayer.shared
+    /// Used only for preview clips. The catalog player cannot play them, and an
+    /// AVPlayer cannot play catalog content, so both exist.
+    @ObservationIgnored
+    private let previewPlayer = AVPlayer()
     @ObservationIgnored
     private let client = AppleMusicClient()
     @ObservationIgnored
@@ -63,25 +70,49 @@ public final class MusicPlayerController {
 
         do {
             let song = try await client.song(id: track.id)
-            player.queue = [song]
-            if let songDuration = song.duration { duration = songDuration }
-            try await player.prepareToPlay()
-            status = .ready
-            startTicking()
-            if autoplay { play() }
+
+            if canPlayFullTracks {
+                try await startCatalogPlayback(song, autoplay: autoplay)
+            } else {
+                // Without a subscription the catalog will not stream, but the
+                // 30-second preview is open to anyone — and a study app is
+                // still useful on a clip, since the lyric view is doing the
+                // work rather than the audio.
+                try startPreviewPlayback(song, autoplay: autoplay)
+            }
         } catch {
-            // A subscription check that could not run is not the same as a
-            // subscription that is absent — on the Simulator it always fails —
-            // so only name the subscription when access was actually granted
-            // and the account genuinely cannot stream.
             let blameSubscription = AppleMusicClient.access == .authorized
                 && !canPlayFullTracks
             status = .failed(
                 blameSubscription
-                    ? AppleMusicClient.Failure.noSubscription.localizedDescription
+                    ? AppleMusicClient.Failure.noPreview.localizedDescription
                     : Self.readableFailure(error)
             )
         }
+    }
+
+    private func startCatalogPlayback(_ song: Song, autoplay: Bool) async throws {
+        isPreview = false
+        previewPlayer.pause()
+        player.queue = [song]
+        if let songDuration = song.duration { duration = songDuration }
+        try await player.prepareToPlay()
+        status = .ready
+        startTicking()
+        if autoplay { play() }
+    }
+
+    private func startPreviewPlayback(_ song: Song, autoplay: Bool) throws {
+        guard let url = song.previewAssets?.compactMap(\.url).first else {
+            throw AppleMusicClient.Failure.noPreview
+        }
+        isPreview = true
+        previewPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+        // Preview length is not published; it is read off the item once loaded.
+        duration = 30
+        status = .ready
+        startTicking()
+        if autoplay { play() }
     }
 
     /// Keeps framework error domains out of the UI.
@@ -100,18 +131,27 @@ public final class MusicPlayerController {
     // MARK: - Transport
 
     public func play() {
+        guard !isPreview else {
+            previewPlayer.play()
+            status = .playing
+            return
+        }
         Task {
             do {
                 try await player.play()
                 status = .playing
             } catch {
-                status = .failed(error.localizedDescription)
+                status = .failed(Self.readableFailure(error))
             }
         }
     }
 
     public func pause() {
-        player.pause()
+        if isPreview {
+            previewPlayer.pause()
+        } else {
+            player.pause()
+        }
         status = .paused
     }
 
@@ -121,7 +161,11 @@ public final class MusicPlayerController {
 
     public func seek(to time: TimeInterval) {
         let target = max(0, duration > 0 ? min(time, duration) : time)
-        player.playbackTime = target
+        if isPreview {
+            previewPlayer.seek(to: CMTime(seconds: target, preferredTimescale: 600))
+        } else {
+            player.playbackTime = target
+        }
         currentTime = target
     }
 
@@ -132,9 +176,11 @@ public final class MusicPlayerController {
     public func stop() {
         ticker?.cancel()
         ticker = nil
+        previewPlayer.pause()
         player.stop()
         status = .idle
         trackID = nil
+        isPreview = false
     }
 
     // MARK: - Position
@@ -151,6 +197,23 @@ public final class MusicPlayerController {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard let self else { return }
+
+                if isPreview {
+                    currentTime = previewPlayer.currentTime().seconds
+                    if let itemDuration = previewPlayer.currentItem?.duration.seconds,
+                       itemDuration.isFinite, itemDuration > 0 {
+                        duration = itemDuration
+                    }
+                    // AVPlayer has no "ended" callback here; the clip simply
+                    // stops advancing at its end.
+                    if previewPlayer.timeControlStatus == .playing {
+                        if status != .playing { status = .playing }
+                    } else if status == .playing {
+                        status = .paused
+                    }
+                    continue
+                }
+
                 currentTime = player.playbackTime
                 switch player.state.playbackStatus {
                 case .playing: if status != .playing { status = .playing }

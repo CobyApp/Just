@@ -17,6 +17,7 @@ public struct AppleMusicClient: Sendable {
         case notAuthorized
         case noSubscription
         case notFound
+        case noPreview
         case transport(String)
 
         public var errorDescription: String? {
@@ -27,6 +28,8 @@ public struct AppleMusicClient: Sendable {
                 "이 곡을 재생하려면 Apple Music 구독이 필요합니다."
             case .notFound:
                 "곡을 찾지 못했습니다."
+            case .noPreview:
+                "이 곡은 미리듣기도 제공되지 않습니다. 전곡 재생에는 Apple Music 구독이 필요합니다."
             case .transport(let message):
                 message
             }

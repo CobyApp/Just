@@ -42,34 +42,41 @@ public struct RubyText: View {
     }
 
     public var body: some View {
-        // With ruby on, the band reserved above every row *is* the line
-        // spacing — adding more on top double-counted it, which showed up as a
-        // conspicuous gap above a wrapped fragment that carried no reading.
-        RubyFlowLayout(spacing: 0, lineSpacing: showsRuby ? 0 : 5) {
+        RubyFlowLayout(spacing: 0, lineSpacing: lineSpacing, rubyHeight: rubyHeight) {
             ForEach(segments) { segment in
                 Text(segment.base)
                     .font(font)
                     .foregroundStyle(color)
                     .fixedSize()
-                    // Reserve the ruby's line above the text rather than
-                    // stacking it, so a segment is exactly as wide as its base.
-                    .padding(.top, showsRuby ? rubyHeight : 0)
                     .overlay(alignment: .top) {
                         if showsRuby, let ruby = segment.ruby {
-                            // An overlay overhangs instead of widening the
-                            // layout: 埃[ほこり] is three kana over one kanji,
-                            // and stacking it would push the neighbouring
-                            // characters apart. Print sets the reading over the
-                            // character and lets it spill.
+                            // Drawn *outside* the text's bounds — above it and
+                            // overhanging sideways. 埃[ほこり] is three kana over
+                            // one kanji; stacking it inside the layout would
+                            // push the neighbouring characters apart, which is
+                            // not how print sets ruby.
                             Text(ruby)
                                 .font(rubyFont)
                                 .foregroundStyle(rubyColor)
                                 .fixedSize()
+                                .offset(y: -rubyHeight)
                         }
                     }
+                    // The layout reserves the band only for rows that actually
+                    // carry a reading, so a wrapped fragment like でしょう does
+                    // not inherit a gap it has no use for.
+                    .layoutValue(key: RubyRowKey.self, value: showsRuby && segment.ruby != nil)
             }
         }
     }
+
+    private var lineSpacing: CGFloat { showsRuby ? rubyHeight * 0.25 : 5 }
+}
+
+/// Marks a segment as carrying a reading, so the layout can reserve vertical
+/// room per row instead of unconditionally.
+struct RubyRowKey: LayoutValueKey {
+    static let defaultValue = false
 }
 
 /// A left-to-right wrapping layout. `Text` can't wrap a heterogeneous run of
@@ -78,10 +85,13 @@ public struct RubyText: View {
 public struct RubyFlowLayout: Layout {
     public var spacing: CGFloat
     public var lineSpacing: CGFloat
+    /// Room added above a row when something in it has a reading to print.
+    public var rubyHeight: CGFloat
 
-    public init(spacing: CGFloat = 0, lineSpacing: CGFloat = 6) {
+    public init(spacing: CGFloat = 0, lineSpacing: CGFloat = 6, rubyHeight: CGFloat = 0) {
         self.spacing = spacing
         self.lineSpacing = lineSpacing
+        self.rubyHeight = rubyHeight
     }
 
     public func sizeThatFits(
@@ -92,7 +102,7 @@ public struct RubyFlowLayout: Layout {
         let maxWidth = proposal.width ?? .infinity
         let rows = layout(subviews: subviews, maxWidth: maxWidth)
         let width = rows.map(\.width).max() ?? 0
-        let height = rows.reduce(0) { $0 + $1.height } +
+        let height = rows.reduce(0) { $0 + $1.totalHeight(rubyHeight) } +
             lineSpacing * CGFloat(max(0, rows.count - 1))
         return CGSize(width: min(width, maxWidth), height: height)
     }
@@ -107,14 +117,15 @@ public struct RubyFlowLayout: Layout {
         var y = bounds.minY
         for row in rows {
             var x = bounds.minX
+            let reserve = row.hasRuby ? rubyHeight : 0
             for item in row.items {
                 subviews[item.index].place(
-                    at: CGPoint(x: x, y: y + (row.height - item.size.height)),
+                    at: CGPoint(x: x, y: y + reserve + (row.height - item.size.height)),
                     proposal: ProposedViewSize(item.size)
                 )
                 x += item.size.width + spacing
             }
-            y += row.height + lineSpacing
+            y += row.totalHeight(rubyHeight) + lineSpacing
         }
     }
 
@@ -122,6 +133,11 @@ public struct RubyFlowLayout: Layout {
         var items: [(index: Int, size: CGSize)] = []
         var width: CGFloat = 0
         var height: CGFloat = 0
+        var hasRuby = false
+
+        func totalHeight(_ rubyHeight: CGFloat) -> CGFloat {
+            height + (hasRuby ? rubyHeight : 0)
+        }
     }
 
     private func layout(subviews: Subviews, maxWidth: CGFloat) -> [Row] {
@@ -138,6 +154,7 @@ public struct RubyFlowLayout: Layout {
             current.items.append((index, size))
             current.width += current.items.count == 1 ? size.width : advance
             current.height = max(current.height, size.height)
+            if subviews[index][RubyRowKey.self] { current.hasRuby = true }
         }
         if !current.items.isEmpty { rows.append(current) }
         return rows

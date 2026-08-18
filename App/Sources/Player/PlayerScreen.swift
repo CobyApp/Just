@@ -217,6 +217,13 @@ private struct TransportControls: View {
 
             HStack {
                 Text((scrubbing ?? player.currentTime).clockString)
+                // Says why the track is 30 seconds long instead of leaving the
+                // user to wonder whether playback broke.
+                if player.isPreview {
+                    Spacer()
+                    Text("미리듣기")
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                }
                 Spacer()
                 Text(player.duration.clockString)
             }
