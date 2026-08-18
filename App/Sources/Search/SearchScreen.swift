@@ -11,7 +11,6 @@ struct SearchScreen: View {
     @State private var results: [Track] = []
     @State private var state: LoadState = .idle
     @State private var showsSettings = false
-    @State private var searchTask: Task<Void, Never>?
 
     private enum LoadState: Equatable {
         case idle, loading, loaded, failed(String)
@@ -30,7 +29,7 @@ struct SearchScreen: View {
                 }
             }
             .searchable(text: $query, prompt: "곡 이름, 아티스트")
-            .onSubmit(of: .search) { runSearch() }
+            .task(id: query) { await searchAsTyped() }
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
         }
     }
@@ -54,7 +53,7 @@ struct SearchScreen: View {
                 } description: {
                     Text(message)
                 } actions: {
-                    Button("다시 시도") { runSearch() }
+                    Button("다시 시도") { retry() }
                         .buttonStyle(.justPrimary)
                 }
             case .loaded:
@@ -99,32 +98,39 @@ struct SearchScreen: View {
         .scrollContentBackground(.hidden)
     }
 
-    private func runSearch() {
+    private func searchAsTyped() async {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             state = .idle
             return
         }
-        searchTask?.cancel()
+
+        // Waits for a pause in typing. Cancellation of this task by the next
+        // keystroke is what makes it a debounce rather than a request per
+        // character.
+        try? await Task.sleep(for: .milliseconds(350))
+        guard !Task.isCancelled else { return }
+
         state = .loading
-        searchTask = Task {
-            do {
-                let found = try await app.music.search(trimmed)
-                guard !Task.isCancelled else { return }
-                results = found
-                state = .loaded
-            } catch {
-                guard !Task.isCancelled else { return }
-                state = .failed(error.localizedDescription)
-            }
+        do {
+            let found = try await app.music.search(trimmed)
+            guard !Task.isCancelled else { return }
+            results = found
+            state = .loaded
+        } catch {
+            guard !Task.isCancelled else { return }
+            state = .failed(error.localizedDescription)
         }
+    }
+
+    private func retry() {
+        // Re-runs the current query by hand; `.task(id:)` only fires on change.
+        Task { await searchAsTyped() }
     }
 }
 
 struct TrackRow: View {
     let track: Track
-    var progress: Double?
-    var difficulty: SongDifficulty?
 
     @State private var artwork = ArtworkLoader()
 
@@ -144,18 +150,6 @@ struct TrackRow: View {
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .lineLimit(1)
-                if let difficulty, !difficulty.isEmpty {
-                    Text(difficulty.summary)
-                        .font(JustTheme.Font.caption)
-                        .foregroundStyle(JustTheme.Ink.tertiary)
-                        .lineLimit(1)
-                }
-                if let progress, progress > 0 {
-                    ProgressView(value: progress)
-                        .tint(JustTheme.Ink.secondary)
-                        .frame(height: 2)
-                        .padding(.top, 2)
-                }
             }
 
             Spacer(minLength: JustTheme.Space.tight)

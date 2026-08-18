@@ -17,7 +17,11 @@ public struct RubyText: View {
 
     /// Vertical room reserved above every segment so baselines stay aligned
     /// whether or not a given segment carries a reading.
-    private let rubyHeight: CGFloat = 13
+    ///
+    /// Passed in rather than fixed: it has to track the ruby font, and `Font`
+    /// cannot be measured. A constant here left a visible gap between wrapped
+    /// rows once the lyric type was scaled up.
+    private let rubyHeight: CGFloat
 
     public init(
         segments: [RubySegment],
@@ -25,8 +29,10 @@ public struct RubyText: View {
         rubyFont: Font = JustTheme.Font.ruby,
         color: Color = JustTheme.Ink.primary,
         rubyColor: Color = JustTheme.Ink.tertiary,
-        showsRuby: Bool = true
+        showsRuby: Bool = true,
+        rubyHeight: CGFloat = 13
     ) {
+        self.rubyHeight = rubyHeight
         self.segments = segments
         self.font = font
         self.rubyFont = rubyFont
@@ -36,7 +42,10 @@ public struct RubyText: View {
     }
 
     public var body: some View {
-        RubyFlowLayout(spacing: 0, lineSpacing: showsRuby ? 10 : 6) {
+        // With ruby on, the band reserved above every row *is* the line
+        // spacing — adding more on top double-counted it, which showed up as a
+        // conspicuous gap above a wrapped fragment that carried no reading.
+        RubyFlowLayout(spacing: 0, lineSpacing: showsRuby ? 0 : 5) {
             ForEach(segments) { segment in
                 Text(segment.base)
                     .font(font)

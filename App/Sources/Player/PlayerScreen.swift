@@ -14,6 +14,7 @@ struct PlayerScreen: View {
     @State private var session: SongSession?
     @State private var artwork = ArtworkLoader()
     @State private var showsAlbum = false
+    @State private var showsWords = false
 
     var body: some View {
         ZStack {
@@ -64,6 +65,11 @@ struct PlayerScreen: View {
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
         .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
+        .sheet(isPresented: $showsWords) {
+            if let song = session?.song {
+                SongWordsSheet(song: song)
+            }
+        }
         // Leaving the player stops the model. Progress is already written to
         // the song record, so reopening resumes where this left off rather than
         // grinding away invisibly after the user has moved on.
@@ -106,6 +112,22 @@ struct PlayerScreen: View {
                     Label("남은 줄 분석", systemImage: "sparkles")
                 }
                 .disabled(session.lyrics == nil || session.isBulkAnalyzing)
+
+                Picker("가사 크기", selection: Binding(
+                    get: { session.textSize },
+                    set: { session.textSize = $0 }
+                )) {
+                    ForEach(LyricTextSize.allCases) { size in
+                        Text(size.title).tag(size)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                if let song = session.song, !song.occurrences.isEmpty {
+                    Button { showsWords = true } label: {
+                        Label("이 곡의 단어", systemImage: "character.book.closed")
+                    }
+                }
 
                 if track.album != nil {
                     Button { showsAlbum = true } label: {

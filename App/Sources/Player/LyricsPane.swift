@@ -52,6 +52,7 @@ struct LyricsPane: View {
                             line: line,
                             isActive: line.id == activeLine,
                             showsFurigana: session.showsFurigana,
+                            scale: session.textSize.scale,
                             translation: session.translation(for: line.id),
                             isAnalyzing: app.sensei.isAnalyzing(line.id)
                         )
@@ -126,6 +127,7 @@ private struct LyricRow: View {
     let line: LyricLine
     let isActive: Bool
     let showsFurigana: Bool
+    let scale: Double
     let translation: String?
     let isAnalyzing: Bool
 
@@ -133,6 +135,11 @@ private struct LyricRow: View {
     /// and only when furigana is actually on screen.
     private var segments: [RubySegment] {
         Furigana.segments(forLine: line.text)
+    }
+
+    /// Scaled from the theme's sizes so the active/inactive contrast survives.
+    private var lyricFont: Font {
+        .system(size: (isActive ? 26 : 21) * scale, weight: isActive ? .semibold : .regular)
     }
 
     var body: some View {
@@ -144,12 +151,14 @@ private struct LyricRow: View {
             } else if showsFurigana {
                 RubyText(
                     segments: segments,
-                    font: isActive ? JustTheme.Font.lyricActive : JustTheme.Font.lyric,
-                    color: isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary
+                    font: lyricFont,
+                    rubyFont: .system(size: 10 * scale, weight: .medium),
+                    color: isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary,
+                    rubyHeight: 13 * scale
                 )
             } else {
                 Text(line.text)
-                    .font(isActive ? JustTheme.Font.lyricActive : JustTheme.Font.lyric)
+                    .font(lyricFont)
                     .foregroundStyle(isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
             }
 
@@ -157,7 +166,7 @@ private struct LyricRow: View {
                 ProgressView().controlSize(.mini)
             } else if let translation, !translation.isEmpty {
                 Text(translation)
-                    .font(JustTheme.Font.translation)
+                    .font(.system(size: 15 * scale))
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }
         }

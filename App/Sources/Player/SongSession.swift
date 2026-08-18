@@ -24,6 +24,9 @@ final class SongSession {
 
     var selectedLine: Int?
     var showsFurigana = true
+    var textSize: LyricTextSize = .stored {
+        didSet { textSize.store() }
+    }
     var followsPlayback = true
 
     private let store: JustStore
