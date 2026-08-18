@@ -22,24 +22,23 @@ struct ReviewScreen: View {
     private var current: VocabEntry? { index < queue.count ? queue[index] : nil }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                JustTheme.Surface.base.ignoresSafeArea()
+        ZStack {
+            JustTheme.Surface.base.ignoresSafeArea()
 
-                if let current {
-                    card(current)
-                } else {
-                    finished
-                }
+            if let current {
+                card(current)
+            } else {
+                finished
             }
-            .navigationTitle("복습")
-            .toolbar {
-                if !queue.isEmpty, current != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Text("\(index + 1) / \(queue.count)")
-                            .font(JustTheme.Font.caption.monospacedDigit())
-                            .foregroundStyle(JustTheme.Ink.tertiary)
-                    }
+        }
+        .navigationTitle("복습")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !queue.isEmpty, current != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Text("\(index + 1) / \(queue.count)")
+                        .font(JustTheme.Font.caption.monospacedDigit())
+                        .foregroundStyle(JustTheme.Ink.tertiary)
                 }
             }
         }

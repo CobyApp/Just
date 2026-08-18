@@ -52,14 +52,23 @@ public final class ArtworkLoader {
     }
 }
 
-/// Album art with a placeholder that matches the app's surface treatment.
+/// Album art, with a placeholder that stands in for it rather than admitting
+/// something is missing.
 public struct ArtworkView: View {
     private let image: Image?
     private let cornerRadius: CGFloat
+    private let seed: String
 
-    public init(image: Image?, cornerRadius: CGFloat = JustTheme.Radius.artwork) {
+    /// - Parameter seed: identifies the song, so the placeholder colour is
+    ///   stable for a given track instead of every empty slot looking alike.
+    public init(
+        image: Image?,
+        cornerRadius: CGFloat = JustTheme.Radius.artwork,
+        seed: String = ""
+    ) {
         self.image = image
         self.cornerRadius = cornerRadius
+        self.seed = seed
     }
 
     public var body: some View {
@@ -69,12 +78,7 @@ public struct ArtworkView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {
-                JustTheme.Surface.raised
-                    .overlay {
-                        Image(systemName: "music.note")
-                            .font(.system(size: 20))
-                            .foregroundStyle(JustTheme.Ink.tertiary)
-                    }
+                placeholder
             }
         }
         .clipShape(.rect(cornerRadius: cornerRadius))
@@ -82,5 +86,37 @@ public struct ArtworkView: View {
             RoundedRectangle(cornerRadius: cornerRadius)
                 .strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
         }
+    }
+
+    /// A tinted gradient rather than a grey box. Artwork is missing often
+    /// enough — offline, debug songs, a catalog entry without a cover — that a
+    /// uniform grey placeholder makes a whole shelf look broken.
+    private var placeholder: some View {
+        let hue = Self.hue(for: seed)
+        return LinearGradient(
+            colors: [
+                Color(hue: hue, saturation: 0.42, brightness: 0.32),
+                Color(hue: (hue + 0.09).truncatingRemainder(dividingBy: 1),
+                      saturation: 0.5, brightness: 0.18),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay {
+            Image(systemName: "music.note")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(.white.opacity(0.35))
+        }
+    }
+
+    /// Stable hash — `hashValue` is seeded per process, so the same song would
+    /// change colour between launches.
+    private static func hue(for seed: String) -> Double {
+        guard !seed.isEmpty else { return 0.72 }
+        var hash: UInt64 = 5381
+        for byte in seed.utf8 {
+            hash = (hash &* 33) &+ UInt64(byte)
+        }
+        return Double(hash % 360) / 360
     }
 }

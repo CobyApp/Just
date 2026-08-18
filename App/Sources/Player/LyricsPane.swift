@@ -62,7 +62,7 @@ struct LyricsPane: View {
                 }
                 .padding(.vertical, JustTheme.Space.loose)
                 // Room to scroll the last line up to a readable position.
-                .padding(.bottom, 160)
+                .padding(.bottom, 96)
             }
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) { bulkBar }
@@ -75,6 +75,12 @@ struct LyricsPane: View {
         }
     }
 
+    /// Only present while a whole-song pass is actually running.
+    ///
+    /// This used to be a permanent button pinned over the lyrics — a
+    /// once-per-song action occupying the bottom of the screen for the entire
+    /// time the user is reading. The action moved to the player's menu; what
+    /// stays is progress, which is worth interrupting the view for.
     @ViewBuilder
     private var bulkBar: some View {
         if let progress = session.bulkProgress {
@@ -88,16 +94,6 @@ struct LyricsPane: View {
                     .font(JustTheme.Font.caption)
             }
             .justCard()
-            .padding(.bottom, JustTheme.Space.snug)
-        } else if session.lyrics != nil {
-            Button {
-                session.analyzeAll()
-            } label: {
-                Label("이 곡 전체 분석", systemImage: "sparkles")
-                    .font(JustTheme.Font.body.weight(.medium))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.justPrimary)
             .padding(.bottom, JustTheme.Space.snug)
         }
     }

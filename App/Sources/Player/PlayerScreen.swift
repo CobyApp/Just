@@ -13,6 +13,7 @@ struct PlayerScreen: View {
 
     @State private var session: SongSession?
     @State private var artwork = ArtworkLoader()
+    @State private var showsAlbum = false
 
     var body: some View {
         ZStack {
@@ -57,6 +58,7 @@ struct PlayerScreen: View {
             await playback
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
+        .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
     }
 
     // MARK: - Header
@@ -73,6 +75,8 @@ struct PlayerScreen: View {
 
             Spacer()
 
+            // Furigana stays a one-tap control: it is toggled constantly while
+            // reading. Everything else is once-per-song and belongs in a menu.
             Button {
                 session.showsFurigana.toggle()
             } label: {
@@ -85,6 +89,25 @@ struct PlayerScreen: View {
             }
             .buttonStyle(.glass)
             .tint(session.showsFurigana ? JustTheme.Ink.primary : JustTheme.Ink.tertiary)
+
+            Menu {
+                Button {
+                    session.analyzeAll()
+                } label: {
+                    Label("이 곡 전체 분석", systemImage: "sparkles")
+                }
+                .disabled(session.lyrics == nil || session.isBulkAnalyzing)
+
+                if track.album != nil {
+                    Button { showsAlbum = true } label: {
+                        Label("앨범 보기", systemImage: "square.stack")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .buttonStyle(.glass)
         }
         .padding(.horizontal, JustTheme.Space.regular)
         .padding(.bottom, JustTheme.Space.tight)
@@ -94,7 +117,11 @@ struct PlayerScreen: View {
 
     private var stage: some View {
         VStack(spacing: JustTheme.Space.regular) {
-            ArtworkView(image: artwork.image, cornerRadius: JustTheme.Radius.card)
+            ArtworkView(
+                image: artwork.image,
+                cornerRadius: JustTheme.Radius.card,
+                seed: track.id
+            )
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: sizeClass == .regular ? .infinity : 260)
                 .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
@@ -110,10 +137,17 @@ struct PlayerScreen: View {
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .lineLimit(1)
                 if let album = track.album, album != track.title {
-                    Text(album)
+                    Button { showsAlbum = true } label: {
+                        HStack(spacing: 3) {
+                            Text(album)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                        }
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
                         .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -174,6 +208,8 @@ private struct TransportControls: View {
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(.orange)
                     .multilineTextAlignment(.center)
+                    // A truncated error tells the user nothing; let it wrap.
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

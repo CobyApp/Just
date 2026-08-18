@@ -5,20 +5,15 @@ import SwiftData
 import SwiftUI
 
 struct LibraryScreen: View {
-    @Environment(AppModel.self) private var app
     @Environment(\.modelContext) private var context
 
-    @Query(sort: \StudySong.lastOpenedAt, order: .reverse) private var songs: [StudySong]
     @Query(sort: \VocabEntry.createdAt, order: .reverse) private var words: [VocabEntry]
 
-    @State private var mode: Mode = .words
     @State private var levelFilter: JLPTLevel?
     @State private var search = ""
 
-    private enum Mode: String, CaseIterable {
-        case words = "단어"
-        case songs = "곡"
-    }
+    private var store: JustStore { JustStore(context: context) }
+    private var dueCount: Int { store.dueEntries(limit: 200).count }
 
     private var filteredWords: [VocabEntry] {
         words.filter { entry in
@@ -36,74 +31,73 @@ struct LibraryScreen: View {
                 JustTheme.Surface.base.ignoresSafeArea()
                 content
             }
-            .navigationTitle("보관함")
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("", selection: $mode) {
-                        ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 180)
-                }
-            }
-            .searchable(text: $search, prompt: mode == .words ? "단어, 뜻" : "곡, 아티스트")
+            .navigationTitle("단어장")
+            .searchable(text: $search, prompt: "단어, 뜻")
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
+            .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
     }
 
     @ViewBuilder
     private var content: some View {
-        switch mode {
-        case .words:
-            if words.isEmpty {
-                ContentUnavailableView {
-                    Label("아직 저장한 단어가 없습니다", systemImage: "character.book.closed")
-                } description: {
-                    Text("가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.")
-                }
-            } else {
-                List {
-                    Section {
-                        levelFilterBar
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                    }
-                    ForEach(filteredWords) { entry in
-                        NavigationLink(value: entry) {
-                            VocabRow(entry: entry)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                    .onDelete { offsets in
-                        for index in offsets { context.delete(filteredWords[index]) }
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+        if words.isEmpty {
+            ContentUnavailableView {
+                Label("아직 저장한 단어가 없습니다", systemImage: "character.book.closed")
+            } description: {
+                Text("가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.")
             }
-
-        case .songs:
-            if songs.isEmpty {
-                ContentUnavailableView {
-                    Label("곡이 없습니다", systemImage: "music.note.list")
-                } description: {
-                    Text("검색에서 곡을 열면 자동으로 보관함에 들어옵니다.")
-                }
-            } else {
-                List(songs.filter {
-                    search.isEmpty
-                        || $0.title.localizedCaseInsensitiveContains(search)
-                        || $0.artist.localizedCaseInsensitiveContains(search)
-                }) { song in
-                    TrackRow(track: song.track, progress: song.studyProgress)
-                        .contentShape(.rect)
-                        .onTapGesture { app.open(song.track) }
+        } else {
+            List {
+                Section {
+                    reviewCard
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    levelFilterBar
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                ForEach(filteredWords) { entry in
+                    NavigationLink(value: entry) {
+                        VocabRow(entry: entry)
+                    }
+                    .listRowBackground(Color.clear)
+                }
+                .onDelete { offsets in
+                    for index in offsets { context.delete(filteredWords[index]) }
+                }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
+    }
+
+    /// Review is an action, not a place — so it reads as one call to action
+    /// with the number on it, rather than a tab that is usually empty.
+    private var reviewCard: some View {
+        NavigationLink(value: ReviewRoute()) {
+            HStack(spacing: JustTheme.Space.snug) {
+                Image(systemName: dueCount > 0 ? "sparkles" : "checkmark.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(JustTheme.Ink.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(dueCount > 0 ? "복습할 단어 \(dueCount)개" : "오늘 복습 끝")
+                        .font(JustTheme.Font.body.weight(.semibold))
+                        .foregroundStyle(JustTheme.Ink.primary)
+                    Text(dueCount > 0 ? "가사 예문으로 복습합니다" : "다음 카드는 일정에 맞춰 올라옵니다")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(JustTheme.Ink.tertiary)
+            }
+            .padding(JustTheme.Space.snug)
+            .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
+        }
+        .buttonStyle(.plain)
     }
 
     private var levelFilterBar: some View {
@@ -138,6 +132,10 @@ struct LibraryScreen: View {
         .buttonStyle(.plain)
     }
 }
+
+/// Empty route value — the review screen takes no parameters, it just needs to
+/// be pushable.
+struct ReviewRoute: Hashable {}
 
 struct VocabRow: View {
     let entry: VocabEntry

@@ -13,9 +13,6 @@ struct SearchScreen: View {
     @State private var showsSettings = false
     @State private var searchTask: Task<Void, Never>?
 
-    @Query(sort: \StudySong.lastOpenedAt, order: .reverse)
-    private var recents: [StudySong]
-
     private enum LoadState: Equatable {
         case idle, loading, loaded, failed(String)
     }
@@ -32,11 +29,7 @@ struct SearchScreen: View {
                     Button("설정", systemImage: "gearshape") { showsSettings = true }
                 }
             }
-            .searchable(
-                text: $query,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "곡 이름, 아티스트"
-            )
+            .searchable(text: $query, prompt: "곡 이름, 아티스트")
             .onSubmit(of: .search) { runSearch() }
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
         }
@@ -44,12 +37,15 @@ struct SearchScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        if !app.isAuthorized && !hasDebugSamples {
+        // Debug builds fall through to the browse screen, which carries the
+        // sample songs — a Simulator can never be authorized, and gating it
+        // here would make the whole app unreachable there.
+        if !app.isAuthorized && !Self.allowsUnauthorizedBrowsing {
             authorizationGate
         } else {
             switch state {
             case .idle:
-                idleState
+                DiscoveryView()
             case .loading:
                 ProgressView().controlSize(.large)
             case .failed(let message):
@@ -84,49 +80,7 @@ struct SearchScreen: View {
         }
     }
 
-    @ViewBuilder
-    private var idleState: some View {
-        if recents.isEmpty && !hasDebugSamples {
-            ContentUnavailableView {
-                Label("좋아하는 노래로 시작하세요", systemImage: "music.note")
-            } description: {
-                Text("곡을 검색하면 가사를 줄 단위로 뜯어서 단어와 표현을 정리해 줍니다.")
-            }
-        } else {
-            List {
-                if !recents.isEmpty {
-                    Section {
-                        ForEach(recents.prefix(15)) { song in
-                            TrackRow(track: song.track, progress: song.studyProgress)
-                                .contentShape(.rect)
-                                .onTapGesture { app.open(song.track) }
-                                .listRowBackground(Color.clear)
-                        }
-                    } header: {
-                        Text("최근 들은 곡").justSectionHeader()
-                    }
-                }
-                #if DEBUG
-                Section {
-                    ForEach(DebugSamples.all) { track in
-                        TrackRow(track: track)
-                            .contentShape(.rect)
-                            .onTapGesture { app.open(track) }
-                            .listRowBackground(Color.clear)
-                    }
-                } header: {
-                    Text("샘플 (개발용)").justSectionHeader()
-                }
-                #endif
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-        }
-    }
-
-    /// The sample section only exists in debug builds, so the empty state has
-    /// to know whether anything would render below it.
-    private var hasDebugSamples: Bool {
+    private static var allowsUnauthorizedBrowsing: Bool {
         #if DEBUG
         true
         #else
@@ -175,7 +129,7 @@ struct TrackRow: View {
 
     var body: some View {
         HStack(spacing: JustTheme.Space.snug) {
-            ArtworkView(image: artwork.image, cornerRadius: 8)
+            ArtworkView(image: artwork.image, cornerRadius: 8, seed: track.id)
                 .frame(width: 52, height: 52)
 
             VStack(alignment: .leading, spacing: 3) {
