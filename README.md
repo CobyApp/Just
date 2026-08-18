@@ -147,6 +147,32 @@ JLPT 등급까지 신뢰할 수 있고, 나머지 6.8천개는 옆 프로젝트�
 가사는 여기에 앱 자체의 4단계 조절이 곱해집니다. 시스템 설정과 앱 설정이
 같은 텍스트에 함께 작용하므로, 접근성 크기에서는 가사 크기를 낮춰 쓰면 됩니다.
 
+## 빌드와 배포
+
+옆 프로젝트 `mana`와 같은 구성입니다.
+
+```bash
+bash Scripts/setup.sh        # tuist generate
+bundle exec fastlane test    # 시뮬레이터 테스트
+bundle exec fastlane beta    # TestFlight 업로드
+```
+
+Tuist 버전은 `.mise.toml`에 고정합니다. 서명은 자동이고 팀 id는 매니페스트에
+있으므로 `tuist generate`만으로 기기 빌드가 됩니다.
+
+TestFlight는 App Store Connect API 키로 클라우드 서명합니다 — 인증서를 손으로
+갱신할 일이 없습니다. 인증 플래그는 `xcargs` 한 곳에만 둡니다(gym이 archive와
+export 양쪽에 그대로 넘기므로 `export_xcargs`로 중복하면 xcodebuild가 거부합니다).
+
+`v*` 태그를 밀면 `.github/workflows/deploy.yml`이 돌고, 필요한 시크릿은
+`APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID` / `APPSTORE_PRIVATE_KEY`입니다.
+
+버전은 `MARKETING_VERSION`과 `CURRENT_PROJECT_VERSION`이 정합니다. Info.plist에
+값을 박아두면 fastlane이 넘기는 빌드 번호가 무시되어 업로드가 매번 충돌합니다.
+
+`App/Resources/PrivacyInfo.xcprivacy`는 필수입니다. 이 앱은 추적을 하지 않고
+수집 항목도 없으며, 필수 사유 API는 UserDefaults(CA92.1) 하나입니다.
+
 ## 테스트
 
 ```bash

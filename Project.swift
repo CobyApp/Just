@@ -6,13 +6,16 @@ private let bundlePrefix = "com.coby.just"
 private let iOSTarget: DeploymentTargets = .iOS("26.0")
 private let allDevices: Destinations = [.iPhone, .iPad]
 
-/// Read from the environment so the repository carries no account identifier.
-/// Only device builds need it: `TUIST_DEVELOPMENT_TEAM=... tuist generate`.
-private let developmentTeam = Environment.developmentTeam.getString(default: "")
+/// Matches the sibling `mana` project's convention: automatic signing with the
+/// team id in the manifest, so `tuist generate` produces a device-buildable
+/// project with no extra environment set up.
+private let developmentTeam = "3Y8YH8GWMM"
 
 private let baseSettings: SettingsDictionary = [
     "DEVELOPMENT_TEAM": .string(developmentTeam),
     "CODE_SIGN_STYLE": "Automatic",
+    "MARKETING_VERSION": "1.0.0",
+    "CURRENT_PROJECT_VERSION": "1",
     "SWIFT_VERSION": "6.0",
     "SWIFT_STRICT_CONCURRENCY": "complete",
     "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
@@ -78,6 +81,12 @@ let project = Project(
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Just",
+                // Driven by the build settings, not literals. Tuist's default
+                // hardcodes these, which would silently discard the build
+                // number fastlane passes as CURRENT_PROJECT_VERSION and make
+                // every TestFlight upload collide with the last one.
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSAppleMusicUsageDescription":
                     "곡을 검색하고 재생해 가사로 일본어를 공부하기 위해 Apple Music에 접근합니다.",
                 // Keeps playback going while the screen locks during a song.
