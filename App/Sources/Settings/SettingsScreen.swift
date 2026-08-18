@@ -56,6 +56,18 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    Picker("자동 해석", selection: Binding(
+                        get: { app.autoAnalysis },
+                        set: { app.autoAnalysis = $0 }
+                    )) {
+                        ForEach(AutoAnalysisPolicy.allCases) { policy in
+                            Text(policy.title).tag(policy)
+                        }
+                    }
+                    Text(app.autoAnalysis.detail)
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+
                     LabeledContent("해석 엔진") {
                         Text(app.sensei.usesOnDeviceModel ? "Apple Intelligence" : "사전 (오프라인)")
                             .foregroundStyle(JustTheme.Ink.secondary)

@@ -103,5 +103,24 @@ let project = Project(
                 "TARGETED_DEVICE_FAMILY": "1,2",
             ]) { _, new in new })
         ),
+
+        // Covers the pure logic only — parsing, scheduling, string handling.
+        // That is where every bug so far has actually lived, and it is the part
+        // that can be checked without a device, an account or a model.
+        .target(
+            name: "JustTests",
+            destinations: allDevices,
+            product: .unitTests,
+            bundleId: "\(bundlePrefix).tests",
+            deploymentTargets: iOSTarget,
+            infoPlist: .default,
+            sources: ["Tests/**"],
+            dependencies: [
+                .target(name: "JustCore"),
+                .target(name: "JustLyrics"),
+                .target(name: "JustSensei"),
+            ],
+            settings: .settings(base: baseSettings)
+        ),
     ]
 )

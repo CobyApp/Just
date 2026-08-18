@@ -22,8 +22,16 @@ final class AppModel {
     var access: AppleMusicClient.Access
     var canPlayFullTracks = true
 
+    var autoAnalysis: AutoAnalysisPolicy {
+        didSet { UserDefaults.standard.set(autoAnalysis.rawValue, forKey: Self.autoAnalysisKey) }
+    }
+
+    private static let autoAnalysisKey = "analysis.auto"
+
     init() {
         access = AppleMusicClient.access
+        autoAnalysis = UserDefaults.standard.string(forKey: Self.autoAnalysisKey)
+            .flatMap(AutoAnalysisPolicy.init(rawValue:)) ?? .unlessLowPower
         sensei.prewarm()
     }
 

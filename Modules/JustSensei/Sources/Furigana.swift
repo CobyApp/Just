@@ -14,22 +14,27 @@ public enum Furigana {
         }
 
         let surfaceChars = Array(surface)
-        let readingChars = Array(reading.map(normalizeKana))
+        // Two copies: the normalised one decides where the kana match, the
+        // original is what gets printed. Slicing the normalised copy would
+        // silently rewrite タバコ as たばこ — fine for comparison, wrong for a
+        // reading the user is meant to read back.
+        let readingChars = Array(reading)
+        let comparableReading = readingChars.map(normalizeKana)
 
         // Okurigana shared at the tail (歩いてる / あるいてる -> "いてる").
         var tail = 0
-        while tail < surfaceChars.count, tail < readingChars.count {
+        while tail < surfaceChars.count, tail < comparableReading.count {
             let s = surfaceChars[surfaceChars.count - 1 - tail]
-            let r = readingChars[readingChars.count - 1 - tail]
+            let r = comparableReading[comparableReading.count - 1 - tail]
             guard !s.isKanji, normalizeKana(s) == r else { break }
             tail += 1
         }
 
         // Kana shared at the head (お願い / おねがい -> "お").
         var head = 0
-        while head < surfaceChars.count - tail, head < readingChars.count - tail {
+        while head < surfaceChars.count - tail, head < comparableReading.count - tail {
             let s = surfaceChars[head]
-            let r = readingChars[head]
+            let r = comparableReading[head]
             guard !s.isKanji, normalizeKana(s) == r else { break }
             head += 1
         }

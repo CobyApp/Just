@@ -51,7 +51,12 @@ struct PlayerScreen: View {
             }
         }
         .task {
-            let session = SongSession(track: track, context: context, sensei: app.sensei)
+            let session = SongSession(
+                track: track,
+                context: context,
+                sensei: app.sensei,
+                autoAnalysis: app.autoAnalysis.allowsAutoRun
+            )
             self.session = session
             async let playback: Void = app.player.load(track)
             await session.start()

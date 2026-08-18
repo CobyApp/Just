@@ -29,6 +29,15 @@ public final class StudySong {
     /// which is the most expensive part of the pipeline.
     public var analysisData: Data?
 
+    /// Counts kept as stored properties, not derived.
+    ///
+    /// `studyProgress` is read for every row of every list that shows a song,
+    /// and deriving it meant JSON-decoding both the lyrics and the whole
+    /// analysis on each access — once per row, per redraw. These are written
+    /// when the blobs are, and read for free.
+    public var lineCount: Int = 0
+    public var analysedCount: Int = 0
+
     /// JLPT level -> how many words the analyser found at that level.
     ///
     /// Denormalised from `analyses` so the browse screen can rank songs by
@@ -70,6 +79,7 @@ public final class StudySong {
         }
         set {
             lyricsData = newValue.flatMap { try? JSONEncoder().encode($0) }
+            lineCount = newValue?.lines.filter { !$0.text.isEmpty }.count ?? 0
         }
     }
 
@@ -86,16 +96,13 @@ public final class StudySong {
             analysisData = newValue.isEmpty
                 ? nil
                 : try? JSONEncoder().encode(newValue)
+            analysedCount = newValue.count
         }
     }
 
-    public var analysedLineCount: Int { analyses.count }
-
     /// Fraction of lyric lines that have been analysed at least once.
     public var studyProgress: Double {
-        guard let total = lyrics?.lines.filter({ !$0.text.isEmpty }).count, total > 0 else {
-            return 0
-        }
-        return min(1, Double(analysedLineCount) / Double(total))
+        guard lineCount > 0 else { return 0 }
+        return min(1, Double(analysedCount) / Double(lineCount))
     }
 }

@@ -1,0 +1,159 @@
+import Foundation
+import Testing
+
+@testable import JustCore
+
+@Suite("FSRS 스케줄링")
+struct FSRSTests {
+    private let scheduler = FSRS()
+
+    @Test("첫 복습 간격은 다시 < 어려움 < 알맞음 < 쉬움 순으로 길어진다")
+    func firstReviewIntervalsAreOrdered() {
+        let intervals = ReviewGrade.allCases.map { grade in
+            scheduler.schedule(ReviewState(), grade: grade).intervalDays
+        }
+        #expect(intervals == intervals.sorted())
+        #expect(intervals.first == 0)
+    }
+
+    @Test("'다시'는 하루가 아니라 같은 세션에 되돌아온다")
+    func againComesBackWithinTheSession() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let outcome = scheduler.schedule(ReviewState(), grade: .again, now: now)
+        #expect(outcome.phase == .relearning)
+        #expect(outcome.due.timeIntervalSince(now) == 600)
+    }
+
+    @Test("잘 맞히면 안정도가 커지고 간격이 늘어난다")
+    func successGrowsStability() {
+        let state = ReviewState()
+        let first = scheduler.schedule(state, grade: .good)
+        state.apply(first, at: Date(timeIntervalSince1970: 0))
+
+        let second = scheduler.schedule(state, grade: .good, now: Date(timeIntervalSince1970: 86_400 * 4))
+        #expect(second.stability > first.stability)
+        #expect(second.intervalDays > first.intervalDays)
+    }
+
+    @Test("난이도는 1에서 10 사이를 벗어나지 않는다")
+    func difficultyStaysInRange() {
+        let state = ReviewState()
+        var now = Date(timeIntervalSince1970: 0)
+        // Ten consecutive failures would drive difficulty past the ceiling
+        // without the clamp.
+        for _ in 0..<10 {
+            state.apply(scheduler.schedule(state, grade: .again, now: now), at: now)
+            now.addTimeInterval(86_400)
+            #expect(state.difficulty >= 1)
+            #expect(state.difficulty <= 10)
+        }
+    }
+
+    @Test("회상 확률은 시간이 지나면 떨어진다")
+    func retrievabilityDecays() {
+        let fresh = scheduler.retrievability(elapsedDays: 0, stability: 10)
+        let later = scheduler.retrievability(elapsedDays: 30, stability: 10)
+        #expect(fresh > later)
+        #expect(fresh <= 1)
+        #expect(later > 0)
+    }
+
+    @Test("복습 횟수와 실패 횟수가 누적된다")
+    func countersAccumulate() {
+        let state = ReviewState()
+        state.apply(scheduler.schedule(state, grade: .good))
+        state.apply(scheduler.schedule(state, grade: .again))
+        #expect(state.reps == 2)
+        #expect(state.lapses == 1)
+    }
+}
+
+@Suite("연속일수")
+struct StreakTests {
+    private let calendar = Calendar(identifier: .gregorian)
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func daysAgo(_ counts: [Int]) -> [Date] {
+        counts.compactMap { calendar.date(byAdding: .day, value: -$0, to: now) }
+    }
+
+    @Test("기록이 없으면 0")
+    func emptyIsZero() {
+        #expect(StreakCalculator.streak(days: [], now: now, calendar: calendar) == 0)
+    }
+
+    @Test("오늘부터 연속 사흘")
+    func countsFromToday() {
+        let streak = StreakCalculator.streak(days: daysAgo([0, 1, 2]), now: now, calendar: calendar)
+        #expect(streak == 3)
+    }
+
+    /// Starting the count at yesterday when today is still empty: otherwise the
+    /// streak would read zero every morning, punishing the user for not having
+    /// studied yet.
+    @Test("오늘 아직 안 했어도 어제까지 이어졌으면 유지된다")
+    func todayNotYetStudiedKeepsStreak() {
+        let streak = StreakCalculator.streak(days: daysAgo([1, 2, 3]), now: now, calendar: calendar)
+        #expect(streak == 3)
+    }
+
+    @Test("이틀을 비우면 끊긴다")
+    func gapBreaksStreak() {
+        let streak = StreakCalculator.streak(days: daysAgo([2, 3, 4]), now: now, calendar: calendar)
+        #expect(streak == 0)
+    }
+
+    @Test("같은 날 기록이 여러 개여도 하루로 센다")
+    func duplicateDaysCountOnce() {
+        let sameDay = [now, now.addingTimeInterval(3_600), now.addingTimeInterval(7_200)]
+        #expect(StreakCalculator.streak(days: sameDay, now: now, calendar: calendar) == 1)
+    }
+}
+
+@Suite("곡 난이도")
+struct SongDifficultyTests {
+    @Test("75% 커버리지 등급을 고른다")
+    func picksCoverageLevel() {
+        // 8 of 10 words are N4 or easier, so N4 covers the song.
+        let difficulty = SongDifficulty(counts: [.n5: 5, .n4: 3, .n1: 2])
+        #expect(difficulty.total == 10)
+        #expect(difficulty.comprehensionLevel == .n4)
+    }
+
+    /// A single hard word should not relabel the whole song — that is why this
+    /// is a coverage threshold and not a maximum.
+    @Test("어려운 단어 하나가 곡 등급을 끌어올리지 않는다")
+    func oneHardWordDoesNotDominate() {
+        let difficulty = SongDifficulty(counts: [.n5: 19, .n1: 1])
+        #expect(difficulty.comprehensionLevel == .n5)
+        #expect(difficulty.advancedCount == 1)
+    }
+
+    @Test("절반 이상이 어려우면 등급이 올라간다")
+    func hardSongReportsHardLevel() {
+        let difficulty = SongDifficulty(counts: [.n5: 2, .n2: 5, .n1: 3])
+        #expect(difficulty.comprehensionLevel == .n1)
+        #expect(difficulty.advancedCount == 8)
+    }
+
+    @Test("비어 있으면 등급이 없다")
+    func emptyHasNoLevel() {
+        let difficulty = SongDifficulty(counts: [:])
+        #expect(difficulty.isEmpty)
+        #expect(difficulty.comprehensionLevel == nil)
+        #expect(difficulty.summary.isEmpty)
+    }
+
+    @Test("막대 그래프는 쉬운 등급부터 나열한다")
+    func breakdownIsSortedEasiestFirst() {
+        let difficulty = SongDifficulty(counts: [.n1: 1, .n5: 3, .n3: 2])
+        #expect(difficulty.breakdown.map(\.level) == [.n5, .n3, .n1])
+    }
+
+    @Test("저장된 문자열 딕셔너리에서 복원된다")
+    func decodesFromRawCounts() {
+        let difficulty = SongDifficulty(raw: ["N5": 2, "N3": 1, "圏外": 1])
+        #expect(difficulty.total == 4)
+        #expect(difficulty.counts[.beyond] == 1)
+    }
+}

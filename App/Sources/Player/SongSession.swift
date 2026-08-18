@@ -31,10 +31,13 @@ final class SongSession {
     private let client = LRCLIBClient()
     private var bulkTask: Task<Void, Never>?
 
-    init(track: Track, context: ModelContext, sensei: Sensei) {
+    private let autoAnalysis: Bool
+
+    init(track: Track, context: ModelContext, sensei: Sensei, autoAnalysis: Bool) {
         self.track = track
         self.store = JustStore(context: context)
         self.sensei = sensei
+        self.autoAnalysis = autoAnalysis
     }
 
     var lyrics: Lyrics? {
@@ -67,7 +70,7 @@ final class SongSession {
             await fetchLyrics()
         }
 
-        analyzeAll()
+        if autoAnalysis { analyzeAll() }
     }
 
     func fetchLyrics(artistOverride: String? = nil, titleOverride: String? = nil) async {

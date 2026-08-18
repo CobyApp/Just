@@ -140,10 +140,16 @@ enum Deinflector {
         ("かった", "い"), ("くない", "い"), ("くて", "い"), ("さ", "い"),
     ]
 
-    /// Godan stems: the last kana of the て/た form maps back to a dictionary ending.
+    /// Godan stems: the last kana of the て/た form maps back to a dictionary
+    /// ending.
+    ///
+    /// A candidate that is wrong costs nothing — every one is looked up and
+    /// discarded if absent — so the lists are generous rather than precise.
+    /// 「っ」 includes く for 行く, which is irregular but far too common in
+    /// lyrics to leave out: 行ってる would otherwise never resolve.
     private static let stemEndings: [Character: [String]] = [
         "い": ["く", "ぐ"],
-        "っ": ["る", "う", "つ"],
+        "っ": ["る", "う", "つ", "く"],
         "ん": ["ぬ", "ぶ", "む"],
         "し": ["す"],
     ]
