@@ -59,6 +59,10 @@ struct PlayerScreen: View {
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
         .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
+        // Leaving the player stops the model. Progress is already written to
+        // the song record, so reopening resumes where this left off rather than
+        // grinding away invisibly after the user has moved on.
+        .onDisappear { session?.cancelBulk() }
     }
 
     // MARK: - Header
@@ -94,7 +98,7 @@ struct PlayerScreen: View {
                 Button {
                     session.analyzeAll()
                 } label: {
-                    Label("이 곡 전체 분석", systemImage: "sparkles")
+                    Label("남은 줄 분석", systemImage: "sparkles")
                 }
                 .disabled(session.lyrics == nil || session.isBulkAnalyzing)
 

@@ -79,9 +79,22 @@ public final class MusicPlayerController {
             status = .failed(
                 blameSubscription
                     ? AppleMusicClient.Failure.noSubscription.localizedDescription
-                    : error.localizedDescription
+                    : Self.readableFailure(error)
             )
         }
+    }
+
+    /// Keeps framework error domains out of the UI.
+    ///
+    /// `MPMusicPlayerControllerErrorDomain 오류 1` is what the system player
+    /// returns when it has no account to play from — accurate, and useless to
+    /// the person reading it.
+    private static func readableFailure(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        guard !raw.contains("ErrorDomain"), !raw.isEmpty else {
+            return "이 곡을 재생할 수 없습니다. Apple Music 로그인 상태를 확인해 주세요."
+        }
+        return raw
     }
 
     // MARK: - Transport

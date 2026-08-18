@@ -84,14 +84,20 @@ struct LyricsPane: View {
     @ViewBuilder
     private var bulkBar: some View {
         if let progress = session.bulkProgress {
-            HStack(spacing: JustTheme.Space.snug) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: JustTheme.Space.snug) {
+                    Text("해석 중")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                    Spacer()
+                    Text("\(progress.done)/\(progress.total)")
+                        .font(JustTheme.Font.caption.monospacedDigit())
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                    Button("중지") { session.cancelBulk() }
+                        .font(JustTheme.Font.caption)
+                }
                 ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
                     .tint(JustTheme.Ink.primary)
-                Text("\(progress.done)/\(progress.total)")
-                    .font(JustTheme.Font.caption.monospacedDigit())
-                    .foregroundStyle(JustTheme.Ink.secondary)
-                Button("중지") { session.cancelBulk() }
-                    .font(JustTheme.Font.caption)
             }
             .justCard()
             .padding(.bottom, JustTheme.Space.snug)

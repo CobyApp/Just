@@ -82,6 +82,22 @@ Just (앱)
 **Apple Music API는 가사를 제공하지 않습니다.** 음악 앱에 가사가 보이는 것과
 별개로 공개 API에는 열려 있지 않아, 싱크 가사는 LRCLIB에서 받습니다.
 
+### 로컬 저장
+
+곡을 열면 그 곡에 딸린 모든 데이터가 기기에 남습니다.
+
+| 데이터 | 위치 | 비고 |
+|---|---|---|
+| 가사 (LRC) | `StudySong.lyricsData` | 오프라인 재열람 가능 |
+| 줄별 해석 전체 | `StudySong.analysisData` | 번역 + 단어 + 문법. 모델은 곡당 한 번만 돈다 |
+| 난이도 히스토그램 | `StudySong.levelCounts` | 목록에서 해석을 디코드하지 않아도 되도록 비정규화 |
+| 단어·복습 일정 | `VocabEntry` / `ReviewState` | |
+| 앨범아트 | Caches/Artwork | URL 해시 파일명. 시스템이 회수 가능 |
+
+곡을 처음 열면 **전곡 해석이 자동으로 시작**됩니다. 줄마다 눌러 기다리는 대신
+한 번에 만들어 저장합니다. 진행분은 즉시 기록되므로 중간에 닫아도 버려지지 않고,
+다시 열면 남은 줄부터 이어서 합니다.
+
 ### 번들 사전
 
 `Modules/JustSensei/Resources/seed-dictionary.json`은 생성물입니다.

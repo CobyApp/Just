@@ -44,17 +44,9 @@ final class SongSession {
 
     var isBulkAnalyzing: Bool { bulkProgress != nil }
 
-    /// The Korean line, from the persisted cache or from this session's
-    /// analysis.
-    ///
-    /// Kept separate from the analysis cache: seeding that cache with
-    /// translation-only entries made `analyze` short-circuit, so a reopened
-    /// song showed its translations but could never produce word cards again.
     func translation(for lineIndex: Int) -> String? {
-        if let study = sensei.cached(lineIndex), !study.translationKo.isEmpty {
-            return study.translationKo
-        }
-        return song?.translations[lineIndex]
+        let translation = sensei.cached(lineIndex)?.translationKo
+        return (translation?.isEmpty == false) ? translation : nil
     }
 
     // MARK: - Loading
@@ -65,12 +57,17 @@ final class SongSession {
         let record = store.upsertSong(track)
         song = record
 
+        // Everything generated for this song before is loaded back before any
+        // work is scheduled, so a reopened song costs nothing.
+        sensei.preload(record.analyses)
+
         if let cached = record.lyrics, !cached.isEmpty {
             lyricsState = .ready(cached)
-            return
+        } else {
+            await fetchLyrics()
         }
 
-        await fetchLyrics()
+        analyzeAll()
     }
 
     func fetchLyrics(artistOverride: String? = nil, titleOverride: String? = nil) async {
@@ -99,12 +96,22 @@ final class SongSession {
             songTitle: track.title,
             artist: track.artist
         )
-        persist(study)
+        flush()
     }
 
+    /// Analyses every line that has none yet, once, and writes the result to
+    /// the song record.
+    ///
+    /// Started automatically when a song opens rather than waiting for a tap
+    /// per line: the model is the slow part, the user is going to read the
+    /// whole song anyway, and the results are permanent — so doing it once up
+    /// front is strictly cheaper than doing it forty times on demand.
     func analyzeAll() {
         guard let lyrics, bulkTask == nil else { return }
-        bulkProgress = (0, lyrics.lines.count)
+        let pending = sensei.pendingLines(in: lyrics)
+        guard !pending.isEmpty else { return }
+
+        bulkProgress = (0, pending.count)
         bulkTask = Task { [weak self] in
             guard let self else { return }
             await sensei.analyzeAll(
@@ -113,10 +120,11 @@ final class SongSession {
                 artist: track.artist
             ) { done, total in
                 self.bulkProgress = (done, total)
+                // Flushed as it goes, so a cancelled or interrupted run keeps
+                // whatever it already produced.
+                self.flush()
             }
-            for index in sensei.cache.keys {
-                persist(sensei.cached(index))
-            }
+            flush()
             bulkProgress = nil
             bulkTask = nil
         }
@@ -126,34 +134,28 @@ final class SongSession {
         bulkTask?.cancel()
         bulkTask = nil
         bulkProgress = nil
+        flush()
     }
 
-    /// Caches the Korean translation on the song so a reopened song shows its
-    /// translations immediately, without re-running the model.
-    private func persist(_ study: LineStudy?) {
-        guard let study, let song else { return }
-        if !study.translationKo.isEmpty {
-            song.translations[study.lineIndex] = study.translationKo
-        }
+    /// Writes the session's analyses and the difficulty histogram onto the
+    /// song record.
+    ///
+    /// Recomputed from the cache rather than accumulated: the cache is the
+    /// single source of truth, and adding to a running total would inflate the
+    /// histogram every time a line was re-analysed.
+    private func flush() {
+        guard let song else { return }
+        let studies = sensei.cache
+        song.analyses = studies
 
-        // Recount from scratch for this line rather than adding to a running
-        // total: a line can be re-analysed, and blind accumulation would
-        // inflate the histogram every time it is.
-        var counts = song.levelCounts
-        for previous in analyzedLevels[study.lineIndex] ?? [] {
-            counts[previous, default: 0] = max(0, (counts[previous] ?? 0) - 1)
+        var counts: [String: Int] = [:]
+        for study in studies.values {
+            for word in study.words {
+                counts[word.jlpt.rawValue, default: 0] += 1
+            }
         }
-        let levels = study.words.map(\.jlpt.rawValue)
-        for level in levels {
-            counts[level, default: 0] += 1
-        }
-        analyzedLevels[study.lineIndex] = levels
-        song.levelCounts = counts.filter { $0.value > 0 }
+        song.levelCounts = counts
     }
-
-    /// Levels already counted per line, so a re-analysis replaces rather than
-    /// double-counts.
-    private var analyzedLevels: [Int: [String]] = [:]
 
     // MARK: - Vocabulary
 

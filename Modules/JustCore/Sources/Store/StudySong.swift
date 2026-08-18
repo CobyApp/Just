@@ -20,13 +20,19 @@ public final class StudySong {
     /// without a schema migration.
     public var lyricsData: Data?
 
-    /// Line index -> Korean translation, for lines the user has analysed.
-    public var translations: [Int: String] = [:]
+    /// JSON-encoded `[lineIndex: LineStudy]` — the complete analysis, not just
+    /// the translation.
+    ///
+    /// The whole point of persisting this is that the on-device model runs over
+    /// a song exactly once. Keeping only the translation meant reopening a song
+    /// showed the Korean but had to regenerate every word card from scratch,
+    /// which is the most expensive part of the pipeline.
+    public var analysisData: Data?
 
     /// JLPT level -> how many words the analyser found at that level.
     ///
-    /// Accumulated as lines are analysed so a song can describe its own
-    /// difficulty without re-running the model.
+    /// Denormalised from `analyses` so the browse screen can rank songs by
+    /// difficulty without decoding every analysis it lists.
     public var levelCounts: [String: Int] = [:]
 
     @Relationship(deleteRule: .cascade, inverse: \VocabOccurrence.song)
@@ -71,11 +77,25 @@ public final class StudySong {
         SongDifficulty(raw: levelCounts)
     }
 
+    public var analyses: [Int: LineStudy] {
+        get {
+            guard let analysisData else { return [:] }
+            return (try? JSONDecoder().decode([Int: LineStudy].self, from: analysisData)) ?? [:]
+        }
+        set {
+            analysisData = newValue.isEmpty
+                ? nil
+                : try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    public var analysedLineCount: Int { analyses.count }
+
     /// Fraction of lyric lines that have been analysed at least once.
     public var studyProgress: Double {
         guard let total = lyrics?.lines.filter({ !$0.text.isEmpty }).count, total > 0 else {
             return 0
         }
-        return min(1, Double(translations.count) / Double(total))
+        return min(1, Double(analysedLineCount) / Double(total))
     }
 }

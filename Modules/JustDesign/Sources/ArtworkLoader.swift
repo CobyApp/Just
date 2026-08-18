@@ -13,7 +13,7 @@ public final class ArtworkLoader {
     public private(set) var palette: ArtworkPalette = .fallback
 
     @ObservationIgnored
-    private static var cache: [URL: (Image, ArtworkPalette)] = [:]
+    private static var memory: [URL: (Image, ArtworkPalette)] = [:]
     @ObservationIgnored
     private var currentURL: URL?
 
@@ -29,9 +29,17 @@ public final class ArtworkLoader {
         guard url != currentURL else { return }
         currentURL = url
 
-        if let cached = Self.cache[url] {
+        if let cached = Self.memory[url] {
             image = cached.0
             palette = cached.1
+            return
+        }
+
+        // Disk before network: artwork is immutable for a given URL, so a
+        // second launch — or a flight with no signal — should not have to
+        // fetch it again.
+        if let uiImage = ArtworkDiskCache.shared.image(for: url) {
+            apply(uiImage, for: url)
             return
         }
 
@@ -40,15 +48,60 @@ public final class ArtworkLoader {
             let uiImage = UIImage(data: data)
         else { return }
 
+        ArtworkDiskCache.shared.store(data, for: url)
+        apply(uiImage, for: url)
+    }
+
+    private func apply(_ uiImage: UIImage, for url: URL) {
         // Palette extraction touches a 64-pixel bitmap, so it is cheap enough
         // to stay on the main actor rather than pay for an actor hop.
         let extracted = ArtworkPalette.extract(from: uiImage)
         let rendered = Image(uiImage: uiImage)
 
-        Self.cache[url] = (rendered, extracted)
+        Self.memory[url] = (rendered, extracted)
         guard currentURL == url else { return }
         image = rendered
         palette = extracted
+    }
+}
+
+/// On-disk store for album art.
+///
+/// Lives in Caches, so the system may reclaim it under storage pressure — that
+/// is the correct contract for data that can always be re-fetched, and it keeps
+/// artwork out of the user's iCloud backup.
+final class ArtworkDiskCache: @unchecked Sendable {
+    static let shared = ArtworkDiskCache()
+
+    private let directory: URL
+    private let queue = DispatchQueue(label: "just.artwork.cache")
+
+    private init() {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        directory = caches.appendingPathComponent("Artwork", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    func image(for url: URL) -> UIImage? {
+        guard let data = try? Data(contentsOf: path(for: url)) else { return nil }
+        return UIImage(data: data)
+    }
+
+    func store(_ data: Data, for url: URL) {
+        let destination = path(for: url)
+        queue.async {
+            try? data.write(to: destination, options: .atomic)
+        }
+    }
+
+    /// Filenames are a stable hash of the URL — Apple Music artwork URLs
+    /// contain slashes and query strings that cannot be a path component.
+    private func path(for url: URL) -> URL {
+        var hash: UInt64 = 5381
+        for byte in url.absoluteString.utf8 {
+            hash = (hash &* 33) &+ UInt64(byte)
+        }
+        return directory.appendingPathComponent(String(hash, radix: 36))
     }
 }
 

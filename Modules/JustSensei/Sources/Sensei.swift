@@ -39,6 +39,24 @@ public final class Sensei {
 
     public func cached(_ lineIndex: Int) -> LineStudy? { cache[lineIndex] }
 
+    /// Seeds the cache with analyses already persisted for this song.
+    ///
+    /// Unlike a translation-only seed, these entries are complete, so the
+    /// short-circuit in `analyze` is correct: there is genuinely nothing left
+    /// to generate for those lines.
+    public func preload(_ studies: [Int: LineStudy]) {
+        for (index, study) in studies where cache[index] == nil {
+            cache[index] = study
+        }
+    }
+
+    /// Lines with no analysis yet.
+    public func pendingLines(in lyrics: Lyrics) -> [LyricLine] {
+        lyrics.lines.filter {
+            cache[$0.id] == nil && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+    }
+
     public func isAnalyzing(_ lineIndex: Int) -> Bool { inFlight.contains(lineIndex) }
 
     @discardableResult
