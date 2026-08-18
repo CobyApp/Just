@@ -203,12 +203,12 @@ struct VocabDetailView: View {
                                 surface: entry.lemma,
                                 reading: entry.reading
                             ),
-                            font: .system(size: 34, weight: .semibold),
-                            rubyFont: .system(size: 13, weight: .medium),
+                            font: .just(34, weight: .semibold, relativeTo: .largeTitle),
+                            rubyFont: .just(13, weight: .medium, relativeTo: .caption2),
                             color: JustTheme.Ink.primary
                         )
                         Text(entry.meaningKo)
-                            .font(.system(size: 18))
+                            .font(.just(18, relativeTo: .body))
                             .foregroundStyle(JustTheme.Ink.primary)
                         HStack(spacing: 6) {
                             JustChip(entry.jlpt.label, tint: entry.jlpt.tint)

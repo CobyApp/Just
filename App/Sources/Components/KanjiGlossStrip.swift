@@ -17,7 +17,7 @@ struct KanjiGlossStrip: View {
                 ForEach(glosses) { gloss in
                     HStack(spacing: 4) {
                         Text(gloss.character)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.just(14, weight: .medium, relativeTo: .footnote))
                             .foregroundStyle(JustTheme.Ink.secondary)
                         Text(gloss.label)
                             .font(JustTheme.Font.caption)

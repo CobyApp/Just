@@ -54,18 +54,21 @@ public enum JustTheme {
         public static let section: CGFloat = 36
     }
 
+    /// Every entry follows Dynamic Type — see `Font.just`. Computed rather than
+    /// stored because `UIFontMetrics` resolves against the *current* text-size
+    /// setting, and a `static let` would freeze whatever it was at first use.
     public enum Font {
         /// The lyric line being studied. Large, low contrast between kanji and
         /// kana, generous line height — this is what the eye lives on.
-        public static let lyricActive = SwiftUI.Font.system(size: 26, weight: .semibold)
-        public static let lyric = SwiftUI.Font.system(size: 21, weight: .regular)
-        public static let ruby = SwiftUI.Font.system(size: 10, weight: .medium)
-        public static let translation = SwiftUI.Font.system(size: 15, weight: .regular)
-        public static let title = SwiftUI.Font.system(size: 22, weight: .bold)
-        public static let sectionTitle = SwiftUI.Font.system(size: 13, weight: .semibold)
-        public static let body = SwiftUI.Font.system(size: 15)
-        public static let caption = SwiftUI.Font.system(size: 12, weight: .medium)
-        public static let japanese = SwiftUI.Font.system(size: 19, weight: .medium)
+        public static var lyricActive: SwiftUI.Font { .just(26, weight: .semibold, relativeTo: .title2) }
+        public static var lyric: SwiftUI.Font { .just(21, relativeTo: .title3) }
+        public static var ruby: SwiftUI.Font { .just(10, weight: .medium, relativeTo: .caption2) }
+        public static var translation: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
+        public static var title: SwiftUI.Font { .just(22, weight: .bold, relativeTo: .title2) }
+        public static var sectionTitle: SwiftUI.Font { .just(13, weight: .semibold, relativeTo: .caption1) }
+        public static var body: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
+        public static var caption: SwiftUI.Font { .just(12, weight: .medium, relativeTo: .caption1) }
+        public static var japanese: SwiftUI.Font { .just(19, weight: .medium, relativeTo: .body) }
     }
 }
 

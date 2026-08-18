@@ -6,7 +6,13 @@ private let bundlePrefix = "com.coby.just"
 private let iOSTarget: DeploymentTargets = .iOS("26.0")
 private let allDevices: Destinations = [.iPhone, .iPad]
 
+/// Read from the environment so the repository carries no account identifier.
+/// Only device builds need it: `TUIST_DEVELOPMENT_TEAM=... tuist generate`.
+private let developmentTeam = Environment.developmentTeam.getString(default: "")
+
 private let baseSettings: SettingsDictionary = [
+    "DEVELOPMENT_TEAM": .string(developmentTeam),
+    "CODE_SIGN_STYLE": "Automatic",
     "SWIFT_VERSION": "6.0",
     "SWIFT_STRICT_CONCURRENCY": "complete",
     "ENABLE_USER_SCRIPT_SANDBOXING": "YES",

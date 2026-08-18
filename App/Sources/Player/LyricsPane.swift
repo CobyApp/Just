@@ -139,7 +139,11 @@ private struct LyricRow: View {
 
     /// Scaled from the theme's sizes so the active/inactive contrast survives.
     private var lyricFont: Font {
-        .system(size: (isActive ? 26 : 21) * scale, weight: isActive ? .semibold : .regular)
+        .just(
+            (isActive ? 26 : 21) * scale,
+            weight: isActive ? .semibold : .regular,
+            relativeTo: isActive ? .title2 : .title3
+        )
     }
 
     var body: some View {
@@ -152,9 +156,9 @@ private struct LyricRow: View {
                 RubyText(
                     segments: segments,
                     font: lyricFont,
-                    rubyFont: .system(size: 10 * scale, weight: .medium),
+                    rubyFont: .just(10 * scale, weight: .medium, relativeTo: .caption2),
                     color: isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary,
-                    rubyHeight: 13 * scale
+                    rubyHeight: (13 * scale).scaledForText(.caption2)
                 )
             } else {
                 Text(line.text)
@@ -166,7 +170,7 @@ private struct LyricRow: View {
                 ProgressView().controlSize(.mini)
             } else if let translation, !translation.isEmpty {
                 Text(translation)
-                    .font(.system(size: 15 * scale))
+                    .font(.just(15 * scale, relativeTo: .subheadline))
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }
         }

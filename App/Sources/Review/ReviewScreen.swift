@@ -55,18 +55,18 @@ struct ReviewScreen: View {
                 // The prompt is the word alone; the reading is part of the
                 // answer, so it stays hidden until reveal.
                 Text(entry.lemma)
-                    .font(.system(size: 44, weight: .semibold))
+                    .font(.just(44, weight: .semibold, relativeTo: .largeTitle))
                     .foregroundStyle(JustTheme.Ink.primary)
 
                 if isRevealed {
                     VStack(spacing: JustTheme.Space.tight) {
                         if entry.showsReading {
                             Text(entry.reading)
-                                .font(.system(size: 18))
+                                .font(.just(18, relativeTo: .body))
                                 .foregroundStyle(JustTheme.Ink.secondary)
                         }
                         Text(entry.meaningKo)
-                            .font(.system(size: 22, weight: .medium))
+                            .font(.just(22, weight: .medium, relativeTo: .title3))
                             .foregroundStyle(JustTheme.Ink.primary)
                             .multilineTextAlignment(.center)
                         if !entry.note.isEmpty {

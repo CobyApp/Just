@@ -93,7 +93,7 @@ struct QuizScreen: View {
                 .font(
                     question.kind == .cloze
                         ? JustTheme.Font.lyricActive
-                        : .system(size: 30, weight: .semibold)
+                        : .just(30, weight: .semibold, relativeTo: .title1)
                 )
                 .foregroundStyle(JustTheme.Ink.primary)
                 .multilineTextAlignment(.center)
@@ -121,7 +121,7 @@ struct QuizScreen: View {
         VStack(spacing: JustTheme.Space.tight) {
             TextField("답 입력", text: $input)
                 .textFieldStyle(.plain)
-                .font(.system(size: 26, weight: .medium))
+                .font(.just(26, weight: .medium, relativeTo: .title2))
                 .multilineTextAlignment(.center)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -142,7 +142,7 @@ struct QuizScreen: View {
             // can see their input landing instead of trusting it blindly.
             if let preview = kanaPreview {
                 Text(preview)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.just(20, weight: .medium, relativeTo: .title3))
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .transition(.opacity)
             } else {
@@ -270,7 +270,7 @@ struct QuizScreen: View {
     private var summary: some View {
         VStack(spacing: JustTheme.Space.regular) {
             Text("\(correctCount) / \(questions.count)")
-                .font(.system(size: 44, weight: .bold).monospacedDigit())
+                .font(.just(44, weight: .bold, relativeTo: .largeTitle).monospacedDigit())
                 .foregroundStyle(JustTheme.Ink.primary)
             Text("복습 일정에 반영했습니다")
                 .font(JustTheme.Font.body)

@@ -96,7 +96,7 @@ final class SongSession {
 
     func analyze(lineIndex: Int) async {
         guard let lyrics else { return }
-        let study = await sensei.analyze(
+        await sensei.analyze(
             lineIndex: lineIndex,
             in: lyrics,
             songTitle: track.title,
