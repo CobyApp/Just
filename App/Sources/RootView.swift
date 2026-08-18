@@ -31,6 +31,11 @@ struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        // Sits above the tab bar rather than inside a tab, so it survives
+        // switching tabs — which is the whole point of having it.
+        .modifier(MiniPlayerAccessory(
+            track: app.openTrack == nil ? app.nowPlaying : nil
+        ))
         .fullScreenCover(item: $app.openTrack) { track in
             PlayerScreen(track: track)
         }
@@ -40,6 +45,27 @@ struct RootView: View {
             // backgrounded, and iOS gives no callback for it.
             guard phase == .active else { return }
             Task { await app.refreshAccess() }
+        }
+    }
+}
+
+/// Attaches the mini player, or nothing at all.
+///
+/// The accessory slot is reserved as soon as the modifier is applied, so
+/// returning an empty view inside it left an empty capsule floating above the
+/// tab bar. The modifier itself has to be conditional. Tab selection lives in
+/// `RootView`'s own state rather than inside the `TabView`, so rebuilding the
+/// subtree when a song starts does not move the user to another tab.
+private struct MiniPlayerAccessory: ViewModifier {
+    let track: Track?
+
+    func body(content: Content) -> some View {
+        if let track {
+            content.tabViewBottomAccessory {
+                MiniPlayer(track: track)
+            }
+        } else {
+            content
         }
     }
 }

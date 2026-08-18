@@ -17,8 +17,14 @@ final class AppModel {
     let music = AppleMusicClient()
     let reminder = ReviewReminder()
 
-    /// The song the player screen is showing, if any.
+    /// The song the full-screen player is showing, if any.
     var openTrack: Track?
+    /// The song loaded in the player, whether or not the full screen is up.
+    ///
+    /// Separate from `openTrack` so dismissing the player does not stop the
+    /// music: closing a player and having the song die is not what "close"
+    /// means in a music app.
+    var nowPlaying: Track?
     var access: AppleMusicClient.Access
     var canPlayFullTracks = true
     var catalogStatus: CatalogStatus = .unknown
@@ -169,13 +175,29 @@ final class AppModel {
     }
 
     func open(_ track: Track) {
-        guard track.id != openTrack?.id else { return }
-        sensei.reset()
         openTrack = track
+        guard track.id != nowPlaying?.id else { return }
+        // Analyses belong to a song, so they are only dropped when the song
+        // actually changes — not when the player is reopened.
+        sensei.reset()
+        nowPlaying = track
     }
 
+    /// Hides the full-screen player, leaving playback alone.
     func closePlayer() {
-        player.pause()
         openTrack = nil
+    }
+
+    /// Reopens the full screen for whatever is loaded.
+    func expandPlayer() {
+        guard let nowPlaying else { return }
+        openTrack = nowPlaying
+    }
+
+    /// Stops and forgets the current song.
+    func stopPlayback() {
+        player.stop()
+        openTrack = nil
+        nowPlaying = nil
     }
 }

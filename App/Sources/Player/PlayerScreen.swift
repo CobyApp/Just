@@ -73,7 +73,12 @@ struct PlayerScreen: View {
                 autoAnalysis: app.autoAnalysis.allowsAutoRun
             )
             self.session = session
-            async let playback: Void = app.player.load(track)
+            // Only autoplays when this is a different song. Reopening a paused
+            // one from the mini player should not start it again.
+            async let playback: Void = app.player.load(
+                track,
+                autoplay: app.player.trackID != track.id
+            )
             await session.start()
             await playback
         }
