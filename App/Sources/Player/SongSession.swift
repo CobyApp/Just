@@ -48,6 +48,10 @@ final class SongSession {
     private let sensei: Sensei
     private let client = LRCLIBClient()
     private var bulkTask: Task<Void, Never>?
+    /// The analysis `prepare()` is waiting on, so it can be let go of.
+    private var prepareAnalysis: Task<Void, Never>?
+    /// Set when the user chose to start listening before analysis finished.
+    private var skipRequested = false
 
     private let autoAnalysis: Bool
 
@@ -104,11 +108,38 @@ final class SongSession {
         // energy must not turn into a ten-minute wait. Those songs open at once
         // and analyse the lines the reader taps, as before.
         if autoAnalysis {
-            await analyzeRemaining()
+            // Run as a child task so the wait can be abandoned without
+            // abandoning the work — `skipWaiting` cancels the wait, and what the
+            // model already produced is flushed either way.
+            let analysis = Task { await self.analyzeRemaining() }
+            prepareAnalysis = analysis
+            await analysis.value
+            prepareAnalysis = nil
         }
 
         guard !Task.isCancelled else { return }
         phase = .ready
+
+        // The rest of the song keeps going behind the lyrics, reported by the
+        // progress bar the player already has for a manual pass.
+        if skipRequested { analyzeAll() }
+    }
+
+    /// Opens the player now and finishes analysing behind it.
+    ///
+    /// The default is still to wait: a song that fills in under the reader is
+    /// what the waiting screen exists to avoid. But on a long song the wait runs
+    /// into minutes, and "listen now, read what is ready" is a reasonable thing
+    /// to want — so it is offered rather than assumed.
+    func skipWaiting() {
+        guard case .analyzing = phase else { return }
+        skipRequested = true
+        prepareAnalysis?.cancel()
+    }
+
+    var canSkipWaiting: Bool {
+        if case .analyzing = phase { return true }
+        return false
     }
 
     /// One pass over the lines that still need the model.
@@ -137,8 +168,11 @@ final class SongSession {
                 total: total,
                 remaining: pace.estimate(remaining: total - done)
             )
-            // Flushed as it goes, so a cancelled run keeps what it produced.
-            self.flush()
+            // Flushed periodically rather than per line: `flush` re-encodes the
+            // whole analysis dictionary, so doing it on every line makes saving
+            // quadratic in the length of the song. Every fifth line still keeps
+            // a cancelled run's work.
+            if done % 5 == 0 { self.flush() }
         }
         flush()
     }

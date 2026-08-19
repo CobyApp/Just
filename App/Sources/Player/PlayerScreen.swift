@@ -60,7 +60,10 @@ struct PlayerScreen: View {
                     track: track,
                     artwork: artwork.image,
                     phase: session?.phase ?? .loadingLyrics,
-                    onCancel: { app.closePlayer() }
+                    onCancel: { app.closePlayer() },
+                    onSkip: (session?.canSkipWaiting ?? false)
+                        ? { session?.skipWaiting() }
+                        : nil
                 )
             }
         }

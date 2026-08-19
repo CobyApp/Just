@@ -80,6 +80,24 @@ public struct LineStudy: Hashable, Sendable, Codable {
     }
 }
 
+public extension LineStudy {
+    /// The same analysis under another line's index.
+    ///
+    /// Lyrics repeat: a chorus is several lines with identical text, and asking
+    /// the model about each of them separately is paying for the same answer
+    /// twice.
+    func moved(to lineIndex: Int) -> LineStudy {
+        LineStudy(
+            lineIndex: lineIndex,
+            original: original,
+            translationKo: translationKo,
+            words: words,
+            grammar: grammar,
+            engine: engine
+        )
+    }
+}
+
 public enum AnalysisEngineKind: String, Sendable, Codable {
     /// Apple Intelligence, on-device.
     case onDevice

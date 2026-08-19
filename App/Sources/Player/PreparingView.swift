@@ -12,6 +12,9 @@ struct PreparingView: View {
     let artwork: Image?
     let phase: SongSession.Phase
     let onCancel: () -> Void
+    /// nil while there is nothing to skip — during the lyric fetch there is no
+    /// partial result to go and read.
+    let onSkip: (() -> Void)?
 
     var body: some View {
         VStack(spacing: JustTheme.Space.loose) {
@@ -39,8 +42,17 @@ struct PreparingView: View {
 
             Spacer(minLength: 0)
 
-            Button("중단", action: onCancel)
-                .buttonStyle(.justSecondary)
+            VStack(spacing: JustTheme.Space.snug) {
+                if let onSkip {
+                    Button("지금 듣기", action: onSkip)
+                        .buttonStyle(.justPrimary)
+                    Text("남은 줄은 들으면서 이어서 해석합니다")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                }
+                Button("중단", action: onCancel)
+                    .buttonStyle(.justSecondary)
+            }
         }
         .padding(JustTheme.Space.section)
         .frame(maxWidth: 420)

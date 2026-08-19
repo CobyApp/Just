@@ -469,15 +469,41 @@ public final class Sensei {
         onProgress: @MainActor (Int, Int) -> Void = { _, _ in }
     ) async {
         let pending = pendingLines(in: lyrics)
-        for (offset, line) in pending.enumerated() {
+
+        // Grouped by the text itself. A song is not a list of distinct lines —
+        // the chorus comes back — and the model has nothing new to say the
+        // second time it sees the same words.
+        var groups: [String: [LyricLine]] = [:]
+        var order: [String] = []
+        for line in pending {
+            let key = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if groups[key] == nil { order.append(key) }
+            groups[key, default: []].append(line)
+        }
+
+        var done = 0
+        for key in order {
+            guard let lines = groups[key], let first = lines.first else { continue }
             if Task.isCancelled { return }
-            await analyze(
-                lineIndex: line.id,
+
+            let study = await analyze(
+                lineIndex: first.id,
                 in: lyrics,
                 songTitle: songTitle,
                 artist: artist
             )
-            onProgress(offset + 1, pending.count)
+            done += 1
+
+            // The repeats are filled in from the one answer, each under its own
+            // index so the lyric view and the record still address them by line.
+            if let study {
+                for repeated in lines.dropFirst() {
+                    entries[repeated.id] = study.moved(to: repeated.id)
+                    done += 1
+                }
+            }
+
+            onProgress(min(done, pending.count), pending.count)
         }
     }
 

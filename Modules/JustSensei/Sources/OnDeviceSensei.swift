@@ -117,6 +117,15 @@ public final class OnDeviceSensei {
 
     private var session: LanguageModelSession
     private let tokenizer = JapaneseTokenizer()
+    /// Lines answered by the current session.
+    ///
+    /// The session used to be rebuilt for every line, which paid for the
+    /// instruction prompt — fifteen lines of it — on each call. Keeping one and
+    /// recycling it periodically pays that once per batch instead, while still
+    /// bounding the transcript so a long song cannot overflow the context
+    /// window. That overflow is the reason the per-line rebuild existed.
+    private var linesInSession = 0
+    private static let linesPerSession = 8
 
     public init() {
         session = LanguageModelSession { Self.instructions }
@@ -178,9 +187,11 @@ public final class OnDeviceSensei {
         넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
         """
 
-        // A fresh session per line keeps the transcript from growing until it
-        // overflows the context window on a long song.
-        session = LanguageModelSession { Self.instructions }
+        if linesInSession >= Self.linesPerSession {
+            session = LanguageModelSession { Self.instructions }
+            linesInSession = 0
+        }
+        linesInSession += 1
 
         let response = try await session.respond(
             to: prompt,

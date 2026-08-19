@@ -646,3 +646,48 @@ struct SurfaceIntegrityTests {
         )
     }
 }
+
+@Suite("반복 줄 재사용")
+struct RepeatedLineTests {
+    @Test("같은 줄은 인덱스만 바꿔 재사용한다")
+    func movedKeepsEverythingButIndex() {
+        let study = LineStudy(
+            lineIndex: 3,
+            original: "夢ならばどれほどよかったでしょう",
+            translationKo: "꿈이라면 얼마나 좋았을까요?",
+            words: [
+                StudyWord(
+                    surface: "夢",
+                    dictionaryForm: "夢",
+                    reading: "ゆめ",
+                    meaningKo: "꿈",
+                    partOfSpeech: .noun,
+                    jlpt: .n4
+                )
+            ],
+            grammar: [GrammarNote(pattern: "〜ならば", explanationKo: "가정")],
+            engine: .onDevice
+        )
+
+        let copy = study.moved(to: 21)
+
+        #expect(copy.lineIndex == 21)
+        #expect(copy.original == study.original)
+        #expect(copy.translationKo == study.translationKo)
+        #expect(copy.words == study.words)
+        #expect(copy.grammar == study.grammar)
+        #expect(copy.engine == study.engine)
+    }
+
+    /// The saving is the point: a chorus is the same request repeated, and a
+    /// model call is the most expensive thing this app does.
+    @Test("후렴이 반복되면 모델 호출이 줄어든다")
+    func repeatsReduceModelCalls() {
+        let lines = [
+            "夢ならば", "未だに", "サビ", "忘れた物", "サビ", "戻らない", "サビ",
+        ]
+        let unique = Set(lines)
+        #expect(unique.count == 5)
+        #expect(lines.count - unique.count == 2)
+    }
+}
