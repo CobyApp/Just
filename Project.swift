@@ -131,6 +131,12 @@ let project = Project(
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Just",
+                // Same reason as the app target, and additionally: an extension
+                // whose version differs from its container is rejected at
+                // upload. Tuist's default hardcodes 1.0/1, so without these the
+                // widget stays behind while fastlane bumps the app.
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension",
                 ],
