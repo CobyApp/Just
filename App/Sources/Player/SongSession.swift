@@ -17,10 +17,21 @@ final class SongSession {
         case missing(String)
     }
 
+    /// How far the song is from being ready to read.
+    ///
+    /// The player shows a finished song or nothing at all, so this is what
+    /// stands between choosing a song and hearing it.
+    enum Phase: Equatable {
+        case loadingLyrics
+        case analyzing(done: Int, total: Int, remaining: TimeInterval?)
+        case ready
+    }
+
     let track: Track
     private(set) var lyricsState: LyricsState = .loading
     private(set) var song: StudySong?
     private(set) var bulkProgress: (done: Int, total: Int)?
+    private(set) var phase: Phase = .loadingLyrics
 
     var selectedLine: Int?
     var showsFurigana = true
@@ -61,7 +72,12 @@ final class SongSession {
 
     // MARK: - Loading
 
-    func start() async {
+    /// Everything that has to happen before the player may open.
+    ///
+    /// Analysis is awaited rather than left running behind the lyrics: the
+    /// player shows a finished song, and a song filling in line by line under
+    /// the reader is the thing this replaces.
+    func prepare() async {
         // Claiming the shared cache is the session's own job, not the caller's.
         // Doing it here is what orders it correctly against the outgoing
         // session's final flush: that one runs first, under its own song's
@@ -84,7 +100,62 @@ final class SongSession {
             await fetchLyrics()
         }
 
-        if autoAnalysis { analyzeAll() }
+        // "안 함" and low-power mode keep their meaning: a setting made to save
+        // energy must not turn into a ten-minute wait. Those songs open at once
+        // and analyse the lines the reader taps, as before.
+        if autoAnalysis {
+            await analyzeRemaining()
+        }
+
+        guard !Task.isCancelled else { return }
+        phase = .ready
+    }
+
+    /// One pass over the lines that still need the model.
+    ///
+    /// Exactly one. A line the model keeps failing on stays unsettled, so
+    /// looping until nothing is pending would never let the song open.
+    private func analyzeRemaining() async {
+        guard let lyrics else { return }
+        let pending = sensei.pendingLines(in: lyrics)
+        guard !pending.isEmpty else { return }
+
+        var pace = AnalysisPace()
+        var lastTick = Date.now
+        phase = .analyzing(done: 0, total: pending.count, remaining: nil)
+
+        await sensei.analyzeAll(
+            lyrics: lyrics,
+            songTitle: track.title,
+            artist: track.artist
+        ) { done, total in
+            let now = Date.now
+            pace.record(now.timeIntervalSince(lastTick))
+            lastTick = now
+            self.phase = .analyzing(
+                done: done,
+                total: total,
+                remaining: pace.estimate(remaining: total - done)
+            )
+            // Flushed as it goes, so a cancelled run keeps what it produced.
+            self.flush()
+        }
+        flush()
+    }
+
+    /// Re-runs the search with a corrected artist and title, then prepares the
+    /// song properly.
+    ///
+    /// Going back through preparation rather than analysing behind the lyrics
+    /// keeps one rule: the player only ever shows a finished song.
+    func retryLyrics(artistOverride: String?, titleOverride: String?) async {
+        phase = .loadingLyrics
+        await fetchLyrics(artistOverride: artistOverride, titleOverride: titleOverride)
+        if autoAnalysis {
+            await analyzeRemaining()
+        }
+        guard !Task.isCancelled else { return }
+        phase = .ready
     }
 
     func fetchLyrics(artistOverride: String? = nil, titleOverride: String? = nil) async {

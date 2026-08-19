@@ -276,7 +276,7 @@ private struct MissingLyricsView: View {
             Button {
                 isRetrying = true
                 Task {
-                    await session.fetchLyrics(
+                    await session.retryLyrics(
                         artistOverride: artist.isEmpty ? nil : artist,
                         titleOverride: title.isEmpty ? nil : title
                     )

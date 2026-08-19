@@ -87,7 +87,7 @@ struct PlayerScreen: View {
                 track,
                 autoplay: app.player.trackID != track.id
             )
-            await session.start()
+            await session.prepare()
             await playback
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
