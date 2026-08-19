@@ -145,8 +145,16 @@ public final class OnDeviceSensei {
         session.prewarm()
     }
 
-    /// Analyses one line. Neighbouring lines are passed as context because a
-    /// lyric line is often a fragment whose subject lives in the line above.
+    /// Analyses one line. The line above is passed as context because a lyric
+    /// line is often a fragment whose subject lives there.
+    ///
+    /// The line *below* is not passed, though the caller still offers it. Measured
+    /// over six lines, two came back translated as their neighbour — 「さよなら」
+    /// だけだった answered with the meaning of the line after it — and the pair of
+    /// translations were near-identical. Naming the target more insistently in the
+    /// prompt did not help when this was tried before. Removing the line it was
+    /// copying is the other way at it, and the original reason for context only
+    /// ever argued for the line above.
     public func analyze(
         line: String,
         lineIndex: Int,
@@ -164,13 +172,10 @@ public final class OnDeviceSensei {
             prompt += "<before>\(previous)</before>\n"
         }
         prompt += "<target>\(line)</target>\n"
-        if let next, !next.isEmpty {
-            prompt += "<after>\(next)</after>\n"
-        }
         prompt += """
 
-        <target> 안의 일본어 문장만 다루세요. <before>와 <after>는 문맥 파악에만 쓰고
-        결과에 넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
+        <target> 안의 일본어 문장만 다루세요. <before>는 문맥 파악에만 쓰고 결과에
+        넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
         """
 
         // A fresh session per line keeps the transcript from growing until it
