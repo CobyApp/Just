@@ -148,6 +148,41 @@ public extension ButtonStyle where Self == JustSecondaryButtonStyle {
     static var justSecondary: JustSecondaryButtonStyle { JustSecondaryButtonStyle() }
 }
 
+/// The icon-only control: a transport button, a dismiss, a toggle.
+///
+/// These were bare images with `.plain`, which asks SwiftUI to draw nothing at
+/// all — so the most common button style in the app was the one that declared
+/// itself invisible. They were also 30–34pt, under the 44pt minimum, which is
+/// what made them feel small as well as look absent.
+public struct JustIconButtonStyle: ButtonStyle {
+    /// Apple's minimum comfortable target. Not a design preference.
+    public static let minimumTapTarget: CGFloat = 44
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(JustTheme.Ink.primary)
+            .frame(
+                minWidth: Self.minimumTapTarget,
+                minHeight: Self.minimumTapTarget
+            )
+            .background(
+                JustTheme.Surface.raised.opacity(configuration.isPressed ? 0.4 : 1),
+                in: .circle
+            )
+            .overlay {
+                Circle().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+            }
+            .contentShape(.circle)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+public extension ButtonStyle where Self == JustIconButtonStyle {
+    static var justIcon: JustIconButtonStyle { JustIconButtonStyle() }
+}
+
 /// A small pill used for JLPT levels and parts of speech.
 public struct JustChip: View {
     private let text: String
