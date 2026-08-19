@@ -129,7 +129,7 @@ public struct QuizBuilder: Sendable {
             case .recall:
                 return recall(source)
             case .choice:
-                return choice(source, allMeanings: meanings)
+                return choice(source, allMeanings: meanings) ?? recall(source)
             }
         }
     }
@@ -174,11 +174,25 @@ public struct QuizBuilder: Sendable {
         )
     }
 
-    private func choice(_ source: Source, allMeanings: [String]) -> QuizQuestion {
-        let distractors = allMeanings
-            .filter { $0 != source.meaning }
-            .shuffled()
-            .prefix(3)
+    /// Nil when the vocabulary cannot furnish three wrong answers.
+    ///
+    /// Two saved words sharing a Korean gloss is ordinary — 「夜」 and 「晩」 are
+    /// both 밤 — and taking the meanings as they came produced option lists with
+    /// the same text twice, where picking either one is right and neither is
+    /// marked so. A learner with three saved words got a "four-choice" question
+    /// with two options, answerable without knowing anything.
+    ///
+    /// Rather than pad the list, the question steps aside: `build` asks for
+    /// recall instead, which needs no distractors at all.
+    private func choice(_ source: Source, allMeanings: [String]) -> QuizQuestion? {
+        var seen: Set<String> = [source.meaning]
+        var distractors: [String] = []
+        for meaning in allMeanings.shuffled() where seen.insert(meaning).inserted {
+            distractors.append(meaning)
+            if distractors.count == 3 { break }
+        }
+        guard distractors.count == 3 else { return nil }
+
         return QuizQuestion(
             id: "\(source.key).choice",
             kind: .choice,

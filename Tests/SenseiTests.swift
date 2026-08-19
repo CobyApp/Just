@@ -232,6 +232,35 @@ struct QuizBuilderTests {
         #expect(question.options.contains("꿈"))
     }
 
+    @Test("보기에 같은 뜻이 두 번 나오지 않는다")
+    func choiceOptionsAreDistinct() {
+        // Two saved words sharing a Korean gloss is ordinary, not exotic.
+        let others = ["눈물", "눈물", "하늘", "하늘"].enumerated().map { index, meaning in
+            QuizBuilder.Source(
+                key: "k\(index)", lemma: "x\(index)", reading: "y", meaning: meaning,
+                lineText: nil, surface: nil, songLabel: nil
+            )
+        }
+        let question = try! #require(
+            builder.build(from: [source] + others, kind: .choice)
+                .first { $0.entryKey == "夢|ゆめ" }
+        )
+        #expect(Set(question.options).count == question.options.count)
+    }
+
+    @Test("보기를 채울 뜻이 모자라면 사지선다 대신 쓰기 문제가 나온다")
+    func fallsBackWhenThereAreTooFewMeanings() {
+        let only = QuizBuilder.Source(
+            key: "k0", lemma: "涙", reading: "なみだ", meaning: "눈물",
+            lineText: nil, surface: nil, songLabel: nil
+        )
+        let question = try! #require(
+            builder.build(from: [source, only], kind: .choice)
+                .first { $0.entryKey == "夢|ゆめ" }
+        )
+        #expect(question.kind == .recall)
+    }
+
     @Test("문제 수는 limit을 넘지 않는다")
     func respectsLimit() {
         let many = (0..<50).map { index in
