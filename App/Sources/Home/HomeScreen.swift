@@ -12,6 +12,12 @@ struct HomeScreen: View {
     @Query(sort: \StudySong.lastOpenedAt, order: .reverse) private var songs: [StudySong]
 
     @State private var stats: StudyStats = .empty
+    /// Whether `stats` has been read yet.
+    ///
+    /// `.empty` and "genuinely nothing collected" are not the same thing, and the
+    /// screen branches on the second. Without this the first frame of every
+    /// launch told a reader with two hundred words that they had none.
+    @State private var statsLoaded = false
     @State private var showsSettings = false
 
     /// Cards a day is considered "done" at. Arbitrary but has to be something
@@ -28,7 +34,10 @@ struct HomeScreen: View {
                 // of. Leading with a large "0" and a sentence with no button was
                 // the app's first impression; this offers the one thing there is
                 // to do instead.
-                if stats.totalWords == 0 {
+                if !statsLoaded {
+                    // One blank frame is better than a wrong one.
+                    Color.clear
+                } else if stats.totalWords == 0 {
                     JustEmptyState(
                         icon: "music.note",
                         title: "노래로 시작하세요",
@@ -58,6 +67,7 @@ struct HomeScreen: View {
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
             .onAppear {
                 stats = store.stats()
+                statsLoaded = true
                 store.publishWidgetSnapshot(stats)
             }
         }

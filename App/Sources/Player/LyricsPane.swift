@@ -80,11 +80,14 @@ struct LyricsPane: View {
                     bulkBar
                 }
             }
-            // Only a finger on the list counts. Programmatic scrolling reports
+            // A finger that has actually dragged. Programmatic scrolling reports
             // `.animating`, so reacting to any phase would have auto-follow
-            // switch itself off the first time it followed anything.
+            // switch itself off the first time it followed anything — and
+            // `.tracking` is a finger merely resting, which a tap on the padding
+            // between lines also produces. Taking that as "the reader took over"
+            // detached the lyrics on a stray tap, with nothing to put it back.
             .onScrollPhaseChange { _, phase in
-                guard phase == .tracking || phase == .interacting else { return }
+                guard phase == .interacting else { return }
                 session.followsPlayback = false
             }
             .onChange(of: activeLine) { _, index in

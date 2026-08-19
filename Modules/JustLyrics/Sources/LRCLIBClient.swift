@@ -116,9 +116,7 @@ public struct LRCLIBClient: Sendable {
 
         // Trailing bracketed groups: "(feat. …)", "(Remix)", "[Live]". Stripped
         // repeatedly, because a title can carry two of them.
-        while let open = result.lastIndex(where: { $0 == "(" || $0 == "[" }) {
-            let closing: Character = result[open] == "(" ? ")" : "]"
-            guard result.hasSuffix(String(closing)) else { break }
+        while let open = openerMatchingFinalBracket(of: result) {
             let remainder = String(result[result.startIndex..<open])
                 .trimmingCharacters(in: .whitespaces)
             // A title that is nothing but the bracket is left alone; querying
@@ -128,6 +126,33 @@ public struct LRCLIBClient: Sendable {
         }
 
         return result
+    }
+
+    /// Where the group that closes the string begins, counting depth.
+    ///
+    /// Taking the *last* opening bracket instead cut inside a nested group:
+    /// "Yes! 東京 (feat. A (B))" lost everything from the inner "(", leaving
+    /// "Yes! 東京 (feat. A" with the bracket unmatched.
+    private static func openerMatchingFinalBracket(of title: String) -> String.Index? {
+        guard let last = title.last else { return nil }
+        let opener: Character
+        switch last {
+        case ")": opener = "("
+        case "]": opener = "["
+        default: return nil
+        }
+
+        var depth = 0
+        var index = title.endIndex
+        while index > title.startIndex {
+            index = title.index(before: index)
+            if title[index] == last { depth += 1 }
+            if title[index] == opener {
+                depth -= 1
+                if depth == 0 { return index }
+            }
+        }
+        return nil
     }
 
     /// The first act named, without its parenthetical reading.

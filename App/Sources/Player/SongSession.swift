@@ -187,19 +187,21 @@ final class SongSession {
         flush()
     }
 
-    /// Analyses every line that has none yet, once, and writes the result to
-    /// the song record.
+    /// Numbers the whole-song runs.
     ///
-    /// Started automatically when a song opens rather than waiting for a tap
-    /// per line: the model is the slow part, the user is going to read the
-    /// whole song anyway, and the results are permanent — so doing it once up
-    /// front is strictly cheaper than doing it forty times on demand.
-    /// A cancelled run does not stop where it was told to: it is only checked
-    /// between lines, so the line already in the model finishes first. Numbering
-    /// the runs is what keeps that tail from reporting progress for, or tearing
+    /// A cancelled run does not stop where it was told to: cancellation is only
+    /// checked between lines, so the line already inside the model finishes
+    /// first. Numbering keeps that tail from reporting progress for, or tearing
     /// down, the run that has since replaced it.
     private var bulkRun = 0
 
+    /// Analyses every line that has none yet, once, and writes the result to
+    /// the song record.
+    ///
+    /// Only reachable from the player's menu now. Opening a song runs the same
+    /// pass through `prepare()` and waits for it, so what is left here is the
+    /// leftovers: lines the model failed on, which stay unsettled and are worth
+    /// another attempt without reopening the song.
     func analyzeAll() {
         guard let lyrics, bulkTask == nil else { return }
         let pending = sensei.pendingLines(in: lyrics)

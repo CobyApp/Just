@@ -204,3 +204,28 @@ struct LyricsCandidateTests {
         #expect(chosen?.syncedLyrics != nil)
     }
 }
+
+@Suite("제목 정리의 괄호 짝맞추기")
+struct TitleBracketTests {
+    @Test("중첩 괄호를 짝으로 떼어낸다")
+    func matchesNestedBrackets() {
+        // 마지막 여는 괄호를 찾으면 안쪽 것을 잡아 「Yes! 東京 (feat. A」처럼
+        // 괄호가 안 맞는 조각이 남는다.
+        #expect(LRCLIBClient.simplifiedTitle("Yes! 東京 (feat. A (B))") == "Yes! 東京")
+    }
+
+    @Test("괄호가 여러 개 붙어도 다 떼어낸다")
+    func stripsSeveralGroups() {
+        #expect(LRCLIBClient.simplifiedTitle("Hello (World) [Live]") == "Hello")
+    }
+
+    @Test("가운데 괄호는 건드리지 않는다")
+    func leavesInnerGroupsAlone() {
+        #expect(LRCLIBClient.simplifiedTitle("Hello (World) Goodbye") == "Hello (World) Goodbye")
+    }
+
+    @Test("짝이 맞지 않으면 손대지 않는다")
+    func leavesUnbalancedTitlesAlone() {
+        #expect(LRCLIBClient.simplifiedTitle("Hello (World") == "Hello (World")
+    }
+}
