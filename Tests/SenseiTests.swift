@@ -458,3 +458,34 @@ struct WordPresenceTests {
         #expect(!sensei.appears(word("走る", "走る"), in: "その一言で全てが分かった"))
     }
 }
+
+@Suite("전곡 해석은 한 바퀴만")
+@MainActor
+struct AnalyzeAllSinglePassTests {
+    private let lyrics = Lyrics(
+        lines: [
+            LyricLine(id: 0, time: 0, text: "夢を見た"),
+            LyricLine(id: 1, time: 4, text: "夜が明ける"),
+        ],
+        isSynced: true,
+        source: "test"
+    )
+
+    @Test("사전으로 대체된 줄이 남아도 한 바퀴 뒤에 끝난다")
+    func stopsAfterOnePass() async {
+        // A device that has the model but cannot reach it: every line falls
+        // back to the dictionary and stays unsettled. Preparation must still
+        // finish — retrying until nothing is pending would never return.
+        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+        sensei.reset(for: "songA")
+
+        var reported: [Int] = []
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, _ in
+            reported.append(done)
+        }
+
+        #expect(reported == [1, 2])
+        // Still pending, so opening the song again tries them once more.
+        #expect(sensei.pendingLines(in: lyrics).count == 2)
+    }
+}
