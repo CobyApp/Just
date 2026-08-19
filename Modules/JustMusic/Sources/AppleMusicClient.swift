@@ -172,22 +172,6 @@ public struct AppleMusicClient: Sendable {
         }
     }
 
-    /// The other songs on the same album — the album context the catalog gives
-    /// us for free and YouTube never could.
-    public func albumTracks(for song: Song) async throws -> [JustCore.Track] {
-        do {
-            let detailed = try await song.with([.albums])
-            guard let album = detailed.albums?.first else { return [] }
-            let full = try await album.with([.tracks])
-            return (full.tracks ?? []).compactMap { item in
-                guard case .song(let song) = item else { return nil }
-                return Self.track(from: song)
-            }
-        } catch {
-            throw Failure.transport(error.localizedDescription)
-        }
-    }
-
     static func track(from song: Song) -> JustCore.Track {
         JustCore.Track(
             id: song.id.rawValue,
