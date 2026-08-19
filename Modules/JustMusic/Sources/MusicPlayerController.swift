@@ -168,6 +168,15 @@ public final class MusicPlayerController {
 
     public func play() {
         guard !isPreview else {
+            // An AVPlayer parked at the end of its item ignores `play()`. The
+            // clip is 30 seconds and a learner replays it constantly, so this
+            // was the play button doing nothing every time the clip ran out.
+            if let item = previewPlayer.currentItem,
+               item.duration.isNumeric,
+               previewPlayer.currentTime() >= item.duration {
+                previewPlayer.seek(to: .zero)
+                currentTime = 0
+            }
             previewPlayer.play()
             status = .playing
             return
