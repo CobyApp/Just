@@ -512,3 +512,79 @@ struct GrammarPresenceTests {
         #expect(!Sensei.grammarAppears("  ", in: "本当は僕も言いたいんだ"))
     }
 }
+
+@Suite("가사의 분절로 단어를 바로잡기")
+struct GroundingTests {
+    private let tokenizer = JapaneseTokenizer()
+
+    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
+        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
+    }
+
+    @Test("꼬리에 붙은 조사를 떼고 읽기를 가사에서 가져온다")
+    func trimsTrailingGlue() {
+        // 본 것: 「本当は」가 표제어로, 읽기는 「ほんとうは」로 왔다.
+        #expect(
+            ground("本当は", in: "本当は僕も言いたいんだ")
+                == .word(surface: "本当", reading: "ほんとう")
+        )
+        #expect(
+            ground("僕も", in: "本当は僕も言いたいんだ")
+                == .word(surface: "僕", reading: "ぼく")
+        )
+    }
+
+    @Test("조사뿐인 후보는 버린다")
+    func rejectsPureGlue() {
+        #expect(ground("んだ", in: "本当は僕も言いたいんだ") == .glue)
+        #expect(ground("で", in: "その一言で全てが分かった") == .glue)
+        #expect(ground("も", in: "本当は僕も言いたいんだ") == .glue)
+    }
+
+    @Test("문맥을 아는 읽기로 모델의 오독을 덮는다")
+    func takesTheReadingFromTheLine() {
+        // 모델은 「その一言」의 읽기를 「そのいかん」이라고 했다.
+        #expect(
+            ground("その一言", in: "その一言で全てが分かった")
+                == .word(surface: "その一言", reading: "そのひとこと")
+        )
+        #expect(
+            ground("空", in: "二人だけの空が広がる夜に")
+                == .word(surface: "空", reading: "そら")
+        )
+    }
+
+    @Test("가사의 분절과 맞지 않으면 건드리지 않는다")
+    func leavesUnalignedCandidatesAlone() {
+        #expect(ground("走る", in: "その一言で全てが分かった") == .unknown)
+    }
+}
+
+@Suite("같은 표기의 다른 뜻 가려내기")
+struct HomographTests {
+    private let dictionary = DictionarySensei()
+
+    @Test("읽기를 알려주면 그 뜻을 고른다")
+    func picksTheSenseTheReadingNames() {
+        // 僕는 사전에 ぼく(1인칭)와 しもべ(하인) 둘로 실려 있는데, 인덱스가 나중
+        // 것만 남겨 「본인」이 「하인」으로 나왔다.
+        #expect(dictionary.entry(forSpelling: "僕", reading: "ぼく")?.r == "ぼく")
+        #expect(dictionary.entry(forSpelling: "僕", reading: "しもべ")?.r == "しもべ")
+    }
+
+    @Test("읽기를 모르면 항목을 하나 내주기는 한다")
+    func stillAnswersWithoutAReading() {
+        #expect(dictionary.entry(forSpelling: "僕", reading: nil) != nil)
+    }
+
+    @Test("읽기가 어느 뜻과도 안 맞으면 표기만 보고 고른다")
+    func fallsBackWhenTheReadingMatchesNothing() {
+        #expect(dictionary.entry(forSpelling: "僕", reading: "ぜんぜん") != nil)
+    }
+
+    @Test("표기가 하나뿐인 단어는 그대로다")
+    func unaffectedForSingleSenseWords() {
+        #expect(dictionary.entry(forSpelling: "帰る", reading: "かえる")?.l == "帰る")
+        #expect(dictionary.entry(forSpelling: "帰る", reading: nil)?.l == "帰る")
+    }
+}

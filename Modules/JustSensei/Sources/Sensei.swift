@@ -23,6 +23,9 @@ public final class Sensei {
 
     private let onDevice: OnDeviceSensei?
     private let dictionary: DictionarySensei
+    /// Used to read the line the way the line reads, rather than the way the
+    /// model guessed it.
+    private let tokenizer = JapaneseTokenizer()
     /// Whether the on-device model is there at all, which is what decides
     /// whether a dictionary result is an answer or a failure.
     private let modelIsAvailable: Bool
@@ -166,20 +169,44 @@ public final class Sensei {
     private func refine(_ study: LineStudy) -> LineStudy {
         guard study.engine == .onDevice else { return study }
 
-        let words = study.words.filter { appears($0, in: study.original) }.map { word -> StudyWord in
+        // Segmented once for the whole line, then consulted per candidate.
+        let tokens = tokenizer.tokenize(study.original)
+
+        let words = study.words.filter { appears($0, in: study.original) }.compactMap { word -> StudyWord? in
+            // What the line says this candidate is, before anything else gets an
+            // opinion. Grammar stuck to the tail comes off, and a candidate that
+            // is nothing but grammar goes away.
+            let grounded = Self.grounding(for: word.surface, in: tokens)
+            if case .glue = grounded { return nil }
+
+            var surface = word.surface
+            var lineReading: String?
+            if case .word(let trimmed, let reading) = grounded {
+                surface = trimmed
+                lineReading = reading
+            }
+
             let lemma = repairedLemma(for: word)
 
             // The lyric's own spelling is consulted first; only if the written
             // form is unknown does the model's dictionary form and reading get
-            // a say.
-            let match = dictionary.entry(forSpelling: word.surface)
-                ?? dictionary.lookup(lemma: lemma, reading: word.reading)
+            // a say. Trimming above is what lets this hit at all for 「本当は」:
+            // 「本当」 is in the dictionary, the two together never could be.
+            // The line's reading is handed to the dictionary, not just kept for
+            // display: it is what tells 僕/ぼく from 僕/しもべ. Without it,
+            // trimming 「僕も」 to 「僕」 started hitting the dictionary and getting
+            // back "a servant".
+            let match = dictionary.entry(forSpelling: surface, reading: lineReading)
+                ?? dictionary.lookup(lemma: lemma, reading: lineReading ?? word.reading)
 
             guard let entry = match else {
                 return StudyWord(
-                    surface: word.surface,
-                    dictionaryForm: lemma,
-                    reading: word.reading,
+                    surface: surface,
+                    // With no entry to name the headword, the line's own reading
+                    // is a better answer than the model's: it knows 一言 is
+                    // ひとこと here, where the model offered そのいかん.
+                    dictionaryForm: lineReading == nil ? lemma : surface,
+                    reading: lineReading ?? word.reading,
                     meaningKo: word.meaningKo,
                     partOfSpeech: word.partOfSpeech,
                     jlpt: word.jlpt,
@@ -188,7 +215,7 @@ public final class Sensei {
             }
 
             return StudyWord(
-                surface: word.surface,
+                surface: surface,
                 dictionaryForm: entry.l,
                 reading: entry.r,
                 // The model's gloss is kept: it is written for this line's
@@ -210,6 +237,76 @@ public final class Sensei {
             grammar: study.grammar.filter { Self.grammarAppears($0.pattern, in: study.original) },
             engine: study.engine
         )
+    }
+
+    /// What the line's own segmentation says a candidate really is.
+    enum Grounding: Equatable {
+        /// The word, with the grammar trimmed off its tail and the reading the
+        /// line gives it.
+        case word(surface: String, reading: String)
+        /// Nothing but grammar — 「で」, 「も」, 「んだ」.
+        case glue
+        /// Does not line up with the line's tokens; leave the candidate alone.
+        case unknown
+    }
+
+    /// Grounds a candidate in the line the singer actually sang.
+    ///
+    /// `CFStringTokenizer` is the only on-device API that reads Japanese *in
+    /// context* — it knows 一言 is ひとこと and 空 is そら here — and until now that
+    /// knowledge was thrown away on the model path and used only in the offline
+    /// fallback. The model, meanwhile, offered 「そのいかん」 for 「その一言」 and
+    /// pasted particles onto headwords: 「本当は」, 「僕も」, and 「で」 on its own.
+    ///
+    /// Trimming happens before the dictionary is consulted, which also lifts the
+    /// hit rate: 「本当」 is in the dictionary where 「本当は」 never could be.
+    ///
+    /// Part of speech is deliberately not used. `NLTagger` labels every token in
+    /// these lyrics `OtherWord`, so a rule that asked it to point out particles
+    /// would quietly never fire. Segmentation is what it actually knows.
+    nonisolated static func grounding(
+        for surface: String,
+        in tokens: [JapaneseToken]
+    ) -> Grounding {
+        let target = surface.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !target.isEmpty else { return .unknown }
+
+        guard let range = tokenRange(covering: target, in: tokens) else {
+            return .unknown
+        }
+
+        // The same rule the tokenizer already uses to spot glue: one hiragana on
+        // its own is grammar, not vocabulary.
+        var kept = Array(tokens[range])
+        while let last = kept.last, isGlue(last.surface) {
+            kept.removeLast()
+        }
+        guard !kept.isEmpty else { return .glue }
+
+        return .word(
+            surface: kept.map(\.surface).joined(),
+            reading: kept.map(\.reading).joined()
+        )
+    }
+
+    private nonisolated static func isGlue(_ surface: String) -> Bool {
+        surface.count == 1 && surface.allSatisfy(\.isHiragana)
+    }
+
+    /// The run of tokens whose surfaces spell `target`, if any.
+    private nonisolated static func tokenRange(
+        covering target: String,
+        in tokens: [JapaneseToken]
+    ) -> Range<Int>? {
+        for start in tokens.indices {
+            var joined = ""
+            for end in start..<tokens.count {
+                joined += tokens[end].surface
+                if joined == target { return start..<(end + 1) }
+                if joined.count >= target.count { break }
+            }
+        }
+        return nil
     }
 
     /// Whether a grammar note is about something the line actually contains.

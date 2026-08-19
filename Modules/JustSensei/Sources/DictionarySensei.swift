@@ -22,21 +22,36 @@ public struct DictionarySensei: Sendable {
         var jlpt: JLPTLevel? { j.map(JLPTLevel.init(rawTag:)) }
     }
 
-    private let byLemma: [String: Entry]
+    /// Every sense, not one per spelling.
+    ///
+    /// This was `[String: Entry]`, which meant the last row read for a spelling
+    /// silently erased the others at load time. Only eight spellings in the
+    /// bundled data are affected — but 僕 is one of them, and it resolved to
+    /// しもべ (a servant) rather than ぼく, on a word J-pop uses constantly.
+    /// Counting the collisions said they were negligible; weighting them by how
+    /// often lyrics use the word said otherwise.
+    private let byLemma: [String: [Entry]]
     private let byReading: [String: Entry]
     private let tokenizer = JapaneseTokenizer()
 
     public init(entries: [Entry]) {
-        var lemmas: [String: Entry] = [:]
+        var lemmas: [String: [Entry]] = [:]
         var readings: [String: Entry] = [:]
         for entry in entries {
-            lemmas[entry.l] = entry
+            lemmas[entry.l, default: []].append(entry)
             // Only the first entry wins for a reading, so 会う doesn't get
             // shadowed by a later homophone.
             if readings[entry.r] == nil { readings[entry.r] = entry }
         }
         byLemma = lemmas
         byReading = readings
+    }
+
+    /// The sense whose reading matches, or the first one when nothing names it.
+    private func sense(_ candidates: [Entry]?, reading: String?) -> Entry? {
+        guard let candidates, !candidates.isEmpty else { return nil }
+        guard let reading, !reading.isEmpty else { return candidates.first }
+        return candidates.first { $0.r == reading } ?? candidates.first
     }
 
     public init() {
@@ -58,7 +73,7 @@ public struct DictionarySensei: Sendable {
     public var count: Int { byLemma.count }
 
     public func lookup(lemma: String, reading: String? = nil) -> Entry? {
-        if let hit = byLemma[lemma] { return hit }
+        if let hit = sense(byLemma[lemma], reading: reading) { return hit }
 
         // The reading index is consulted only when the lemma carries no kanji
         // of its own. Readings are heavily shared once the dictionary is a few
@@ -72,12 +87,14 @@ public struct DictionarySensei: Sendable {
         if lemmaIsAmbiguous, let reading, let hit = byReading[reading] { return hit }
 
         for candidate in Deinflector.candidates(for: lemma) {
-            if let hit = byLemma[candidate] { return hit }
+            if let hit = sense(byLemma[candidate], reading: reading) { return hit }
             if lemmaIsAmbiguous, let hit = byReading[candidate] { return hit }
         }
         if lemmaIsAmbiguous, let reading {
             for candidate in Deinflector.candidates(for: reading) {
-                if let hit = byReading[candidate] ?? byLemma[candidate] { return hit }
+                if let hit = byReading[candidate] ?? sense(byLemma[candidate], reading: reading) {
+                    return hit
+                }
             }
         }
         return nil
@@ -89,11 +106,14 @@ public struct DictionarySensei: Sendable {
     /// not: when the model reports 帰る as 「かえる」, the reading index is free
     /// to hand back 変える instead, because both are かえる. Matching on the
     /// kanji the singer actually wrote removes that whole class of mistake.
-    public func entry(forSpelling spelling: String) -> Entry? {
+    /// - Parameter reading: how the line reads this spelling, when known. It is
+    ///   what separates 僕/ぼく from 僕/しもべ; without it the first sense is
+    ///   returned, which is a guess rather than an answer.
+    public func entry(forSpelling spelling: String, reading: String? = nil) -> Entry? {
         guard spelling.containsKanji else { return nil }
-        if let hit = byLemma[spelling] { return hit }
+        if let hit = sense(byLemma[spelling], reading: reading) { return hit }
         for candidate in Deinflector.candidates(for: spelling) {
-            if let hit = byLemma[candidate] { return hit }
+            if let hit = sense(byLemma[candidate], reading: reading) { return hit }
         }
         return nil
     }
