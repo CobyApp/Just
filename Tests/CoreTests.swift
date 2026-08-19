@@ -203,3 +203,49 @@ struct LyricRangeTests {
         #expect(plain.range(of: 0) == nil)
     }
 }
+
+@Suite("해석 남은 시간 추정")
+struct AnalysisPaceTests {
+    @Test("재본 적이 없으면 추정하지 않는다")
+    func noSamplesMeansNoEstimate() {
+        #expect(AnalysisPace().estimate(remaining: 10) == nil)
+    }
+
+    @Test("한 줄만 재도 추정한다")
+    func estimatesFromASingleSample() {
+        var pace = AnalysisPace()
+        pace.record(10)
+        #expect(pace.estimate(remaining: 5) == 50)
+    }
+
+    @Test("남은 줄이 없으면 0이다")
+    func nothingLeftMeansZero() {
+        var pace = AnalysisPace()
+        pace.record(10)
+        #expect(pace.estimate(remaining: 0) == 0)
+    }
+
+    @Test("한 줄이 유난히 오래 걸려도 추정을 지배하지 않는다")
+    func oneStallDoesNotDominate() {
+        var pace = AnalysisPace()
+        for seconds in [10.0, 10.0, 10.0, 600.0] { pace.record(seconds) }
+        // 평균이라면 157.5초가 된다.
+        #expect(pace.estimate(remaining: 1) == 10)
+    }
+
+    @Test("창 밖으로 밀린 표본은 버린다")
+    func forgetsSamplesOutsideTheWindow() {
+        var pace = AnalysisPace(window: 2)
+        for seconds in [100.0, 100.0, 10.0, 10.0] { pace.record(seconds) }
+        #expect(pace.estimate(remaining: 1) == 10)
+    }
+
+    @Test("말이 안 되는 표본은 세지 않는다")
+    func ignoresNonsenseSamples() {
+        var pace = AnalysisPace()
+        pace.record(-5)
+        pace.record(.infinity)
+        pace.record(.nan)
+        #expect(pace.estimate(remaining: 3) == nil)
+    }
+}

@@ -18,7 +18,7 @@
 - 앱 타깃(`App/Sources`)은 테스트 대상이 아니다. 테스트할 로직은 `Modules/` 안에 둔다.
 - 빌드·테스트 명령:
   `xcodebuild -workspace Just.xcworkspace -scheme Just -destination 'platform=iOS Simulator,name=iPhone 17' test`
-- `Project.swift`를 바꿨을 때만 `tuist generate --no-open`을 다시 돌린다. 새 소스 파일은 glob으로 잡히므로 재생성이 필요 없다.
+- **파일을 새로 만들었으면 `tuist generate --no-open`을 다시 돌린다.** 매니페스트는 glob으로 적혀 있지만 생성된 Xcode 프로젝트는 그 시점의 파일 목록을 고정하므로, 재생성 없이는 새 파일이 빌드에 들어가지 않는다 (Task 1에서 실제로 걸렸다).
 
 ---
 
