@@ -40,22 +40,20 @@ struct MiniPlayer: View {
                 } label: {
                     Image(systemName: app.player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(JustTheme.Ink.primary)
-                        .frame(width: 32, height: 32)
                 }
-                // A plain style keeps this from inheriting the row's tap, which
-                // would expand the player instead of toggling playback.
-                .buttonStyle(.plain)
+                // A styled icon button also keeps this from inheriting the row's
+                // tap, which would expand the player instead of toggling
+                // playback.
+                .buttonStyle(.justIcon)
+                .accessibilityLabel(app.player.isPlaying ? "일시정지" : "재생")
 
                 Button {
                     app.stopPlayback()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(JustTheme.Ink.secondary)
-                        .frame(width: 30, height: 30)
+                        .font(.system(size: 13, weight: .bold))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.justIcon)
                 .accessibilityLabel("재생 종료")
             }
             .padding(.horizontal, JustTheme.Space.snug)

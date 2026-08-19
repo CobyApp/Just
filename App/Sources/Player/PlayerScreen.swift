@@ -131,7 +131,11 @@ struct PlayerScreen: View {
                     .foregroundStyle(
                         session.showsFurigana ? JustTheme.Surface.base : JustTheme.Ink.primary
                     )
-                    .frame(width: 34, height: 34)
+                    // The fill already says on/off; only the target was small.
+                    .frame(
+                        width: JustIconButtonStyle.minimumTapTarget,
+                        height: JustIconButtonStyle.minimumTapTarget
+                    )
                     .background(
                         session.showsFurigana ? AnyShapeStyle(JustTheme.Accent.gradient)
                             : AnyShapeStyle(JustTheme.Surface.raised),
@@ -337,10 +341,9 @@ private struct CompactTransport: View {
             Button { player.togglePlayback() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(JustTheme.Ink.primary)
-                    .frame(width: 34, height: 34)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.justIcon)
+            .accessibilityLabel(player.isPlaying ? "일시정지" : "재생")
 
             ProgressView(
                 value: min(player.currentTime, max(player.duration, 1)),

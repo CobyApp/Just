@@ -194,7 +194,11 @@ struct WordCard: View {
                     Image(systemName: isSaved ? "checkmark" : "plus")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(isSaved ? JustTheme.Surface.base : JustTheme.Ink.primary)
-                        .frame(width: 30, height: 30)
+                        // Green fill already says saved; only the target was small.
+                        .frame(
+                            width: JustIconButtonStyle.minimumTapTarget,
+                            height: JustIconButtonStyle.minimumTapTarget
+                        )
                         .background(
                             isSaved ? Color.green : JustTheme.Surface.raised,
                             in: .circle
