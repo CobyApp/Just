@@ -17,6 +17,9 @@ struct AlbumSheet: View {
     @State private var album: AlbumDetail?
     @State private var artwork = ArtworkLoader()
     @State private var failure: String?
+    /// Bumped to re-run the fetch, so "다시 시도" is a real retry rather than a
+    /// button that only clears the message.
+    @State private var retryToken = 0
 
     var body: some View {
         NavigationStack {
@@ -27,11 +30,13 @@ struct AlbumSheet: View {
                 } else {
                     JustTheme.Surface.base.ignoresSafeArea()
                     if let failure {
-                        ContentUnavailableView {
-                            Label("앨범을 불러오지 못했습니다", systemImage: "square.stack")
-                        } description: {
-                            Text(failure)
-                        }
+                        JustEmptyState(
+                            icon: "square.stack",
+                            title: "앨범을 불러오지 못했습니다",
+                            message: failure,
+                            actionTitle: "다시 시도",
+                            action: { retryToken += 1 }
+                        )
                     } else {
                         VStack(spacing: JustTheme.Space.loose) {
                             Skeleton(cornerRadius: JustTheme.Radius.card)
@@ -56,7 +61,8 @@ struct AlbumSheet: View {
                 }
             }
         }
-        .task {
+        .task(id: retryToken) {
+            failure = nil
             do {
                 let detail = try await app.music.album(forTrackID: track.id)
                 album = detail

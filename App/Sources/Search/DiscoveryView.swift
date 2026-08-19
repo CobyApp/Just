@@ -122,11 +122,11 @@ struct DiscoveryView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("좋아하는 노래로 시작하세요", systemImage: "music.note")
-        } description: {
-            Text("곡을 검색하면 가사를 줄 단위로 뜯어서 단어와 표현을 정리해 줍니다. 한 곡을 공부하고 나면 여기에 다음 곡을 추천해 드립니다.")
-        }
+        JustEmptyState(
+            icon: "music.note",
+            title: "좋아하는 노래로 시작하세요",
+            message: "곡을 검색하면 가사를 줄 단위로 뜯어서 단어와 표현을 정리해 줍니다. 한 곡을 공부하고 나면 여기에 다음 곡을 추천해 드립니다."
+        )
         .padding(.top, JustTheme.Space.section)
     }
 

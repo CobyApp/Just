@@ -36,11 +36,11 @@ struct SongWordsSheet: View {
                 JustTheme.Surface.base.ignoresSafeArea()
 
                 if entries.isEmpty {
-                    ContentUnavailableView {
-                        Label("담은 단어가 없습니다", systemImage: "character.book.closed")
-                    } description: {
-                        Text("가사 줄을 눌러 단어 카드에서 + 를 누르면 여기에 모입니다.")
-                    }
+                    JustEmptyState(
+                        icon: "character.book.closed",
+                        title: "담은 단어가 없습니다",
+                        message: "가사 줄을 눌러 단어 카드에서 + 를 누르면 여기에 모입니다."
+                    )
                 } else {
                     List {
                         Section {

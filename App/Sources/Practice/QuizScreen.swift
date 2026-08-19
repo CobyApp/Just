@@ -36,11 +36,11 @@ struct QuizScreen: View {
             if let question {
                 card(question)
             } else if questions.isEmpty {
-                ContentUnavailableView {
-                    Label("연습할 단어가 없습니다", systemImage: "square.dashed")
-                } description: {
-                    Text("가사에서 단어를 담으면 그 단어로 문제를 만듭니다.")
-                }
+                JustEmptyState(
+                    icon: "square.dashed",
+                    title: "연습할 단어가 없습니다",
+                    message: "가사에서 단어를 담으면 그 단어로 문제를 만듭니다."
+                )
             } else {
                 summary
             }

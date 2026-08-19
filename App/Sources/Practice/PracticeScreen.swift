@@ -8,6 +8,7 @@ import SwiftUI
 /// Separated from the word list because studying and browsing are different
 /// intents — the list is for looking a word up, this is for being tested on it.
 struct PracticeScreen: View {
+    @Environment(AppModel.self) private var app
     @Environment(\.modelContext) private var context
     @Query private var entries: [VocabEntry]
 
@@ -31,11 +32,13 @@ struct PracticeScreen: View {
     @ViewBuilder
     private var content: some View {
         if entries.isEmpty {
-            ContentUnavailableView {
-                Label("아직 연습할 단어가 없습니다", systemImage: "square.dashed")
-            } description: {
-                Text("가사에서 줄을 눌러 단어를 담으면 그 단어와 가사로 문제를 만듭니다.")
-            }
+            JustEmptyState(
+                icon: "square.dashed",
+                title: "아직 연습할 단어가 없습니다",
+                message: "가사에서 줄을 눌러 단어를 담으면 그 단어와 가사로 문제를 만듭니다.",
+                actionTitle: "곡 보러 가기",
+                action: { app.tab = .browse }
+            )
         } else {
             ScrollView {
                 VStack(spacing: JustTheme.Space.snug) {

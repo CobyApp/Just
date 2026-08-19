@@ -68,11 +68,13 @@ struct LibraryScreen: View {
     @ViewBuilder
     private var content: some View {
         if words.isEmpty {
-            ContentUnavailableView {
-                Label("아직 저장한 단어가 없습니다", systemImage: "character.book.closed")
-            } description: {
-                Text("가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.")
-            }
+            JustEmptyState(
+                icon: "character.book.closed",
+                title: "아직 저장한 단어가 없습니다",
+                message: "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.",
+                actionTitle: "곡 보러 가기",
+                action: { app.tab = .browse }
+            )
         } else {
             List {
                 Section {
