@@ -4,9 +4,9 @@ import JustCore
 /// Client for lrclib.net — an open, key-free, community lyrics database with
 /// good coverage of Japanese releases and, crucially, time-synced LRC.
 ///
-/// Neither YouTube nor Apple Music exposes lyrics through a public API, so a
-/// dedicated lyrics source is required regardless of which music source the
-/// app uses.
+/// Apple Music does not expose lyrics through a public API — the Music app
+/// shows them, the catalog API does not — so a dedicated lyrics source is
+/// required no matter where the songs come from.
 public struct LRCLIBClient: Sendable {
     public enum Failure: LocalizedError {
         case notFound
@@ -43,8 +43,9 @@ public struct LRCLIBClient: Sendable {
     }
 
     /// Exact lookup first, then a fuzzy search — the exact endpoint needs the
-    /// duration to match within a couple of seconds, which YouTube durations
-    /// often miss because of intros and outros baked into the upload.
+    /// duration to match within a couple of seconds, which often misses when
+    /// LRCLIB's entry was timed against a different release of the same song
+    /// (single vs album vs remaster).
     public func lyrics(
         artist: String,
         title: String,
@@ -95,7 +96,7 @@ public struct LRCLIBClient: Sendable {
         guard results.isEmpty else { return results }
 
         // Fall back to a free-text query: Japanese artist names are often
-        // indexed in a different script than YouTube's channel title.
+        // indexed in a different script than the catalog spells them.
         var loose = URLComponents(string: "\(Self.host)/api/search")!
         loose.queryItems = [URLQueryItem(name: "q", value: "\(artist) \(title)")]
         return try await get(loose.url!, as: [Record].self)

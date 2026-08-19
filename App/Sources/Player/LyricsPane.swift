@@ -215,9 +215,10 @@ private struct MissingLyricsView: View {
                 .foregroundStyle(JustTheme.Ink.secondary)
                 .multilineTextAlignment(.center)
 
-            // YouTube titles carry a lot of promotional noise, so the parsed
-            // artist/title is a guess. Letting the user correct it here is far
-            // cheaper than trying to parse every upload convention.
+            // The catalog's artist/title are clean, but LRCLIB may index the
+            // same song in a different script or under a release-specific
+            // title. Letting the user correct it here is far cheaper than
+            // trying to guess every spelling LRCLIB might have used.
             VStack(spacing: JustTheme.Space.tight) {
                 TextField("아티스트", text: $artist)
                 TextField("곡 제목", text: $title)

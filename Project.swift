@@ -60,7 +60,7 @@ let project = Project(
         // Design system: palette extraction, mesh background, furigana text.
         module("JustDesign", dependencies: [.target(name: "JustCore")]),
 
-        // YouTube Data API v3 search + IFrame player bridge.
+        // MusicKit catalog search + ApplicationMusicPlayer.
         module("JustMusic", dependencies: [.target(name: "JustCore")]),
 
         // LRCLIB client and LRC parsing.

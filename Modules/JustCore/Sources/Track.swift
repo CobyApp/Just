@@ -2,7 +2,7 @@ import Foundation
 
 /// A song as it comes back from the music source, before the user saves it.
 public struct Track: Identifiable, Hashable, Sendable, Codable {
-    /// YouTube video id.
+    /// Apple Music catalog id.
     public let id: String
     public let title: String
     public let artist: String
