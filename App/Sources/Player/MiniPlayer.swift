@@ -40,6 +40,7 @@ struct MiniPlayer: View {
                 } label: {
                     Image(systemName: app.player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(JustTheme.Ink.primary)
                 }
                 // A styled icon button also keeps this from inheriting the row's
                 // tap, which would expand the player instead of toggling
@@ -52,6 +53,8 @@ struct MiniPlayer: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .bold))
+                        // Quieter than play: ending a song is not the main act.
+                        .foregroundStyle(JustTheme.Ink.secondary)
                 }
                 .buttonStyle(.justIcon)
                 .accessibilityLabel("재생 종료")

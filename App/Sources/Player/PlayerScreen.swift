@@ -341,6 +341,7 @@ private struct CompactTransport: View {
             Button { player.togglePlayback() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(JustTheme.Ink.primary)
             }
             .buttonStyle(.justIcon)
             .accessibilityLabel(player.isPlaying ? "일시정지" : "재생")

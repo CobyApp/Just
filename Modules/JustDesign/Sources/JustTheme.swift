@@ -150,10 +150,16 @@ public extension ButtonStyle where Self == JustSecondaryButtonStyle {
 
 /// The icon-only control: a transport button, a dismiss, a toggle.
 ///
-/// These were bare images with `.plain`, which asks SwiftUI to draw nothing at
-/// all — so the most common button style in the app was the one that declared
-/// itself invisible. They were also 30–34pt, under the 44pt minimum, which is
-/// what made them feel small as well as look absent.
+/// Guarantees the tap target and answers a press. It deliberately paints **no**
+/// surface of its own.
+///
+/// Every icon control in this app already sits somewhere that frames it — the
+/// mini player's material capsule, a sheet, or its own circle whose fill carries
+/// state (the furigana toggle, the save button's green). Adding a grey disc
+/// inside those made the mini player muddy and gave "종료" the same weight as
+/// "재생". What they all actually shared was size: 30–34pt against a 44pt
+/// minimum. Whether an icon needs a background is the container's business, not
+/// this style's.
 public struct JustIconButtonStyle: ButtonStyle {
     /// Apple's minimum comfortable target. Not a design preference.
     public static let minimumTapTarget: CGFloat = 44
@@ -162,19 +168,13 @@ public struct JustIconButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(JustTheme.Ink.primary)
             .frame(
                 minWidth: Self.minimumTapTarget,
                 minHeight: Self.minimumTapTarget
             )
-            .background(
-                JustTheme.Surface.raised.opacity(configuration.isPressed ? 0.4 : 1),
-                in: .circle
-            )
-            .overlay {
-                Circle().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
-            }
-            .contentShape(.circle)
+            // The whole target reacts, not just the glyph inside it.
+            .contentShape(.rect)
+            .opacity(configuration.isPressed ? 0.55 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
