@@ -46,6 +46,15 @@ public final class MusicPlayerController {
     private let client = AppleMusicClient()
     @ObservationIgnored
     private var ticker: Task<Void, Never>?
+    /// Bumped by every `load`, so a load that has been overtaken can tell.
+    ///
+    /// `load` suspends three times before anything plays. Tapping a second song
+    /// while the first is still loading therefore leaves two loads in flight,
+    /// and without this the slower one wins on the way out: it queues its own
+    /// song and starts it, while `trackID` — and the lyrics on screen — say the
+    /// other one.
+    @ObservationIgnored
+    private var loadGeneration = 0
 
     public init() {
         configureAudioSession()
@@ -76,18 +85,23 @@ public final class MusicPlayerController {
             return
         }
 
+        loadGeneration &+= 1
+        let generation = loadGeneration
+
         trackID = track.id
         duration = track.duration
         currentTime = 0
         status = .loading
 
         canPlayFullTracks = await AppleMusicClient.canPlayFullTracks()
+        guard generation == loadGeneration else { return }
 
         do {
             let song = try await client.song(id: track.id)
+            guard generation == loadGeneration else { return }
 
             if canPlayFullTracks {
-                try await startCatalogPlayback(song, autoplay: autoplay)
+                try await startCatalogPlayback(song, autoplay: autoplay, generation: generation)
             } else {
                 // Without a subscription the catalog will not stream, but the
                 // 30-second preview is open to anyone — and a study app is
@@ -96,6 +110,9 @@ public final class MusicPlayerController {
                 try startPreviewPlayback(song, autoplay: autoplay)
             }
         } catch {
+            // A load that has been overtaken keeps its failure to itself: the
+            // song the user is actually waiting on is not the one that failed.
+            guard generation == loadGeneration else { return }
             let blameSubscription = AppleMusicClient.access == .authorized
                 && !canPlayFullTracks
             status = .failed(
@@ -106,12 +123,16 @@ public final class MusicPlayerController {
         }
     }
 
-    private func startCatalogPlayback(_ song: Song, autoplay: Bool) async throws {
+    private func startCatalogPlayback(_ song: Song, autoplay: Bool, generation: Int) async throws {
         isPreview = false
         previewPlayer.pause()
         player.queue = [song]
         if let songDuration = song.duration { duration = songDuration }
         try await player.prepareToPlay()
+        // Preparing is the last suspension point, and the longest. A newer load
+        // has already replaced the queue by now, so starting here would play the
+        // song the user moved on from.
+        guard generation == loadGeneration else { return }
         status = .ready
         startTicking()
         if autoplay { play() }
