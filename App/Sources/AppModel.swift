@@ -176,10 +176,14 @@ final class AppModel {
 
     func open(_ track: Track) {
         openTrack = track
-        guard track.id != nowPlaying?.id else { return }
-        // The analysis cache is scoped by `SongSession.start()`, not here: the
-        // outgoing session has to flush under its own song before the new one
-        // claims the cache, and only the player knows when that has happened.
+    }
+
+    /// Called once preparation has finished and playback is about to start.
+    ///
+    /// Separate from `open` so that backing out of a song still being analysed
+    /// leaves nothing behind: no mini player for a song that never made a
+    /// sound, and whatever was already playing keeps playing.
+    func confirmPlaying(_ track: Track) {
         nowPlaying = track
     }
 

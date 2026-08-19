@@ -20,7 +20,7 @@ struct PlayerScreen: View {
         ZStack {
             ArtworkBackground(palette: artwork.palette)
 
-            if let session {
+            if let session, session.phase == .ready {
                 Group {
                     if sizeClass == .regular {
                         // iPad: artwork and transport sit beside the lyrics so
@@ -55,14 +55,12 @@ struct PlayerScreen: View {
                 }
                 .safeAreaInset(edge: .top) { header(session: session) }
             } else {
-                VStack(spacing: JustTheme.Space.regular) {
-                    Skeleton(cornerRadius: JustTheme.Radius.card)
-                        .frame(width: 260, height: 260)
-                    Skeleton().frame(width: 160, height: 22)
-                    Skeleton().frame(width: 110, height: 15)
-                    Spacer()
-                }
-                .padding(.top, JustTheme.Space.section)
+                PreparingView(
+                    track: track,
+                    artwork: artwork.image,
+                    phase: session?.phase ?? .loadingLyrics,
+                    onCancel: { app.closePlayer() }
+                )
             }
         }
         // Keyed on the track: `fullScreenCover(item:)` swaps the item in place
@@ -81,14 +79,16 @@ struct PlayerScreen: View {
                 autoAnalysis: app.autoAnalysis.allowsAutoRun
             )
             self.session = session
+            await session.prepare()
+
+            // Backing out during preparation must leave no trace, so the song
+            // is not adopted as "now playing" until it is about to be heard.
+            guard !Task.isCancelled, session.phase == .ready else { return }
+            app.confirmPlaying(track)
+
             // Only autoplays when this is a different song. Reopening a paused
             // one from the mini player should not start it again.
-            async let playback: Void = app.player.load(
-                track,
-                autoplay: app.player.trackID != track.id
-            )
-            await session.prepare()
-            await playback
+            await app.player.load(track, autoplay: app.player.trackID != track.id)
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
         .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
