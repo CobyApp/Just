@@ -111,8 +111,15 @@ struct LibraryScreen: View {
                 } label: {
                     // The current order, in words. An anonymous ↑↓ said neither
                     // what the button was nor what it was set to.
-                    Label(order.title, systemImage: "arrow.up.arrow.down")
-                        .labelStyle(.titleAndIcon)
+                    //
+                    // Spelled out as an HStack rather than a Label: a toolbar
+                    // collapses `Label` to its icon whatever `labelStyle` asks
+                    // for, which is how the text went missing the first time.
+                    HStack(spacing: 4) {
+                        Text(order.title)
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .font(JustTheme.Font.caption.weight(.semibold))
                 }
             }
         }
