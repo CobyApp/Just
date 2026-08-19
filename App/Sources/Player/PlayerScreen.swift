@@ -112,12 +112,6 @@ struct PlayerScreen: View {
             } label: {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 15, weight: .semibold))
-                    // Matched to the other three: the furigana toggle grew to
-                    // 44pt on its own and left the glass buttons looking shrunk.
-                    .frame(
-                        width: JustIconButtonStyle.minimumTapTarget,
-                        height: JustIconButtonStyle.minimumTapTarget
-                    )
             }
             .buttonStyle(.glass)
             .accessibilityLabel("플레이어 닫기")
@@ -127,34 +121,15 @@ struct PlayerScreen: View {
             // Furigana stays a one-tap control: it is toggled constantly while
             // reading. Everything else is once-per-song and belongs in a menu.
             // `textformat.size.ja.smaller` does not exist in SF Symbols, so the
-            // off state used to render an empty button. One real symbol now,
-            // with the state shown by fill rather than by swapping the glyph.
-            Button {
-                session.showsFurigana.toggle()
-                Haptics.tick()
-            } label: {
-                Image(systemName: "textformat.size.ja")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(
-                        session.showsFurigana ? JustTheme.Surface.base : JustTheme.Ink.primary
-                    )
-                    // The fill already says on/off; only the target was small.
-                    .frame(
-                        width: JustIconButtonStyle.minimumTapTarget,
-                        height: JustIconButtonStyle.minimumTapTarget
-                    )
-                    .background(
-                        session.showsFurigana ? AnyShapeStyle(JustTheme.Accent.gradient)
-                            : AnyShapeStyle(JustTheme.Surface.raised),
-                        in: .circle
-                    )
-                    .overlay {
-                        Circle().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
-                    }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("후리가나")
-            .accessibilityValue(session.showsFurigana ? "켜짐" : "꺼짐")
+            // off state used to render an empty button. One real symbol, with
+            // the state carried by the button style rather than the glyph.
+            //
+            // The same system style as its three neighbours, so the row has one
+            // set of metrics. A hand-rolled circle is what made the header
+            // uneven: sized to the 44pt rule it came out smaller than the glass
+            // buttons, and sizing those to match only made them bigger, because
+            // the style adds padding of its own around whatever it is handed.
+            furiganaToggle(session: session)
 
             // Promoted out of the menu: it is used constantly while reading, and
             // its only other route was tapping the artwork — a gesture nothing
@@ -168,10 +143,6 @@ struct PlayerScreen: View {
                         : "arrow.up.left.and.arrow.down.right"
                 )
                 .font(.system(size: 15, weight: .semibold))
-                .frame(
-                    width: JustIconButtonStyle.minimumTapTarget,
-                    height: JustIconButtonStyle.minimumTapTarget
-                )
             }
             .buttonStyle(.glass)
             .accessibilityLabel(session.isLyricsFullscreen ? "플레이어 보기" : "가사 전체화면")
@@ -199,20 +170,43 @@ struct PlayerScreen: View {
                         Label("이 곡의 단어", systemImage: "character.book.closed")
                     }
                 }
-
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 15, weight: .semibold))
-                    .frame(
-                        width: JustIconButtonStyle.minimumTapTarget,
-                        height: JustIconButtonStyle.minimumTapTarget
-                    )
             }
             .buttonStyle(.glass)
             .accessibilityLabel("더 보기")
         }
         .padding(.horizontal, JustTheme.Space.regular)
         .padding(.bottom, JustTheme.Space.tight)
+    }
+
+    /// The prominent variant is how the system says "on".
+    @ViewBuilder
+    private func furiganaToggle(session: SongSession) -> some View {
+        let action = {
+            session.showsFurigana.toggle()
+            Haptics.tick()
+        }
+        let symbol = Image(systemName: "textformat.size.ja")
+            .font(.system(size: 15, weight: .semibold))
+
+        if session.showsFurigana {
+            // The prominent style takes its label colour from the tint, and this
+            // app tints everything white — which is white on white. The glyph is
+            // told to be dark instead, the same trick JustPrimaryButtonStyle uses.
+            Button(action: action) {
+                symbol.foregroundStyle(JustTheme.Surface.base)
+            }
+                .buttonStyle(.glassProminent)
+                .accessibilityLabel("후리가나")
+                .accessibilityValue("켜짐")
+        } else {
+            Button(action: action) { symbol }
+                .buttonStyle(.glass)
+                .accessibilityLabel("후리가나")
+                .accessibilityValue("꺼짐")
+        }
     }
 
     // MARK: - Artwork + transport
