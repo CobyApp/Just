@@ -23,15 +23,28 @@ public final class Sensei {
 
     private let onDevice: OnDeviceSensei?
     private let dictionary: DictionarySensei
+    /// Whether the on-device model is there at all, which is what decides
+    /// whether a dictionary result is an answer or a failure.
+    private let modelIsAvailable: Bool
 
     public init(dictionary: DictionarySensei = DictionarySensei()) {
         self.dictionary = dictionary
         let reason = OnDeviceSensei.availability
         self.unavailability = reason
         self.onDevice = reason == nil ? OnDeviceSensei() : nil
+        self.modelIsAvailable = reason == nil
     }
 
-    public var usesOnDeviceModel: Bool { onDevice != nil }
+    /// Test seam: the model cannot be summoned in a test run, but the rules
+    /// about what its absence means still need checking.
+    init(dictionary: DictionarySensei, modelIsAvailable: Bool) {
+        self.dictionary = dictionary
+        self.onDevice = nil
+        self.unavailability = modelIsAvailable ? nil : .deviceNotEligible
+        self.modelIsAvailable = modelIsAvailable
+    }
+
+    public var usesOnDeviceModel: Bool { modelIsAvailable }
 
     public func prewarm() {
         onDevice?.prewarm()
@@ -53,20 +66,26 @@ public final class Sensei {
     /// A session whose song has been left behind gets nil rather than the new
     /// song's entries — writing those to its own record would replace a whole
     /// analysed song with someone else's lines, or with nothing at all.
+    ///
+    /// Only settled results are handed over. A line the model failed on is
+    /// worth showing right now, but persisting it would freeze the failure into
+    /// the record: reopening the song would load it back, and nothing would
+    /// ever ask the model again.
     public func cache(for songID: String) -> [Int: LineStudy]? {
-        self.songID == songID ? entries : nil
+        guard self.songID == songID else { return nil }
+        return entries.filter { isFinal($0.value) }
     }
 
     public func cached(_ lineIndex: Int) -> LineStudy? { entries[lineIndex] }
 
     /// Seeds the cache with analyses already persisted for this song.
     ///
-    /// Unlike a translation-only seed, these entries are complete, so the
-    /// short-circuit in `analyze` is correct: there is genuinely nothing left
-    /// to generate for those lines.
+    /// Everything persisted is loaded, settled or not. `isFinal` decides
+    /// separately whether a line still needs the model, so a record written by
+    /// an older build — when a failed line could be saved as if it were an
+    /// answer — repairs itself the next time the song is opened.
     public func preload(_ studies: [Int: LineStudy]) {
         for (index, study) in studies where entries[index] == nil {
-            guard Self.isComplete(study) else { continue }
             entries[index] = study
         }
     }
@@ -76,7 +95,7 @@ public final class Sensei {
         lyrics.lines.filter { line in
             guard !line.text.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
             guard let cached = entries[line.id] else { return true }
-            return !Self.isComplete(cached)
+            return !isFinal(cached)
         }
     }
 
@@ -89,7 +108,7 @@ public final class Sensei {
         songTitle: String,
         artist: String
     ) async -> LineStudy? {
-        if let cached = entries[lineIndex] { return cached }
+        if let cached = entries[lineIndex], isFinal(cached) { return cached }
         guard let line = lyrics.lines.first(where: { $0.id == lineIndex }) else { return nil }
         let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
@@ -116,23 +135,23 @@ public final class Sensei {
         }
 
         let refined = refine(result)
-        // A model call that produced no translation is a failure, not an answer.
-        // Caching it made the line permanently blank: the cache short-circuits
-        // `analyze`, so it would never be attempted again and the song kept a
-        // hole in it forever.
-        if Self.isComplete(refined) {
-            entries[lineIndex] = refined
-        }
+        // Kept even when it is not a settled answer, so the line shows its words
+        // instead of nothing. `isFinal` is what stops it being treated as the
+        // last word — the short-circuit above skips it, so the next pass tries
+        // the model again.
+        entries[lineIndex] = refined
         return refined
     }
 
-    /// Whether a result is worth keeping.
+    /// Whether a result is the best this device can produce.
     ///
-    /// The dictionary engine cannot translate at all, so its results are
-    /// complete by definition — judging them by the same rule would retry every
-    /// line forever on a device without Apple Intelligence.
-    private static func isComplete(_ study: LineStudy) -> Bool {
-        study.engine == .dictionary || !study.translationKo.isEmpty
+    /// A translation settles it. Without one, the answer came from the
+    /// dictionary, and what that means depends on the device: with no on-device
+    /// model it is the best there will ever be, but with one it means the model
+    /// call failed — a network of a moment, a guardrail, a busy system — and the
+    /// line deserves another attempt rather than a permanent blank.
+    private func isFinal(_ study: LineStudy) -> Bool {
+        !study.translationKo.isEmpty || !modelIsAvailable
     }
 
     // MARK: - Refinement

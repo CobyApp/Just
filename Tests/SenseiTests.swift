@@ -322,3 +322,67 @@ struct SenseiScopeTests {
         #expect(sensei.cache(for: "songA") == nil)
     }
 }
+
+@Suite("모델 실패로 사전 대체된 줄")
+@MainActor
+struct DictionaryFallbackTests {
+    private let lyrics = Lyrics(
+        lines: [LyricLine(id: 0, time: 0, text: "夢を見た")],
+        isSynced: true,
+        source: "test"
+    )
+
+    /// What `analyze` produces when the on-device call throws: real words, no
+    /// translation, engine `.dictionary`.
+    private var fallback: LineStudy {
+        LineStudy(
+            lineIndex: 0,
+            original: "夢を見た",
+            translationKo: "",
+            words: [],
+            grammar: [],
+            engine: .dictionary
+        )
+    }
+
+    @Test("Apple Intelligence가 있는 기기에서는 다시 시도할 줄로 남는다")
+    func staysPendingWhenTheModelExists() {
+        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+        sensei.reset(for: "songA")
+        sensei.preload([0: fallback])
+
+        // Shown to the user now...
+        #expect(sensei.cached(0) != nil)
+        // ...but not accepted as the song's final answer.
+        #expect(sensei.pendingLines(in: lyrics).count == 1)
+        #expect(sensei.cache(for: "songA")?.isEmpty == true)
+    }
+
+    @Test("Apple Intelligence가 없는 기기에서는 사전 결과가 최종 답이다")
+    func isFinalWithoutTheModel() {
+        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: false)
+        sensei.reset(for: "songA")
+        sensei.preload([0: fallback])
+
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
+        #expect(sensei.cache(for: "songA")?.count == 1)
+    }
+
+    @Test("번역이 붙은 결과는 어느 기기에서든 최종 답이다")
+    func translatedResultIsAlwaysFinal() {
+        let translated = LineStudy(
+            lineIndex: 0,
+            original: "夢を見た",
+            translationKo: "꿈을 꿨다",
+            words: [],
+            grammar: [],
+            engine: .onDevice
+        )
+        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+        sensei.reset(for: "songA")
+        sensei.preload([0: translated])
+
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
+        #expect(sensei.cache(for: "songA")?.count == 1)
+    }
+}
