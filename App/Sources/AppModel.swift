@@ -17,6 +17,17 @@ final class AppModel {
     let music = AppleMusicClient()
     let reminder = ReviewReminder()
 
+    /// Which tab is showing.
+    ///
+    /// Held here rather than in `RootView`'s own state so a screen can send the
+    /// user somewhere else — an empty word list has nothing to offer except the
+    /// song list, and it could not reach it from inside its own tab.
+    var tab: Tab = .today
+
+    enum Tab: Hashable {
+        case today, browse, words, practice
+    }
+
     /// The song the full-screen player is showing, if any.
     var openTrack: Track?
     /// The song loaded in the player, whether or not the full screen is up.

@@ -7,26 +7,21 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.scenePhase) private var scenePhase
-    @State private var selection: Destination = .today
-
-    enum Destination: Hashable {
-        case today, browse, words, practice
-    }
 
     var body: some View {
         @Bindable var app = app
 
-        TabView(selection: $selection) {
-            Tab("오늘", systemImage: "flame", value: Destination.today) {
+        TabView(selection: $app.tab) {
+            Tab("오늘", systemImage: "flame", value: AppModel.Tab.today) {
                 HomeScreen()
             }
-            Tab("둘러보기", systemImage: "music.note.list", value: Destination.browse) {
+            Tab("둘러보기", systemImage: "music.note.list", value: AppModel.Tab.browse) {
                 SearchScreen()
             }
-            Tab("단어장", systemImage: "character.book.closed", value: Destination.words) {
+            Tab("단어장", systemImage: "character.book.closed", value: AppModel.Tab.words) {
                 LibraryScreen()
             }
-            Tab("연습", systemImage: "square.dashed", value: Destination.practice) {
+            Tab("연습", systemImage: "square.dashed", value: AppModel.Tab.practice) {
                 PracticeScreen()
             }
         }
@@ -54,8 +49,9 @@ struct RootView: View {
 /// The accessory slot is reserved as soon as the modifier is applied, so
 /// returning an empty view inside it left an empty capsule floating above the
 /// tab bar. The modifier itself has to be conditional. Tab selection lives in
-/// `RootView`'s own state rather than inside the `TabView`, so rebuilding the
-/// subtree when a song starts does not move the user to another tab.
+/// `AppModel` rather than inside the `TabView`, so rebuilding the subtree when a
+/// song starts does not move the user to another tab — and a screen can send
+/// them to one deliberately.
 private struct MiniPlayerAccessory: ViewModifier {
     let track: Track?
 
