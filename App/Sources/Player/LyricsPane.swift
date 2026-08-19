@@ -74,13 +74,57 @@ struct LyricsPane: View {
                 .padding(.bottom, 96)
             }
             .scrollIndicators(.hidden)
-            .safeAreaInset(edge: .bottom) { bulkBar }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: JustTheme.Space.tight) {
+                    followBar(proxy: proxy)
+                    bulkBar
+                }
+            }
+            // Only a finger on the list counts. Programmatic scrolling reports
+            // `.animating`, so reacting to any phase would have auto-follow
+            // switch itself off the first time it followed anything.
+            .onScrollPhaseChange { _, phase in
+                guard phase == .tracking || phase == .interacting else { return }
+                session.followsPlayback = false
+            }
             .onChange(of: activeLine) { _, index in
                 guard let index, session.followsPlayback else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
                     proxy.scrollTo(index, anchor: .center)
                 }
             }
+        }
+    }
+
+    /// The way back to the song after scrolling off to read something else.
+    ///
+    /// Auto-follow has to yield to a finger — being dragged back to the current
+    /// line a second after looking up makes the lyrics unreadable while the song
+    /// plays. But silently staying put strands the reader, so the way back is an
+    /// offer rather than a timer: it waits as long as they are reading, and
+    /// never moves the playhead, which is what tapping a line would do.
+    @ViewBuilder
+    private func followBar(proxy: ScrollViewProxy) -> some View {
+        if !session.followsPlayback, let activeLine {
+            Button {
+                session.followsPlayback = true
+                withAnimation(.easeInOut(duration: 0.35)) {
+                    proxy.scrollTo(activeLine, anchor: .center)
+                }
+                Haptics.tick()
+            } label: {
+                Label("현재 줄로", systemImage: "arrow.down.to.line")
+                    .font(JustTheme.Font.caption.weight(.semibold))
+                    .foregroundStyle(JustTheme.Ink.primary)
+                    .padding(.horizontal, JustTheme.Space.snug)
+                    .padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: .capsule)
+                    .overlay {
+                        Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                    }
+            }
+            .buttonStyle(.plain)
+            .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
     }
 
@@ -117,6 +161,9 @@ struct LyricsPane: View {
         if let time = line.time {
             player.seek(to: max(0, time))
         }
+        // Choosing a line is choosing where the song is, so the list has no
+        // reason to stay detached from it afterwards.
+        session.followsPlayback = true
         activeLine = line.id
         session.selectedLine = line.id
         Task { await session.analyze(lineIndex: line.id) }

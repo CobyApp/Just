@@ -237,10 +237,14 @@ final class SongSession {
         return range.start
     }
 
-    /// Index the lyric view should keep centred, or nil when the user has
-    /// taken over scrolling.
+    /// The line the song is on, whoever is driving the scroll.
+    ///
+    /// Deliberately not gated on `followsPlayback`: taking over the scroll means
+    /// the view stops chasing the song, not that the song stops. Reading the two
+    /// off one flag froze the highlight on whatever line was current when the
+    /// user first touched the list.
     func activeLine(at time: TimeInterval) -> Int? {
-        guard followsPlayback, let lyrics, lyrics.isSynced else { return nil }
+        guard let lyrics, lyrics.isSynced else { return nil }
         return lyrics.activeLineIndex(at: time)
     }
 
