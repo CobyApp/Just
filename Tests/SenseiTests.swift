@@ -489,3 +489,26 @@ struct AnalyzeAllSinglePassTests {
         #expect(sensei.pendingLines(in: lyrics).count == 2)
     }
 }
+
+@Suite("문법 노트도 가사에 있어야 한다")
+struct GrammarPresenceTests {
+    @Test("가사에 없는 패턴은 버린다")
+    func rejectsAFabricatedPattern() {
+        // Observed: 〜てしまう came back for six different lines, none of which
+        // contained it, with the line's translation as its explanation.
+        #expect(!Sensei.grammarAppears("〜てしまう", in: "本当は僕も言いたいんだ"))
+    }
+
+    @Test("가사에 있는 패턴은 남긴다")
+    func keepsAPatternThatIsThere() {
+        #expect(Sensei.grammarAppears("〜んだ", in: "本当は僕も言いたいんだ"))
+        #expect(Sensei.grammarAppears("〜ように", in: "沈むように溶けてゆくように"))
+        #expect(Sensei.grammarAppears("だって", in: "もう嫌だって 疲れたよなんて"))
+    }
+
+    @Test("물결만 남는 패턴은 버린다")
+    func rejectsAnEmptyPattern() {
+        #expect(!Sensei.grammarAppears("〜", in: "本当は僕も言いたいんだ"))
+        #expect(!Sensei.grammarAppears("  ", in: "本当は僕も言いたいんだ"))
+    }
+}

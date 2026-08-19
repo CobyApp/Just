@@ -207,9 +207,30 @@ public final class Sensei {
             original: study.original,
             translationKo: study.translationKo,
             words: words,
-            grammar: study.grammar,
+            grammar: study.grammar.filter { Self.grammarAppears($0.pattern, in: study.original) },
             engine: study.engine
         )
+    }
+
+    /// Whether a grammar note is about something the line actually contains.
+    ///
+    /// The same rule the word list has always lived by, which the grammar notes
+    /// were never held to. Measured over six lines, five of the patterns the
+    /// model offered were absent from the lyric — 「〜てしまう」 turned up again and
+    /// again on lines containing nothing of the kind, with the line's own
+    /// translation pasted in as the explanation.
+    ///
+    /// Containment is strict on purpose. A pattern written in dictionary form for
+    /// a conjugated occurrence will be dropped along with the inventions, and
+    /// that is the trade this app already makes for vocabulary: a note claiming
+    /// the song contains something it does not is worse than a missing note.
+    nonisolated static func grammarAppears(_ pattern: String, in line: String) -> Bool {
+        let stripped = pattern
+            .replacingOccurrences(of: "〜", with: "")
+            .replacingOccurrences(of: "～", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !stripped.isEmpty else { return false }
+        return line.contains(stripped)
     }
 
     /// Rejects vocabulary the line does not actually contain.
