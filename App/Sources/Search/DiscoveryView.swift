@@ -59,17 +59,7 @@ struct DiscoveryView: View {
                     VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                         ArtworkTile(track: song.track)
                         if song.studyProgress > 0 {
-                            ProgressView(value: song.studyProgress)
-                                .tint(JustTheme.Ink.secondary)
-                                .frame(width: 148)
-                        }
-                        if !song.difficulty.isEmpty {
-                            DifficultyBar(
-                                difficulty: song.difficulty,
-                                height: 4,
-                                showsLegend: false
-                            )
-                            .frame(width: 148)
+                            StudyProgressBar(progress: song.studyProgress, width: 148)
                         }
                     }
                 }

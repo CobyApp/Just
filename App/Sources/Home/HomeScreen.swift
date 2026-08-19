@@ -24,15 +24,29 @@ struct HomeScreen: View {
         NavigationStack {
             ZStack {
                 JustTheme.Surface.base.ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: JustTheme.Space.section) {
-                        header
-                        if stats.weeklyReviewed > 0 { weekChart }
-                        if !songs.isEmpty { continueSection }
+                // Nothing collected yet means the ring has nothing to be proud
+                // of. Leading with a large "0" and a sentence with no button was
+                // the app's first impression; this offers the one thing there is
+                // to do instead.
+                if stats.totalWords == 0 {
+                    JustEmptyState(
+                        icon: "music.note",
+                        title: "노래로 시작하세요",
+                        message: "곡을 열면 가사를 줄 단위로 해석해 둡니다. 마음에 드는 단어를 담으면 여기에 오늘 할 일이 생깁니다.",
+                        actionTitle: "곡 고르러 가기",
+                        action: { app.tab = .browse }
+                    )
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: JustTheme.Space.section) {
+                            header
+                            if stats.weeklyReviewed > 0 { weekChart }
+                            if !songs.isEmpty { continueSection }
+                        }
+                        .padding(.vertical, JustTheme.Space.regular)
                     }
-                    .padding(.vertical, JustTheme.Space.regular)
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
             }
             .navigationTitle("오늘")
             .toolbar {
@@ -143,13 +157,11 @@ struct HomeScreen: View {
                         Button { app.open(song.track) } label: {
                             VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                                 ArtworkTile(track: song.track, width: 168)
-                                if !song.difficulty.isEmpty {
-                                    DifficultyBar(
-                                        difficulty: song.difficulty,
-                                        height: 4,
-                                        showsLegend: false
+                                if song.studyProgress > 0 {
+                                    StudyProgressBar(
+                                        progress: song.studyProgress,
+                                        width: 168
                                     )
-                                    .frame(width: 168)
                                 }
                             }
                         }

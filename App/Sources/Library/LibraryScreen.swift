@@ -34,21 +34,17 @@ struct LibraryScreen: View {
         NavigationStack {
             ZStack {
                 JustTheme.Surface.base.ignoresSafeArea()
-                content
-            }
-            .navigationTitle("단어장")
-            .searchable(text: $search, prompt: "단어, 뜻")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Picker("정렬", selection: $order) {
-                            ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
-                        }
-                    } label: {
-                        Label("정렬", systemImage: "arrow.up.arrow.down")
-                    }
+                // The search field and the sort control are only attached once
+                // there is something to search and sort. Offering them over an
+                // empty list asks the reader to rule out two things that could
+                // not have helped.
+                if words.isEmpty {
+                    emptyState
+                } else {
+                    wordList
                 }
             }
+            .navigationTitle("단어장")
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
@@ -65,17 +61,18 @@ struct LibraryScreen: View {
         Task { await app.reminder.updateBadge(dueCount: stats.dueCount) }
     }
 
-    @ViewBuilder
-    private var content: some View {
-        if words.isEmpty {
-            JustEmptyState(
-                icon: "character.book.closed",
-                title: "아직 저장한 단어가 없습니다",
-                message: "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.",
-                actionTitle: "곡 보러 가기",
-                action: { app.tab = .browse }
-            )
-        } else {
+    private var emptyState: some View {
+        JustEmptyState(
+            icon: "character.book.closed",
+            title: "아직 저장한 단어가 없습니다",
+            message: "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.",
+            actionTitle: "곡 보러 가기",
+            action: { app.tab = .browse }
+        )
+    }
+
+    private var wordList: some View {
+        Group {
             List {
                 Section {
                     StatsHeader(stats: stats)
@@ -103,6 +100,21 @@ struct LibraryScreen: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+        }
+        .searchable(text: $search, prompt: "단어, 뜻")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Picker("정렬", selection: $order) {
+                        ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
+                    }
+                } label: {
+                    // The current order, in words. An anonymous ↑↓ said neither
+                    // what the button was nor what it was set to.
+                    Label(order.title, systemImage: "arrow.up.arrow.down")
+                        .labelStyle(.titleAndIcon)
+                }
+            }
         }
     }
 

@@ -112,8 +112,15 @@ struct PlayerScreen: View {
             } label: {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 15, weight: .semibold))
+                    // Matched to the other three: the furigana toggle grew to
+                    // 44pt on its own and left the glass buttons looking shrunk.
+                    .frame(
+                        width: JustIconButtonStyle.minimumTapTarget,
+                        height: JustIconButtonStyle.minimumTapTarget
+                    )
             }
             .buttonStyle(.glass)
+            .accessibilityLabel("플레이어 닫기")
 
             Spacer()
 
@@ -149,18 +156,27 @@ struct PlayerScreen: View {
             .accessibilityLabel("후리가나")
             .accessibilityValue(session.showsFurigana ? "켜짐" : "꺼짐")
 
-            Menu {
-                Button {
-                    withAnimation(.snappy) { session.isLyricsFullscreen.toggle() }
-                } label: {
-                    Label(
-                        session.isLyricsFullscreen ? "플레이어 보기" : "가사 전체화면",
-                        systemImage: session.isLyricsFullscreen
-                            ? "arrow.down.right.and.arrow.up.left"
-                            : "arrow.up.left.and.arrow.down.right"
-                    )
-                }
+            // Promoted out of the menu: it is used constantly while reading, and
+            // its only other route was tapping the artwork — a gesture nothing
+            // announces.
+            Button {
+                withAnimation(.snappy) { session.isLyricsFullscreen.toggle() }
+            } label: {
+                Image(
+                    systemName: session.isLyricsFullscreen
+                        ? "arrow.down.right.and.arrow.up.left"
+                        : "arrow.up.left.and.arrow.down.right"
+                )
+                .font(.system(size: 15, weight: .semibold))
+                .frame(
+                    width: JustIconButtonStyle.minimumTapTarget,
+                    height: JustIconButtonStyle.minimumTapTarget
+                )
+            }
+            .buttonStyle(.glass)
+            .accessibilityLabel(session.isLyricsFullscreen ? "플레이어 보기" : "가사 전체화면")
 
+            Menu {
                 Button {
                     session.analyzeAll()
                 } label: {
@@ -184,16 +200,16 @@ struct PlayerScreen: View {
                     }
                 }
 
-                if track.album != nil {
-                    Button { showsAlbum = true } label: {
-                        Label("앨범 보기", systemImage: "square.stack")
-                    }
-                }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 15, weight: .semibold))
+                    .frame(
+                        width: JustIconButtonStyle.minimumTapTarget,
+                        height: JustIconButtonStyle.minimumTapTarget
+                    )
             }
             .buttonStyle(.glass)
+            .accessibilityLabel("더 보기")
         }
         .padding(.horizontal, JustTheme.Space.regular)
         .padding(.bottom, JustTheme.Space.tight)
