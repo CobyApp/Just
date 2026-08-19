@@ -179,10 +179,16 @@ public final class Sensei {
             let grounded = Self.grounding(for: word.surface, in: tokens)
             if case .glue = grounded { return nil }
 
+            // The lyric's own spelling for the card, the trimmed form for the
+            // dictionary. One value cannot be both: `surface` is quoted back to
+            // the reader and blanked out by cloze questions, so it has to stay
+            // exactly what the singer wrote.
             var surface = word.surface
+            var headword: String?
             var lineReading: String?
-            if case .word(let trimmed, let reading) = grounded {
-                surface = trimmed
+            if case .word(let asSung, let trimmed, let reading) = grounded {
+                surface = asSung
+                headword = trimmed
                 lineReading = reading
             }
 
@@ -196,7 +202,7 @@ public final class Sensei {
             // display: it is what tells 僕/ぼく from 僕/しもべ. Without it,
             // trimming 「僕も」 to 「僕」 started hitting the dictionary and getting
             // back "a servant".
-            let match = dictionary.entry(forSpelling: surface, reading: lineReading)
+            let match = dictionary.entry(forSpelling: headword ?? surface, reading: lineReading)
                 ?? dictionary.lookup(lemma: lemma, reading: lineReading ?? word.reading)
 
             guard let entry = match else {
@@ -205,7 +211,7 @@ public final class Sensei {
                     // With no entry to name the headword, the line's own reading
                     // is a better answer than the model's: it knows 一言 is
                     // ひとこと here, where the model offered そのいかん.
-                    dictionaryForm: lineReading == nil ? lemma : surface,
+                    dictionaryForm: headword ?? lemma,
                     reading: lineReading ?? word.reading,
                     meaningKo: word.meaningKo,
                     partOfSpeech: word.partOfSpeech,
@@ -241,9 +247,17 @@ public final class Sensei {
 
     /// What the line's own segmentation says a candidate really is.
     enum Grounding: Equatable {
-        /// The word, with the grammar trimmed off its tail and the reading the
-        /// line gives it.
-        case word(surface: String, reading: String)
+        /// A word the line contains.
+        ///
+        /// Two forms, because they answer different questions. `surface` is what
+        /// the singer wrote, glue and all, and it is what the card shows and what
+        /// a cloze question blanks out. `headword` has the grammar trimmed off its
+        /// tail, and it is what the dictionary is asked about.
+        ///
+        /// Conflating them truncated the lyric: 「疲れた」 became 「疲れ」, so a card
+        /// claimed the song contained a form it did not, and a cloze question
+        /// came out as 「___たよなんて」 with the tail left dangling.
+        case word(surface: String, headword: String, reading: String)
         /// Nothing but grammar — 「で」, 「も」, 「んだ」.
         case glue
         /// Does not line up with the line's tokens; leave the candidate alone.
@@ -275,19 +289,23 @@ public final class Sensei {
             return .unknown
         }
 
+        let matched = Array(tokens[range])
+
         // The same rule the tokenizer already uses to spot glue: one hiragana on
-        // its own is grammar, not vocabulary.
-        var kept = Array(tokens[range])
+        // its own is grammar, not vocabulary. Trimmed off the headword only —
+        // the lyric keeps whatever it wrote.
+        var kept = matched
         while let last = kept.last, isGlue(last.surface) {
             kept.removeLast()
         }
         guard !kept.isEmpty else { return .glue }
 
-        let surfaceForm = kept.map(\.surface).joined()
-        guard !grammaticalForms.contains(surfaceForm) else { return .glue }
+        let headword = kept.map(\.surface).joined()
+        guard !grammaticalForms.contains(headword) else { return .glue }
 
         return .word(
-            surface: surfaceForm,
+            surface: matched.map(\.surface).joined(),
+            headword: headword,
             reading: kept.map(\.reading).joined()
         )
     }

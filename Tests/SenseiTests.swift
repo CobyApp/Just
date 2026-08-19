@@ -524,13 +524,14 @@ struct GroundingTests {
     @Test("꼬리에 붙은 조사를 떼고 읽기를 가사에서 가져온다")
     func trimsTrailingGlue() {
         // 본 것: 「本当は」가 표제어로, 읽기는 「ほんとうは」로 왔다.
+        // 가사에 보이는 형태는 그대로 두고, 표제어만 다듬는다.
         #expect(
             ground("本当は", in: "本当は僕も言いたいんだ")
-                == .word(surface: "本当", reading: "ほんとう")
+                == .word(surface: "本当は", headword: "本当", reading: "ほんとう")
         )
         #expect(
             ground("僕も", in: "本当は僕も言いたいんだ")
-                == .word(surface: "僕", reading: "ぼく")
+                == .word(surface: "僕も", headword: "僕", reading: "ぼく")
         )
     }
 
@@ -546,11 +547,11 @@ struct GroundingTests {
         // 모델은 「その一言」의 읽기를 「そのいかん」이라고 했다.
         #expect(
             ground("その一言", in: "その一言で全てが分かった")
-                == .word(surface: "その一言", reading: "そのひとこと")
+                == .word(surface: "その一言", headword: "その一言", reading: "そのひとこと")
         )
         #expect(
             ground("空", in: "二人だけの空が広がる夜に")
-                == .word(surface: "空", reading: "そら")
+                == .word(surface: "空", headword: "空", reading: "そら")
         )
     }
 
@@ -610,7 +611,7 @@ struct GrammaticalFormTests {
         // 「言いたい」는 [言い][たい]지만 통째로는 문법 형태가 아니다.
         #expect(
             ground("言いたい", in: "本当は僕も言いたいんだ")
-                == .word(surface: "言いたい", reading: "いいたい")
+                == .word(surface: "言いたい", headword: "言いたい", reading: "いいたい")
         )
     }
 
@@ -618,7 +619,30 @@ struct GrammaticalFormTests {
     func leavesRealWordsAlone() {
         #expect(
             ground("空", in: "二人だけの空が広がる夜に")
-                == .word(surface: "空", reading: "そら")
+                == .word(surface: "空", headword: "空", reading: "そら")
+        )
+    }
+}
+
+@Suite("가사에 보이는 형태는 잘리지 않는다")
+struct SurfaceIntegrityTests {
+    private let tokenizer = JapaneseTokenizer()
+
+    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
+        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
+    }
+
+    @Test("활용형은 가사에 나온 대로 남고 표제어만 다듬는다")
+    func keepsTheInflectedSurface() {
+        // 보고서에 「疲れ (가사: 疲れ)」로 찍혀 있었다. 가사는 「疲れた」다. 이 형태가
+        // 빈칸 문제로 넘어가면 「___たよなんて」처럼 조각이 남는다.
+        #expect(
+            ground("疲れた", in: "もう嫌だって 疲れたよなんて")
+                == .word(surface: "疲れた", headword: "疲れ", reading: "つかれ")
+        )
+        #expect(
+            ground("分かった", in: "その一言で全てが分かった")
+                == .word(surface: "分かった", headword: "分かっ", reading: "わかっ")
         )
     }
 }
