@@ -19,8 +19,10 @@ struct MiniPlayer: View {
             app.expandPlayer()
         } label: {
             HStack(spacing: JustTheme.Space.snug) {
-                ArtworkView(image: artwork.image, cornerRadius: 8, seed: track.id)
-                    .frame(width: 38, height: 38)
+                // Small enough to clear the accessory's rounded ends. At 38pt the
+                // artwork's own corners pushed through the container's curve.
+                ArtworkView(image: artwork.image, cornerRadius: 6, seed: track.id)
+                    .frame(width: 30, height: 30)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(track.title)
@@ -59,16 +61,20 @@ struct MiniPlayer: View {
                 .buttonStyle(.justIcon)
                 .accessibilityLabel("재생 종료")
             }
-            .padding(.horizontal, JustTheme.Space.snug)
-            .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: .rect(cornerRadius: 14))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
-            }
+            // No surface of its own. `tabViewBottomAccessory` supplies the glass,
+            // the shape and the outer insets; drawing a second rounded rectangle
+            // inside it put one capsule in another with mismatched corners and a
+            // doubled edge, which is what made the bar look badly finished.
+            //
+            // The inner padding stays. Without it the artwork's corners poke out
+            // through the accessory's rounding, which looks worse than the double
+            // edge did.
+            .padding(.horizontal, JustTheme.Space.regular)
+            .padding(.vertical, 2)
             .overlay(alignment: .bottom) {
                 // A hairline of progress, so the bar says where in the song we
-                // are without spending height on it.
+                // are without spending height on it. Inset to the artwork's edge
+                // so it reads as part of the row rather than the container's rim.
                 GeometryReader { geometry in
                     let fraction = app.player.duration > 0
                         ? app.player.currentTime / app.player.duration
@@ -77,11 +83,10 @@ struct MiniPlayer: View {
                         .frame(width: geometry.size.width * fraction, height: 1.5)
                 }
                 .frame(height: 1.5)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, JustTheme.Space.snug)
             }
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, JustTheme.Space.snug)
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
     }
 }
