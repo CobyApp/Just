@@ -177,9 +177,9 @@ final class AppModel {
     func open(_ track: Track) {
         openTrack = track
         guard track.id != nowPlaying?.id else { return }
-        // Analyses belong to a song, so they are only dropped when the song
-        // actually changes — not when the player is reopened.
-        sensei.reset()
+        // The analysis cache is scoped by `SongSession.start()`, not here: the
+        // outgoing session has to flush under its own song before the new one
+        // claims the cache, and only the player knows when that has happened.
         nowPlaying = track
     }
 

@@ -12,7 +12,13 @@ import Observation
 public final class Sensei {
     public private(set) var unavailability: OnDeviceSensei.Unavailability?
     /// Line index -> result, so re-tapping a line is instant.
-    public private(set) var cache: [Int: LineStudy] = [:]
+    ///
+    /// Line index alone is not an identity: line 3 exists in every song. The
+    /// cache therefore carries the song it was filled for, and callers that
+    /// write it back to a record must ask through `cache(for:)`.
+    public private(set) var entries: [Int: LineStudy] = [:]
+    /// The song `entries` belongs to. Nil before any song has been opened.
+    public private(set) var songID: String?
     public private(set) var inFlight: Set<Int> = []
 
     private let onDevice: OnDeviceSensei?
@@ -31,13 +37,27 @@ public final class Sensei {
         onDevice?.prewarm()
     }
 
-    /// Drops cached results when the user opens a different song.
-    public func reset() {
-        cache.removeAll()
+    /// Points the cache at a song, dropping the previous song's results.
+    ///
+    /// Re-opening the song already in scope keeps everything: the player is
+    /// reopened far more often than the song changes.
+    public func reset(for songID: String) {
+        guard songID != self.songID else { return }
+        self.songID = songID
+        entries.removeAll()
         inFlight.removeAll()
     }
 
-    public func cached(_ lineIndex: Int) -> LineStudy? { cache[lineIndex] }
+    /// The cache, but only if it still belongs to the song asking for it.
+    ///
+    /// A session whose song has been left behind gets nil rather than the new
+    /// song's entries — writing those to its own record would replace a whole
+    /// analysed song with someone else's lines, or with nothing at all.
+    public func cache(for songID: String) -> [Int: LineStudy]? {
+        self.songID == songID ? entries : nil
+    }
+
+    public func cached(_ lineIndex: Int) -> LineStudy? { entries[lineIndex] }
 
     /// Seeds the cache with analyses already persisted for this song.
     ///
@@ -45,9 +65,9 @@ public final class Sensei {
     /// short-circuit in `analyze` is correct: there is genuinely nothing left
     /// to generate for those lines.
     public func preload(_ studies: [Int: LineStudy]) {
-        for (index, study) in studies where cache[index] == nil {
+        for (index, study) in studies where entries[index] == nil {
             guard Self.isComplete(study) else { continue }
-            cache[index] = study
+            entries[index] = study
         }
     }
 
@@ -55,7 +75,7 @@ public final class Sensei {
     public func pendingLines(in lyrics: Lyrics) -> [LyricLine] {
         lyrics.lines.filter { line in
             guard !line.text.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-            guard let cached = cache[line.id] else { return true }
+            guard let cached = entries[line.id] else { return true }
             return !Self.isComplete(cached)
         }
     }
@@ -69,7 +89,7 @@ public final class Sensei {
         songTitle: String,
         artist: String
     ) async -> LineStudy? {
-        if let cached = cache[lineIndex] { return cached }
+        if let cached = entries[lineIndex] { return cached }
         guard let line = lyrics.lines.first(where: { $0.id == lineIndex }) else { return nil }
         let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
@@ -101,7 +121,7 @@ public final class Sensei {
         // `analyze`, so it would never be attempted again and the song kept a
         // hole in it forever.
         if Self.isComplete(refined) {
-            cache[lineIndex] = refined
+            entries[lineIndex] = refined
         }
         return refined
     }

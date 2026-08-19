@@ -277,3 +277,48 @@ private extension String {
         return false
     }
 }
+
+@Suite("해석 캐시의 곡 범위")
+@MainActor
+struct SenseiScopeTests {
+    private func study(_ index: Int, _ translation: String) -> LineStudy {
+        LineStudy(
+            lineIndex: index,
+            original: "夢を見た",
+            translationKo: translation,
+            words: [],
+            grammar: [],
+            engine: .onDevice
+        )
+    }
+
+    @Test("다른 곡으로 넘어가면 이전 곡의 캐시를 내주지 않는다")
+    func cacheIsScopedToOneSong() {
+        let sensei = Sensei()
+        sensei.reset(for: "songA")
+        sensei.preload([0: study(0, "꿈을 꿨다")])
+        #expect(sensei.cache(for: "songA")?.count == 1)
+
+        // The player for song A can still be alive here — it must not be able
+        // to write song B's (empty) cache over A's saved analyses.
+        sensei.reset(for: "songB")
+        #expect(sensei.cache(for: "songA") == nil)
+        #expect(sensei.cache(for: "songB")?.isEmpty == true)
+    }
+
+    @Test("같은 곡을 다시 열면 캐시를 버리지 않는다")
+    func reopeningTheSameSongKeepsTheCache() {
+        let sensei = Sensei()
+        sensei.reset(for: "songA")
+        sensei.preload([0: study(0, "꿈을 꿨다")])
+
+        sensei.reset(for: "songA")
+        #expect(sensei.cache(for: "songA")?.count == 1)
+    }
+
+    @Test("곡 범위를 정하기 전에는 어떤 곡의 캐시도 없다")
+    func noScopeMeansNoCache() {
+        let sensei = Sensei()
+        #expect(sensei.cache(for: "songA") == nil)
+    }
+}

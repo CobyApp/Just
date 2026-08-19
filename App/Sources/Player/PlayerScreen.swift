@@ -65,7 +65,15 @@ struct PlayerScreen: View {
                 .padding(.top, JustTheme.Space.section)
             }
         }
-        .task {
+        // Keyed on the track: `fullScreenCover(item:)` swaps the item in place
+        // rather than dismissing and re-presenting, so picking another song
+        // from the album sheet used to leave this screen showing a new title
+        // over the old song's session — and never loading the new song at all.
+        .task(id: track.id) {
+            // The outgoing session flushes here, while the cache is still its
+            // own, so its analyses are saved before the new song claims it.
+            session?.cancelBulk()
+
             let session = SongSession(
                 track: track,
                 context: context,

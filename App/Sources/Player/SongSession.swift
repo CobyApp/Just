@@ -62,6 +62,13 @@ final class SongSession {
     // MARK: - Loading
 
     func start() async {
+        // Claiming the shared cache is the session's own job, not the caller's.
+        // Doing it here is what orders it correctly against the outgoing
+        // session's final flush: that one runs first, under its own song's
+        // scope, so its work is saved before this song takes the cache over.
+        // Re-opening the same song is a no-op and keeps everything cached.
+        sensei.reset(for: track.id)
+
         // The song enters the library as soon as it is opened, so "recently
         // played" works without an explicit save step.
         let record = store.upsertSong(track)
@@ -153,9 +160,14 @@ final class SongSession {
     /// Recomputed from the cache rather than accumulated: the cache is the
     /// single source of truth, and adding to a running total would inflate the
     /// histogram every time a line was re-analysed.
+    ///
+    /// Does nothing once the cache has moved on to another song. A session
+    /// outlives its turn — the album sheet can open a different song while this
+    /// screen is still mounted, and `onDisappear` flushes on the way out — so
+    /// without the scope check the departing session would write the new song's
+    /// cache, usually empty, over everything this song had analysed.
     private func flush() {
-        guard let song else { return }
-        let studies = sensei.cache
+        guard let song, let studies = sensei.cache(for: song.videoID) else { return }
         song.analyses = studies
 
         var counts: [String: Int] = [:]
