@@ -15,6 +15,7 @@ struct PlayerScreen: View {
     @State private var artwork = ArtworkLoader()
     @State private var showsAlbum = false
     @State private var showsWords = false
+    @State private var savedBanner: String?
 
     var body: some View {
         ZStack {
@@ -101,6 +102,24 @@ struct PlayerScreen: View {
         // the song record, so reopening resumes where this left off rather than
         // grinding away invisibly after the user has moved on.
         .onDisappear { session?.cancelBulk() }
+        .overlay(alignment: .top) {
+            if let savedBanner {
+                Text(savedBanner)
+                    .font(JustTheme.Font.caption.weight(.semibold))
+                    .foregroundStyle(JustTheme.Ink.primary)
+                    .padding(.horizontal, JustTheme.Space.snug)
+                    .padding(.vertical, JustTheme.Space.tight)
+                    .background(.ultraThinMaterial, in: .capsule)
+                    .padding(.top, JustTheme.Space.section * 2)
+                    .transition(.opacity)
+                    // Bulk saving gives no visible result on this screen — the
+                    // words land in another tab — so it has to say so itself.
+                    .task {
+                        try? await Task.sleep(for: .seconds(2))
+                        withAnimation { self.savedBanner = nil }
+                    }
+            }
+        }
     }
 
     // MARK: - Header
@@ -164,6 +183,19 @@ struct PlayerScreen: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                if session.unsavedWordCount > 0 {
+                    Button {
+                        let added = session.saveAllWords()
+                        savedBanner = "\(added)개 담았습니다"
+                        Haptics.correct()
+                    } label: {
+                        Label(
+                            "단어 \(session.unsavedWordCount)개 모두 담기",
+                            systemImage: "square.and.arrow.down"
+                        )
+                    }
+                }
 
                 if let song = session.song, !song.occurrences.isEmpty {
                     Button { showsWords = true } label: {

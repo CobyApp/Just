@@ -276,6 +276,37 @@ final class SongSession {
         )
     }
 
+    /// Saves every word from every analysed line, and reports how many were new.
+    ///
+    /// The per-line "모두 저장" is the right default — the user is reading and
+    /// choosing — but after a whole song has been analysed, picking through
+    /// forty sheets to collect it is not a choice anyone makes.
+    @discardableResult
+    func saveAllWords() -> Int {
+        guard let song else { return 0 }
+        var added = 0
+        for study in sensei.entries.values.sorted(by: { $0.lineIndex < $1.lineIndex }) {
+            for word in study.words where !isSaved(word) {
+                store.save(
+                    word,
+                    from: song,
+                    lineIndex: study.lineIndex,
+                    lineText: study.original,
+                    lineTranslation: study.translationKo.isEmpty ? nil : study.translationKo
+                )
+                added += 1
+            }
+        }
+        return added
+    }
+
+    /// How many words the analysed lines hold that are not saved yet.
+    var unsavedWordCount: Int {
+        sensei.entries.values.reduce(0) { total, study in
+            total + study.words.filter { !isSaved($0) }.count
+        }
+    }
+
     func isSaved(_ word: StudyWord) -> Bool {
         store.vocab(lemma: word.dictionaryForm, reading: word.reading) != nil
     }

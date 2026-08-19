@@ -294,3 +294,33 @@ struct VocabularyExportTests {
         #expect(VocabularyExport.escaped("ゆめ") == "ゆめ")
     }
 }
+
+@Suite("어려운 단어 정렬")
+struct StruggleOrderTests {
+    /// Mirrors `JustStore.strugglingEntries`' comparator, which cannot be called
+    /// without a context. Lapses outrank difficulty because a repeated failure is
+    /// evidence, while difficulty also rises for a word merely answered slowly.
+    private func ordered(_ pairs: [(lapses: Int, difficulty: Double)]) -> [Int] {
+        pairs.enumerated()
+            .sorted {
+                if $0.element.lapses != $1.element.lapses {
+                    return $0.element.lapses > $1.element.lapses
+                }
+                return $0.element.difficulty > $1.element.difficulty
+            }
+            .map(\.offset)
+    }
+
+    @Test("실패 횟수가 난이도를 앞선다")
+    func lapsesOutrankDifficulty() {
+        // Index 1 has fewer lapses but the highest difficulty; it must not win.
+        let order = ordered([(lapses: 3, difficulty: 4), (lapses: 1, difficulty: 9)])
+        #expect(order == [0, 1])
+    }
+
+    @Test("실패 횟수가 같으면 난이도로 가른다")
+    func difficultyBreaksTies() {
+        let order = ordered([(lapses: 2, difficulty: 3), (lapses: 2, difficulty: 8)])
+        #expect(order == [1, 0])
+    }
+}

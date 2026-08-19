@@ -112,6 +112,32 @@ public struct JustStore {
         return try? context.fetch(descriptor).first
     }
 
+    /// Words the user keeps getting wrong.
+    ///
+    /// FSRS already records every lapse and a per-word difficulty; nothing read
+    /// them. These are the words a learner would pick out by hand if they could
+    /// remember which ones they were.
+    ///
+    /// Ordered by lapses first and difficulty second: three failures is a
+    /// stronger signal than a high difficulty score, which the scheduler also
+    /// raises for words merely answered slowly.
+    public func strugglingEntries(limit: Int = 40) -> [VocabEntry] {
+        var descriptor = FetchDescriptor<VocabEntry>()
+        descriptor.fetchLimit = 500
+        let all = (try? context.fetch(descriptor)) ?? []
+        return all
+            .filter { ($0.review?.lapses ?? 0) > 0 }
+            .sorted {
+                let left = $0.review, right = $1.review
+                if (left?.lapses ?? 0) != (right?.lapses ?? 0) {
+                    return (left?.lapses ?? 0) > (right?.lapses ?? 0)
+                }
+                return (left?.difficulty ?? 0) > (right?.difficulty ?? 0)
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     /// Every saved word as export rows, newest first.
     public func exportRows() -> [VocabularyExport.Row] {
         let descriptor = FetchDescriptor<VocabEntry>(

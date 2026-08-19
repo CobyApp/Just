@@ -94,6 +94,14 @@ final class AppModel {
         }
     }
 
+    /// Cards per day the progress ring fills toward.
+    var dailyGoal: Int {
+        didSet { UserDefaults.standard.set(dailyGoal, forKey: Self.dailyGoalKey) }
+    }
+
+    private static let dailyGoalKey = "review.dailyGoal"
+    static let dailyGoalChoices = [10, 20, 30, 50]
+
     var autoAnalysis: AutoAnalysisPolicy {
         didSet { UserDefaults.standard.set(autoAnalysis.rawValue, forKey: Self.autoAnalysisKey) }
     }
@@ -102,6 +110,8 @@ final class AppModel {
 
     init() {
         access = AppleMusicClient.access
+        let storedGoal = UserDefaults.standard.integer(forKey: Self.dailyGoalKey)
+        dailyGoal = storedGoal > 0 ? storedGoal : 20
         autoAnalysis = UserDefaults.standard.string(forKey: Self.autoAnalysisKey)
             .flatMap(AutoAnalysisPolicy.init(rawValue:)) ?? .unlessLowPower
         sensei.prewarm()

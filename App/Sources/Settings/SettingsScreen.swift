@@ -29,6 +29,14 @@ struct SettingsScreen: View {
                 }
 
                 Section("복습") {
+                    Picker("하루 목표", selection: Binding(
+                        get: { app.dailyGoal },
+                        set: { app.dailyGoal = $0 }
+                    )) {
+                        ForEach(AppModel.dailyGoalChoices, id: \.self) { count in
+                            Text("\(count)개").tag(count)
+                        }
+                    }
                     Toggle("매일 알림", isOn: Binding(
                         get: { app.reminder.isEnabled },
                         set: { app.reminder.isEnabled = $0 }

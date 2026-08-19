@@ -12,6 +12,8 @@ import SwiftUI
 struct QuizScreen: View {
     /// nil mixes the question types.
     let kind: QuizKind?
+    /// Which words the round draws from.
+    var scope: QuizScope = .all
 
     @Environment(\.modelContext) private var context
     @Query private var entries: [VocabEntry]
@@ -45,7 +47,7 @@ struct QuizScreen: View {
                 summary
             }
         }
-        .navigationTitle(kind?.title ?? "랜덤 믹스")
+        .navigationTitle(scope == .struggling ? "어려운 단어" : (kind?.title ?? "랜덤 믹스"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if question != nil {
@@ -322,7 +324,8 @@ struct QuizScreen: View {
     }
 
     private func sources() -> [QuizBuilder.Source] {
-        entries.map { entry in
+        let pool = scope == .struggling ? store.strugglingEntries() : entries
+        return pool.map { entry in
             // The most recently captured occurrence gives the freshest lyric.
             let occurrence = entry.occurrences.max { $0.capturedAt < $1.capturedAt }
             return QuizBuilder.Source(

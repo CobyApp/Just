@@ -20,10 +20,6 @@ struct HomeScreen: View {
     @State private var statsLoaded = false
     @State private var showsSettings = false
 
-    /// Cards a day is considered "done" at. Arbitrary but has to be something
-    /// for the ring to have a denominator.
-    private let dailyGoal = 20
-
     private var store: JustStore { JustStore(context: context) }
 
     var body: some View {
@@ -79,7 +75,7 @@ struct HomeScreen: View {
         VStack(spacing: JustTheme.Space.regular) {
             StreakRing(
                 streak: stats.streak,
-                progress: Double(stats.reviewedToday) / Double(dailyGoal)
+                progress: Double(stats.reviewedToday) / Double(app.dailyGoal)
             )
 
             Text(headline)

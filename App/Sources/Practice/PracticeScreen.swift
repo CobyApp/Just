@@ -13,6 +13,7 @@ struct PracticeScreen: View {
     @Query private var entries: [VocabEntry]
 
     @State private var stats: StudyStats = .empty
+    @State private var struggling = 0
 
     private var store: JustStore { JustStore(context: context) }
 
@@ -24,8 +25,13 @@ struct PracticeScreen: View {
             }
             .navigationTitle("연습")
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
-            .navigationDestination(for: QuizRoute.self) { QuizScreen(kind: $0.kind) }
-            .onAppear { stats = store.stats() }
+            .navigationDestination(for: QuizRoute.self) {
+                QuizScreen(kind: $0.kind, scope: $0.scope)
+            }
+            .onAppear {
+                stats = store.stats()
+                struggling = store.strugglingEntries().count
+            }
         }
     }
 
@@ -43,12 +49,31 @@ struct PracticeScreen: View {
             ScrollView {
                 VStack(spacing: JustTheme.Space.snug) {
                     reviewRow
+                    struggleRow
                     quizRow(nil)
                     ForEach(QuizKind.allCases, id: \.self) { quizRow($0) }
                 }
                 .padding(JustTheme.Space.regular)
             }
             .scrollIndicators(.hidden)
+        }
+    }
+
+    /// Offered only when there is something to struggle with, so the tab does
+    /// not advertise a mode that would open empty.
+    @ViewBuilder
+    private var struggleRow: some View {
+        if struggling > 0 {
+            NavigationLink(value: QuizRoute(kind: nil, scope: .struggling)) {
+                PracticeRow(
+                    symbol: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90",
+                    title: "어려운 단어 집중",
+                    detail: "틀린 적 있는 \(struggling)개만 골라서 냅니다",
+                    badge: nil,
+                    isProminent: false
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -83,6 +108,14 @@ struct PracticeScreen: View {
 
 struct QuizRoute: Hashable {
     let kind: QuizKind?
+    var scope: QuizScope = .all
+}
+
+/// Which words a round draws from.
+enum QuizScope: Hashable {
+    case all
+    /// Only words with recorded lapses — see `JustStore.strugglingEntries`.
+    case struggling
 }
 
 private struct PracticeRow: View {
