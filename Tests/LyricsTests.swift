@@ -112,3 +112,95 @@ struct LyricsLanguageTests {
         #expect(LRCLIBClient.japaneseRatio("") == 0)
     }
 }
+
+@Suite("가사 검색 질의 정리")
+struct LyricsQueryTests {
+    @Test("제목의 (feat. …)를 떼어낸 판본도 시도한다")
+    func stripsFeatureCredits() {
+        let titles = LRCLIBClient.queryVariants(
+            artist: "YOASOBI",
+            title: "夜に駆ける (feat. X)"
+        ).map(\.title)
+        // 원본을 먼저 시도하고, 그다음 정리한 것을 시도한다.
+        #expect(titles.first == "夜に駆ける (feat. X)")
+        #expect(titles.contains("夜に駆ける"))
+    }
+
+    @Test("- Single 꼬리표를 떼어낸다")
+    func stripsReleaseTag() {
+        #expect(LRCLIBClient.simplifiedTitle("夜に駆ける - Single") == "夜に駆ける")
+    }
+
+    @Test("장식이 없는 제목은 그대로 둔다")
+    func leavesACleanTitleAlone() {
+        #expect(LRCLIBClient.simplifiedTitle("アイドル") == "アイドル")
+    }
+
+    @Test("제목이 통째로 괄호면 비우지 않는다")
+    func neverEmptiesATitle() {
+        #expect(LRCLIBClient.simplifiedTitle("(Intro)") == "(Intro)")
+    }
+
+    @Test("합작 아티스트에서 첫 이름만 남긴다")
+    func takesThePrimaryArtist() {
+        #expect(
+            LRCLIBClient.primaryArtist("EBiDAN (恵比寿学園男子部), 超特急, M!LK & 原因は自分にある。")
+                == "EBiDAN"
+        )
+        #expect(LRCLIBClient.primaryArtist("Ayase & YOASOBI") == "Ayase")
+        #expect(LRCLIBClient.primaryArtist("YOASOBI") == "YOASOBI")
+    }
+
+    @Test("같은 질의를 두 번 보내지 않는다")
+    func doesNotRepeatItself() {
+        let variants = LRCLIBClient.queryVariants(artist: "YOASOBI", title: "アイドル")
+        #expect(variants.count == 1)
+    }
+}
+
+@Suite("가사 후보 고르기")
+struct LyricsCandidateTests {
+    private func record(
+        duration: Double?,
+        synced: Bool
+    ) -> LRCLIBClient.Record {
+        LRCLIBClient.Record(
+            trackName: "夜に駆ける",
+            artistName: "YOASOBI",
+            albumName: nil,
+            duration: duration,
+            instrumental: false,
+            plainLyrics: "沈むように",
+            syncedLyrics: synced ? "[00:01.00]沈むように" : nil
+        )
+    }
+
+    @Test("길이가 비슷하면 싱크된 쪽을 고른다")
+    func prefersSyncedWhenBothFit() {
+        let chosen = LRCLIBClient.best(
+            from: [record(duration: 261, synced: false), record(duration: 262, synced: true)],
+            duration: 261
+        )
+        #expect(chosen?.syncedLyrics != nil)
+    }
+
+    @Test("싱크돼 있어도 길이가 크게 어긋나면 길이가 맞는 쪽에 밀린다")
+    func lengthBeatsSyncWhenTheGapIsWide() {
+        // A synced sheet timed against a different edit drifts all song long.
+        let chosen = LRCLIBClient.best(
+            from: [record(duration: 261, synced: false), record(duration: 200, synced: true)],
+            duration: 261
+        )
+        #expect(chosen?.syncedLyrics == nil)
+        #expect(chosen?.duration == 261)
+    }
+
+    @Test("길이를 모르면 예전처럼 싱크된 쪽을 고른다")
+    func fallsBackToSyncWithoutADuration() {
+        let chosen = LRCLIBClient.best(
+            from: [record(duration: 261, synced: false), record(duration: 200, synced: true)],
+            duration: nil
+        )
+        #expect(chosen?.syncedLyrics != nil)
+    }
+}

@@ -52,6 +52,8 @@ public struct LRCLIBClient: Sendable {
         album: String? = nil,
         duration: TimeInterval? = nil
     ) async throws -> Lyrics {
+        // The exact endpoint is asked with the real metadata only: it matches on
+        // all four fields, so a trimmed title would not help it.
         if let duration, duration > 0,
            let record = try? await exact(
                artist: artist,
@@ -63,11 +65,90 @@ public struct LRCLIBClient: Sendable {
             return try Self.lyrics(from: record)
         }
 
-        let results = try await search(artist: artist, title: title)
-        guard let best = Self.best(from: results, duration: duration) else {
-            throw Failure.notFound
+        // Searching is attempted once per spelling, cleanest last. Apple Music
+        // titles carry decoration LRCLIB does not index, and a single "(feat. …)"
+        // takes the count from twenty results to none — for the structured
+        // search and the free-text fallback alike, so there was no way back.
+        var transportFailure: Error?
+        for variant in Self.queryVariants(artist: artist, title: title) {
+            do {
+                let results = try await search(artist: variant.artist, title: variant.title)
+                if let best = Self.best(from: results, duration: duration) {
+                    return try Self.lyrics(from: best)
+                }
+            } catch {
+                // Kept, not thrown: a later spelling may still succeed, and if
+                // none does the user deserves the network's reason rather than
+                // "not found".
+                transportFailure = transportFailure ?? error
+            }
         }
-        return try Self.lyrics(from: best)
+        if let transportFailure { throw transportFailure }
+        throw Failure.notFound
+    }
+
+    /// The spellings worth trying, most faithful first.
+    ///
+    /// Only ever *adds* attempts. The catalog's own spelling is asked first, so
+    /// trimming can never lose a song that the untrimmed query would have found.
+    static func queryVariants(
+        artist: String,
+        title: String
+    ) -> [(artist: String, title: String)] {
+        var variants: [(artist: String, title: String)] = [(artist, title)]
+        let cleanTitle = simplifiedTitle(title)
+        let cleanArtist = primaryArtist(artist)
+
+        for candidate in [(artist, cleanTitle), (cleanArtist, cleanTitle)]
+        where !variants.contains(where: { $0 == candidate }) {
+            variants.append(candidate)
+        }
+        return variants
+    }
+
+    /// Drops the decoration Apple Music appends and LRCLIB does not index.
+    static func simplifiedTitle(_ title: String) -> String {
+        var result = title.trimmingCharacters(in: .whitespaces)
+
+        for suffix in [" - Single", " - EP"] where result.hasSuffix(suffix) {
+            result = String(result.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces)
+        }
+
+        // Trailing bracketed groups: "(feat. …)", "(Remix)", "[Live]". Stripped
+        // repeatedly, because a title can carry two of them.
+        while let open = result.lastIndex(where: { $0 == "(" || $0 == "[" }) {
+            let closing: Character = result[open] == "(" ? ")" : "]"
+            guard result.hasSuffix(String(closing)) else { break }
+            let remainder = String(result[result.startIndex..<open])
+                .trimmingCharacters(in: .whitespaces)
+            // A title that is nothing but the bracket is left alone; querying
+            // for an empty string finds everything and means nothing.
+            guard !remainder.isEmpty else { break }
+            result = remainder
+        }
+
+        return result
+    }
+
+    /// The first act named, without its parenthetical reading.
+    ///
+    /// Apple Music joins collaborators into one string — "EBiDAN (恵比寿学園男子部),
+    /// 超特急, M!LK & 原因は自分にある。" — where LRCLIB indexes a single name.
+    static func primaryArtist(_ artist: String) -> String {
+        var result = artist.trimmingCharacters(in: .whitespaces)
+
+        for separator in [",", " & ", " feat", " with ", " × "] {
+            if let range = result.range(of: separator, options: .caseInsensitive) {
+                result = String(result[result.startIndex..<range.lowerBound])
+            }
+        }
+
+        if let open = result.firstIndex(of: "("), open != result.startIndex {
+            result = String(result[result.startIndex..<open])
+        }
+
+        let trimmed = result.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? artist : trimmed
     }
 
     private func exact(
@@ -189,7 +270,11 @@ public struct LRCLIBClient: Sendable {
     /// translations, and a search for a J-pop song routinely ranks a
     /// Vietnamese or English rendering above the original. For a Japanese
     /// study app a translated lyric sheet is worse than none at all.
-    private static func best(from records: [Record], duration: TimeInterval?) -> Record? {
+    /// How far a record's length may sit from the catalog's before its timings
+    /// stop landing on the right lines.
+    static let durationTolerance: TimeInterval = 10
+
+    static func best(from records: [Record], duration: TimeInterval?) -> Record? {
         let usable = records.filter {
             ($0.syncedLyrics?.isEmpty == false) || ($0.plainLyrics?.isEmpty == false)
         }
@@ -199,13 +284,31 @@ public struct LRCLIBClient: Sendable {
         let candidates = japanese.isEmpty ? usable : japanese
 
         return candidates.min { lhs, rhs in
+            let lhsGap = Self.gap(lhs, from: duration)
+            let rhsGap = Self.gap(rhs, from: duration)
+
+            // Length agreement comes first once the gap is past what timings
+            // survive. A synced sheet written for a different edit highlights
+            // the wrong line for the whole song, which is worse than lyrics
+            // that simply do not follow along — it looks right and is not.
+            let lhsFits = lhsGap <= Self.durationTolerance
+            let rhsFits = rhsGap <= Self.durationTolerance
+            if lhsFits != rhsFits { return lhsFits }
+
             let lhsSynced = lhs.syncedLyrics?.isEmpty == false
             let rhsSynced = rhs.syncedLyrics?.isEmpty == false
             if lhsSynced != rhsSynced { return lhsSynced }
-            guard let duration else { return false }
-            let lhsGap = abs((lhs.duration ?? .greatestFiniteMagnitude) - duration)
-            let rhsGap = abs((rhs.duration ?? .greatestFiniteMagnitude) - duration)
+
             return lhsGap < rhsGap
         }
+    }
+
+    /// Distance between a record's length and the song's, or infinity when
+    /// either is unknown — an unknown length cannot vouch for its timings.
+    private static func gap(_ record: Record, from duration: TimeInterval?) -> TimeInterval {
+        guard let duration, let recorded = record.duration else {
+            return .greatestFiniteMagnitude
+        }
+        return abs(recorded - duration)
     }
 }
