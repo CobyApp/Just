@@ -123,11 +123,19 @@ final class SongSession {
     /// per line: the model is the slow part, the user is going to read the
     /// whole song anyway, and the results are permanent — so doing it once up
     /// front is strictly cheaper than doing it forty times on demand.
+    /// A cancelled run does not stop where it was told to: it is only checked
+    /// between lines, so the line already in the model finishes first. Numbering
+    /// the runs is what keeps that tail from reporting progress for, or tearing
+    /// down, the run that has since replaced it.
+    private var bulkRun = 0
+
     func analyzeAll() {
         guard let lyrics, bulkTask == nil else { return }
         let pending = sensei.pendingLines(in: lyrics)
         guard !pending.isEmpty else { return }
 
+        bulkRun &+= 1
+        let run = bulkRun
         bulkProgress = (0, pending.count)
         bulkTask = Task { [weak self] in
             guard let self else { return }
@@ -136,18 +144,21 @@ final class SongSession {
                 songTitle: track.title,
                 artist: track.artist
             ) { done, total in
+                guard run == self.bulkRun else { return }
                 self.bulkProgress = (done, total)
                 // Flushed as it goes, so a cancelled or interrupted run keeps
                 // whatever it already produced.
                 self.flush()
             }
             flush()
+            guard run == bulkRun else { return }
             bulkProgress = nil
             bulkTask = nil
         }
     }
 
     func cancelBulk() {
+        bulkRun &+= 1
         bulkTask?.cancel()
         bulkTask = nil
         bulkProgress = nil
