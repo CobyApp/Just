@@ -35,6 +35,10 @@ struct RootView: View {
             PlayerScreen(track: track)
         }
         .task { await app.refreshAccess() }
+        .onOpenURL { url in
+            guard let route = AppModel.Route(url: url) else { return }
+            app.go(to: route)
+        }
         .onChange(of: scenePhase) { _, phase in
             // The permission can be flipped in Settings while the app is
             // backgrounded, and iOS gives no callback for it.

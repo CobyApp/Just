@@ -112,6 +112,26 @@ public struct JustStore {
         return try? context.fetch(descriptor).first
     }
 
+    /// Every saved word as export rows, newest first.
+    public func exportRows() -> [VocabularyExport.Row] {
+        let descriptor = FetchDescriptor<VocabEntry>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        let entries = (try? context.fetch(descriptor)) ?? []
+        return entries.map { entry in
+            let occurrence = entry.occurrences.max { $0.capturedAt < $1.capturedAt }
+            return VocabularyExport.Row(
+                lemma: entry.lemma,
+                reading: entry.reading,
+                meaningKo: entry.meaningKo,
+                jlpt: entry.jlpt.label,
+                partOfSpeech: entry.partOfSpeech.rawValue,
+                example: occurrence?.lineText ?? "",
+                song: occurrence?.song.map { "\($0.artist) — \($0.title)" } ?? ""
+            )
+        }
+    }
+
     public func remove(_ entry: VocabEntry) {
         context.delete(entry)
     }

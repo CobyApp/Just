@@ -116,6 +116,9 @@ struct JustWidget: Widget {
         StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
             JustWidgetView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
+                // Tapping the widget lands on the cards, not on wherever the
+                // app happened to be left.
+                .widgetURL(URL(string: entry.snapshot.dueCount > 0 ? "just://review" : "just://words"))
         }
         .configurationDisplayName("Just")
         .description("복습할 단어 수와 오늘 볼 단어를 보여줍니다.")

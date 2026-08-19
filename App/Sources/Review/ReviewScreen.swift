@@ -60,6 +60,7 @@ struct ReviewScreen: View {
 
                 if isRevealed {
                     VStack(spacing: JustTheme.Space.tight) {
+                        SpeakButton(word: entry.lemma, reading: entry.reading, size: 36)
                         if entry.showsReading {
                             Text(entry.reading)
                                 .font(.just(18, relativeTo: .body))

@@ -30,6 +30,32 @@ final class AppModel {
 
     /// The song the full-screen player is showing, if any.
     var openTrack: Track?
+    enum Route: String {
+        case review
+        case words
+
+        /// The URL a notification or widget carries.
+        var url: URL? { URL(string: "just://\(rawValue)") }
+
+        /// Which tab the route lands on. Both screens push further in
+        /// themselves, so the route only has to pick the tab.
+        var tab: Tab {
+            switch self {
+            case .review: .practice
+            case .words: .words
+            }
+        }
+
+        init?(url: URL) {
+            guard url.scheme == "just" else { return nil }
+            // Both spellings appear in the wild: just://review has an empty path
+            // and a "review" host, while just:///review is the reverse.
+            let name = url.host ?? url.pathComponents.last
+            guard let name, let route = Route(rawValue: name) else { return nil }
+            self = route
+        }
+    }
+
     /// The song loaded in the player, whether or not the full screen is up.
     ///
     /// Separate from `openTrack` so dismissing the player does not stop the
@@ -183,6 +209,14 @@ final class AppModel {
                 Task { await app.checkCatalog() }
             }
         }
+    }
+
+    /// Sends the user where a link asked for.
+    ///
+    /// A reminder that opens the app to wherever the user last was is a reminder
+    /// that failed — its whole job is to get them to the cards.
+    func go(to route: Route) {
+        tab = route.tab
     }
 
     func open(_ track: Track) {

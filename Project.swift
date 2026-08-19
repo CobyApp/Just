@@ -58,7 +58,10 @@ let project = Project(
         module("JustCore"),
 
         // Design system: palette extraction, mesh background, furigana text.
-        module("JustDesign", dependencies: [.target(name: "JustCore")]),
+        module("JustDesign", dependencies: [
+            .target(name: "JustCore"),
+            .target(name: "JustSensei"),
+        ]),
 
         // MusicKit catalog search + ApplicationMusicPlayer.
         module("JustMusic", dependencies: [.target(name: "JustCore")]),
@@ -104,6 +107,13 @@ let project = Project(
                 ],
                 "NSAppTransportSecurity": ["NSAllowsArbitraryLoads": false],
                 "UIUserInterfaceStyle": "Dark",
+                // Lets notifications and the widget deep-link into a screen.
+                "CFBundleURLTypes": [
+                    [
+                        "CFBundleURLName": "\(bundlePrefix)",
+                        "CFBundleURLSchemes": ["just"],
+                    ],
+                ],
             ]),
             sources: ["App/Sources/**"],
             resources: ["App/Resources/**"],

@@ -19,6 +19,14 @@ struct LibraryScreen: View {
 
     private var store: JustStore { JustStore(context: context) }
 
+    /// A CSV of every saved word, written when the toolbar is built.
+    ///
+    /// Anki and spreadsheets both read this; the header is Korean because the
+    /// person importing it is.
+    private var exportFile: URL? {
+        VocabularyExport.writeFile(rows: store.exportRows())
+    }
+
     private var filteredWords: [VocabEntry] {
         let matches = words.filter { entry in
             if let levelFilter, entry.jlpt != levelFilter { return false }
@@ -103,6 +111,14 @@ struct LibraryScreen: View {
         }
         .searchable(text: $search, prompt: "단어, 뜻")
         .toolbar {
+            if !words.isEmpty, let file = exportFile {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: file) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("단어 내보내기")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Picker("정렬", selection: $order) {
@@ -254,6 +270,8 @@ struct VocabDetailView: View {
                         HStack(spacing: 6) {
                             JustChip(entry.jlpt.label, tint: entry.jlpt.tint)
                             JustChip(entry.partOfSpeech.rawValue)
+                            Spacer()
+                            SpeakButton(word: entry.lemma, reading: entry.reading, size: 34)
                         }
                         KanjiGlossStrip(word: entry.lemma)
                         if !entry.note.isEmpty {

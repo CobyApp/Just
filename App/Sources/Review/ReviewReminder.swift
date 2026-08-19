@@ -95,6 +95,8 @@ final class ReviewReminder {
         content.title = "복습할 단어가 기다리고 있어요"
         content.body = "가사에서 담은 단어를 예문과 함께 다시 봅니다."
         content.sound = .default
+        // Read by the notification delegate to route the tap.
+        content.userInfo = ["route": "review"]
 
         let request = UNNotificationRequest(
             identifier: Self.identifier,

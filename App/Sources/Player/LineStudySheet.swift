@@ -190,6 +190,8 @@ struct WordCard: View {
 
                 Spacer(minLength: JustTheme.Space.tight)
 
+                SpeakButton(word: word.dictionaryForm, reading: word.reading)
+
                 Button(action: toggle) {
                     Image(systemName: isSaved ? "checkmark" : "plus")
                         .font(.system(size: 15, weight: .bold))

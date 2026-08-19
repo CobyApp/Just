@@ -224,6 +224,8 @@ struct QuizScreen: View {
                 Text(question.meaning)
                     .font(JustTheme.Font.body)
                     .foregroundStyle(JustTheme.Ink.secondary)
+                Spacer(minLength: JustTheme.Space.tight)
+                SpeakButton(word: question.expected, reading: question.expectedReading)
             }
 
             KanjiGlossStrip(word: question.expected)

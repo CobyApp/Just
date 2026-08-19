@@ -249,3 +249,48 @@ struct AnalysisPaceTests {
         #expect(pace.estimate(remaining: 3) == nil)
     }
 }
+
+@Suite("단어 내보내기")
+struct VocabularyExportTests {
+    private func row(
+        lemma: String = "夢",
+        meaning: String = "꿈",
+        example: String = "夢ならばどれほどよかったでしょう"
+    ) -> VocabularyExport.Row {
+        .init(
+            lemma: lemma,
+            reading: "ゆめ",
+            meaningKo: meaning,
+            jlpt: "N4",
+            partOfSpeech: "명사",
+            example: example,
+            song: "米津玄師 — Lemon"
+        )
+    }
+
+    @Test("헤더와 행 수가 맞는다")
+    func hasHeaderAndRows() {
+        let csv = VocabularyExport.csv(from: [row(), row(lemma: "涙")])
+        let lines = csv.split(separator: "\n")
+        #expect(lines.first.map(String.init) == VocabularyExport.header)
+        #expect(lines.count == 3)
+    }
+
+    /// Lyrics carry commas constantly and Korean glosses carry them almost as
+    /// often, so quoting is the common case rather than an edge one.
+    @Test("쉼표가 든 필드는 인용부호로 감싼다")
+    func quotesCommas() {
+        let csv = VocabularyExport.csv(from: [row(meaning: "꿈, 희망")])
+        #expect(csv.contains("\"꿈, 희망\""))
+    }
+
+    @Test("인용부호는 두 번 써서 이스케이프한다")
+    func escapesQuotes() {
+        #expect(VocabularyExport.escaped("그는 \"꿈\"이라 했다").contains("\"\""))
+    }
+
+    @Test("특별한 문자가 없으면 그대로 둔다")
+    func leavesPlainFieldsAlone() {
+        #expect(VocabularyExport.escaped("ゆめ") == "ゆめ")
+    }
+}
