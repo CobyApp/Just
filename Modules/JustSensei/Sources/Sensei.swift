@@ -283,8 +283,11 @@ public final class Sensei {
         }
         guard !kept.isEmpty else { return .glue }
 
+        let surfaceForm = kept.map(\.surface).joined()
+        guard !grammaticalForms.contains(surfaceForm) else { return .glue }
+
         return .word(
-            surface: kept.map(\.surface).joined(),
+            surface: surfaceForm,
             reading: kept.map(\.reading).joined()
         )
     }
@@ -292,6 +295,25 @@ public final class Sensei {
     private nonisolated static func isGlue(_ surface: String) -> Bool {
         surface.count == 1 && surface.allSatisfy(\.isHiragana)
     }
+
+    /// Kana that carry grammar rather than vocabulary.
+    ///
+    /// One kana is glue by its shape. These are longer but no more a headword for
+    /// a vocabulary card, and this app has already decided where patterns go: the
+    /// grammar notes. Left in the word list they also attract wrong dictionary
+    /// matches, because a reading is all it takes — 「だけ」 resolved to 丈, a
+    /// length, on the strength of a shared reading.
+    ///
+    /// Nothing is lost by moving them: 「なんて」 is in the line, so a grammar note
+    /// about it survives the presence check that guards those.
+    ///
+    /// Deliberately short, and meant to grow from what the report shows rather
+    /// than from guesses about what a model might say.
+    private nonisolated static let grammaticalForms: Set<String> = [
+        "だけ", "って", "なんて", "よう", "たい", "ない", "だ", "です",
+        "ます", "ません", "ました", "から", "けど", "のに", "ので",
+        "とか", "でも", "しか", "ほど", "など",
+    ]
 
     /// The run of tokens whose surfaces spell `target`, if any.
     private nonisolated static func tokenRange(

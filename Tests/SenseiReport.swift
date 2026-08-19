@@ -171,12 +171,15 @@ struct SenseiReportSuite {
         var noGrammar = 0
         var fabricatedGrammar = 0
         var particleOnlyWord = 0
+        /// Translations collected so the run can spot itself repeating.
+        var translations: [String] = []
 
         private static let particles: Set<Character> = ["に", "を", "が", "は", "で", "と", "へ", "も", "の"]
 
         mutating func count(_ study: LineStudy, line: String) {
             lines += 1
             if study.translationKo.isEmpty { missingTranslation += 1 }
+            translations.append(study.translationKo)
             if study.grammar.isEmpty { noGrammar += 1 }
 
             // The same rule the word list already lives by: presence in the line
@@ -212,11 +215,40 @@ struct SenseiReportSuite {
             }
         }
 
+        /// Lines whose translation repeats another line's.
+        ///
+        /// The model's commonest failure here is answering about the neighbour
+        /// instead of the target, and when it does, two fixtures come back saying
+        /// the same thing. A shared run of eight characters is long enough that
+        /// two different lyric lines would not produce it by chance.
+        private var echoedTranslations: Int {
+            var echoed = 0
+            for (index, text) in translations.enumerated() where text.count >= 8 {
+                let others = translations.enumerated()
+                    .filter { $0.offset != index }
+                    .map(\.element)
+                if others.contains(where: { Self.shareALongRun(text, $0) }) { echoed += 1 }
+            }
+            return echoed
+        }
+
+        private static func shareALongRun(_ lhs: String, _ rhs: String) -> Bool {
+            let run = 8
+            guard lhs.count >= run else { return false }
+            let characters = Array(lhs)
+            for start in 0...(characters.count - run) {
+                let piece = String(characters[start..<(start + run)])
+                if rhs.contains(piece) { return true }
+            }
+            return false
+        }
+
         func summary() -> String {
             var text = "## 셀 수 있는 것\n\n"
             text += "| 항목 | 수 |\n|---|---|\n"
             text += "| 줄 | \(lines) |\n"
             text += "| 번역 없음 | \(missingTranslation) |\n"
+            text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
             text += "| 문법 노트 없음 | \(noGrammar) |\n"
             text += "| **가사에 없는 문법 패턴** | \(fabricatedGrammar) |\n"
             text += "| 단어 | \(words) |\n"

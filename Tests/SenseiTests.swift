@@ -588,3 +588,37 @@ struct HomographTests {
         #expect(dictionary.entry(forSpelling: "帰る", reading: nil)?.l == "帰る")
     }
 }
+
+@Suite("문법을 나르는 가나는 단어가 아니다")
+struct GrammaticalFormTests {
+    private let tokenizer = JapaneseTokenizer()
+
+    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
+        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
+    }
+
+    @Test("문법 형태는 단어에서 뺀다")
+    func rejectsGrammaticalForms() {
+        // 본 것: 「だけ」가 사전의 「丈」(길이)에 붙었다. 읽기를 공유하기 때문이다.
+        #expect(ground("だけ", in: "二人だけの空が広がる夜に") == .glue)
+        #expect(ground("なんて", in: "もう嫌だって 疲れたよなんて") == .glue)
+        #expect(ground("って", in: "もう嫌だって 疲れたよなんて") == .glue)
+    }
+
+    @Test("문법 형태를 포함한 단어는 남는다")
+    func keepsWordsThatMerelyContainThem() {
+        // 「言いたい」는 [言い][たい]지만 통째로는 문법 형태가 아니다.
+        #expect(
+            ground("言いたい", in: "本当は僕も言いたいんだ")
+                == .word(surface: "言いたい", reading: "いいたい")
+        )
+    }
+
+    @Test("한자 단어는 영향이 없다")
+    func leavesRealWordsAlone() {
+        #expect(
+            ground("空", in: "二人だけの空が広がる夜に")
+                == .word(surface: "空", reading: "そら")
+        )
+    }
+}
