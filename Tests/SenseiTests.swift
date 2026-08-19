@@ -386,3 +386,46 @@ struct DictionaryFallbackTests {
         #expect(sensei.cache(for: "songA")?.count == 1)
     }
 }
+
+@Suite("가사에 없는 것 걸러내기")
+@MainActor
+struct WordPresenceTests {
+    private let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+
+    private func word(_ surface: String, _ dictionaryForm: String) -> StudyWord {
+        StudyWord(
+            surface: surface,
+            dictionaryForm: dictionaryForm,
+            reading: "",
+            meaningKo: "뜻"
+        )
+    }
+
+    @Test("줄을 통째로 단어라고 내놓으면 버린다")
+    func rejectsAnEntireLine() {
+        // Seen from the on-device model: the whole line came back as one word,
+        // with the line's translation as its meaning and nonsense furigana.
+        let line = "その一言で全てが分かった"
+        #expect(!sensei.appears(word(line, line), in: line))
+    }
+
+    @Test("줄 안의 긴 절도 단어가 아니다")
+    func rejectsALongClause() {
+        #expect(!sensei.appears(word("全てが分かった", "全てが分かる"), in: "その一言で全てが分かった"))
+    }
+
+    @Test("줄에 그대로 있는 단어는 남는다")
+    func keepsAWordThatIsThere() {
+        #expect(sensei.appears(word("一言", "一言"), in: "その一言で全てが分かった"))
+    }
+
+    @Test("활용형은 한자 어간으로 찾아낸다")
+    func matchesAConjugatedFormByItsStem() {
+        #expect(sensei.appears(word("忘れた", "忘れる"), in: "君を忘れた夜"))
+    }
+
+    @Test("줄에 없는 단어는 버린다")
+    func rejectsAWordThatIsNotThere() {
+        #expect(!sensei.appears(word("走る", "走る"), in: "その一言で全てが分かった"))
+    }
+}

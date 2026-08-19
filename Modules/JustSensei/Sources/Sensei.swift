@@ -218,21 +218,26 @@ public final class Sensei {
     /// the lyric. Every card in this app claims "this is in the song you are
     /// listening to", so a card that fails that claim is worse than a missing
     /// one — and unlike the model's judgements, presence is checkable.
-    private func appears(_ word: StudyWord, in line: String) -> Bool {
+    func appears(_ word: StudyWord, in line: String) -> Bool {
         for form in [word.surface, word.dictionaryForm] where !form.isEmpty {
+            // The length bound governs every candidate, not just the stem match
+            // below. Being literally present proves nothing about wordhood when
+            // the candidate *is* the line: the model sometimes answers with the
+            // whole sentence, which sailed through `contains` and became a card
+            // whose headword was the lyric, whose meaning was the lyric's
+            // translation, and whose reading no furigana aligner could place.
+            //
+            // Real headwords in lyrics do not run past five characters; longer
+            // strings are phrases, and phrases belong in the grammar notes.
+            guard form.count <= Self.maximumHeadwordLength else { continue }
+
             if line.contains(form) { return true }
 
             // Conjugated forms only share their stem with the dictionary form:
-            // 帰る appears verbatim, but 忘れる appears as 忘れた. The stem is
-            // therefore allowed to stand in — but only for something short
-            // enough to be a single word.
-            //
-            // Without the length bound the model can glue a whole clause
-            // together (取り帰るように out of 取りに帰るように) and have it
-            // admitted on the strength of one shared kanji. Real headwords in
-            // lyrics do not run past five characters; longer strings that are
-            // not literally in the line are phrases, not vocabulary.
-            guard form.count <= Self.maximumHeadwordLength else { continue }
+            // 帰る appears verbatim, but 忘れる appears as 忘れた, so the stem is
+            // allowed to stand in. Without the bound above, the model could glue
+            // a whole clause together (取り帰るように out of 取りに帰るように)
+            // and have it admitted on the strength of one shared kanji.
             let stem = String(form.prefix(while: { $0.isKanji }))
             if !stem.isEmpty, line.contains(stem) { return true }
         }
