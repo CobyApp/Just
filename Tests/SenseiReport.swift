@@ -43,6 +43,10 @@ struct SenseiReportSuite {
         let target: Int
         /// What a person would accept, for the reader of the report to compare.
         let expectation: String
+        /// Words that betray the translation came from somewhere other than this
+        /// line — a neighbour, or the song's own name. Written by hand from
+        /// failures actually seen, which is what lets a judgement be counted.
+        let forbidden: [String]
     }
 
     private var fixtures: [Fixture] {
@@ -59,27 +63,33 @@ struct SenseiReportSuite {
         return [
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 0,
-                expectation: "가라앉듯이, 녹아내리듯이 — 곡 제목(밤을 달린다)이 새어들면 실패"
+                expectation: "가라앉듯이, 녹아내리듯이 — 곡 제목(밤을 달린다)이 새어들면 실패",
+                forbidden: ["달리", "달빛"]
             ),
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 1,
-                expectation: "둘만의 하늘이 펼쳐지는 밤에 — 空은 하늘. '공기'는 空気와 혼동한 것"
+                expectation: "둘만의 하늘이 펼쳐지는 밤에 — 空은 하늘. '공기'는 空気와 혼동한 것",
+                forbidden: ["공기"]
             ),
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 2,
-                expectation: "'잘 가' 그 한마디뿐이었다 — 다음 줄의 뜻을 가져오면 실패"
+                expectation: "'잘 가' 그 한마디뿐이었다 — 이웃 줄의 뜻을 가져오면 실패",
+                forbidden: ["이해", "공기", "펼쳐"]
             ),
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 3,
-                expectation: "그 한마디로 모든 것을 알았다 — 줄 전체가 단어 카드로 오면 실패"
+                expectation: "그 한마디로 모든 것을 알았다 — 줄 전체가 단어 카드로 오면 실패",
+                forbidden: []
             ),
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 6,
-                expectation: "이제 싫다느니 지쳤다느니 — だって/なんて를 인용으로 읽어야 한다"
+                expectation: "이제 싫다느니 지쳤다느니 — だって/なんて를 인용으로 읽어야 한다",
+                forbidden: ["말하고 싶"]
             ),
             Fixture(
                 song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 7,
-                expectation: "실은 나도 말하고 싶어 — んだ의 어감이 살아야 한다"
+                expectation: "실은 나도 말하고 싶어 — んだ의 어감이 살아야 한다",
+                forbidden: []
             ),
         ]
     }
@@ -125,7 +135,7 @@ struct SenseiReportSuite {
                 continue
             }
 
-            flags.count(study, line: fixture.lines[fixture.target])
+            flags.count(study, line: fixture.lines[fixture.target], forbidden: fixture.forbidden)
 
             report += "- 번역: \(study.translationKo.isEmpty ? "(없음)" : study.translationKo)\n"
             report += "- 엔진: \(study.engine == .onDevice ? "모델" : "사전")\n"
@@ -176,7 +186,10 @@ struct SenseiReportSuite {
 
         private static let particles: Set<Character> = ["に", "を", "が", "は", "で", "と", "へ", "も", "の"]
 
-        mutating func count(_ study: LineStudy, line: String) {
+        var strayTranslation = 0
+
+        mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
+            if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
             lines += 1
             if study.translationKo.isEmpty { missingTranslation += 1 }
             translations.append(study.translationKo)
@@ -249,6 +262,7 @@ struct SenseiReportSuite {
             text += "| 줄 | \(lines) |\n"
             text += "| 번역 없음 | \(missingTranslation) |\n"
             text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
+            text += "| **번역에 금지어(이웃·제목에서 온 말)** | \(strayTranslation) |\n"
             text += "| 문법 노트 없음 | \(noGrammar) |\n"
             text += "| **가사에 없는 문법 패턴** | \(fabricatedGrammar) |\n"
             text += "| 단어 | \(words) |\n"
