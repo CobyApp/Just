@@ -42,7 +42,10 @@ struct HomeScreen: View {
             }
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
-            .onAppear { stats = store.stats() }
+            .onAppear {
+                stats = store.stats()
+                store.publishWidgetSnapshot(stats)
+            }
         }
     }
 

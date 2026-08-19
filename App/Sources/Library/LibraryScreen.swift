@@ -61,6 +61,7 @@ struct LibraryScreen: View {
 
     private func refresh() {
         stats = store.stats()
+        store.publishWidgetSnapshot(stats)
         Task { await app.reminder.updateBadge(dueCount: stats.dueCount) }
     }
 

@@ -163,6 +163,32 @@ public struct JustStore {
         change(day)
     }
 
+    /// Publishes the numbers the widget shows.
+    ///
+    /// Called wherever stats are recomputed, so the widget tracks the app
+    /// without a second source of truth.
+    public func publishWidgetSnapshot(_ stats: StudyStats) {
+        let due = dueEntries(limit: 1).first
+            ?? (try? context.fetch(FetchDescriptor<VocabEntry>()))?.first
+        let occurrence = due?.occurrences.max { $0.capturedAt < $1.capturedAt }
+
+        WidgetStore.write(
+            WidgetSnapshot(
+                dueCount: stats.dueCount,
+                streak: stats.streak,
+                totalWords: stats.totalWords,
+                word: due.map { entry in
+                    WidgetSnapshot.Word(
+                        lemma: entry.lemma,
+                        reading: entry.reading,
+                        meaningKo: entry.meaningKo,
+                        songLabel: occurrence?.song.map { "\($0.artist) — \($0.title)" }
+                    )
+                }
+            )
+        )
+    }
+
     public func stats(weekLength: Int = 7) -> StudyStats {
         let days = (try? context.fetch(FetchDescriptor<StudyDay>())) ?? []
         let calendar = Calendar.current

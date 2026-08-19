@@ -107,7 +107,9 @@ let project = Project(
             ]),
             sources: ["App/Sources/**"],
             resources: ["App/Resources/**"],
+            entitlements: "App/Just.entitlements",
             dependencies: [
+                .target(name: "JustWidget"),
                 .target(name: "JustCore"),
                 .target(name: "JustDesign"),
                 .target(name: "JustMusic"),
@@ -117,6 +119,26 @@ let project = Project(
             settings: .settings(base: baseSettings.merging([
                 "TARGETED_DEVICE_FAMILY": "1,2",
             ]) { _, new in new })
+        ),
+
+        // Reads a snapshot the app publishes into the shared container, so it
+        // never opens the app's database.
+        .target(
+            name: "JustWidget",
+            destinations: allDevices,
+            product: .appExtension,
+            bundleId: "\(bundlePrefix).widget",
+            deploymentTargets: iOSTarget,
+            infoPlist: .extendingDefault(with: [
+                "CFBundleDisplayName": "Just",
+                "NSExtension": [
+                    "NSExtensionPointIdentifier": "com.apple.widgetkit-extension",
+                ],
+            ]),
+            sources: ["Widget/Sources/**"],
+            entitlements: "Widget/JustWidget.entitlements",
+            dependencies: [.target(name: "JustCore")],
+            settings: .settings(base: baseSettings)
         ),
 
         // Covers the pure logic only — parsing, scheduling, string handling.
