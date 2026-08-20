@@ -42,6 +42,37 @@ public final class Pronouncer {
         synthesizer.speak(utterance)
     }
 
+    /// Reads a whole lyric line.
+    ///
+    /// Slower than a word, and for the opposite reason: a word is over before
+    /// it registers, while a line has to be followed and written down as it
+    /// goes. No reading is passed — a line's kanji are read from the words
+    /// around them, which is the one place the synthesiser has more to work
+    /// with than it does on a word alone.
+    public func speakLine(_ line: String) {
+        let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = Self.japaneseVoice
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.7
+        synthesizer.speak(utterance)
+    }
+
+    /// Whether there is a Japanese voice to read with.
+    ///
+    /// False means the device would read a Japanese sentence in its own
+    /// language, which is not something a listening exercise can be built on —
+    /// the caller is expected to withhold the exercise rather than offer one
+    /// that cannot be answered.
+    public var canSpeakJapanese: Bool {
+        Self.japaneseVoice?.language.hasPrefix("ja") == true
+    }
+
     public func stop() {
         synthesizer.stopSpeaking(at: .immediate)
     }

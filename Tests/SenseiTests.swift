@@ -777,3 +777,112 @@ struct UsableTranslationTests {
         #expect(!Sensei.isUsableTranslation("123"))
     }
 }
+
+@Suite("듣고 받아쓰기 문제")
+struct DictationQuizTests {
+    private let builder = QuizBuilder()
+
+    private var source: QuizBuilder.Source {
+        .init(
+            key: "夢|ゆめ",
+            lemma: "夢",
+            reading: "ゆめ",
+            meaning: "꿈",
+            lineText: "夢ならばどれほどよかったでしょう",
+            surface: "夢",
+            songLabel: "米津玄師 — Lemon"
+        )
+    }
+
+    @Test("들려줄 줄을 따로 들고 있다")
+    func carriesTheLineToSpeak() {
+        let question = try! #require(builder.build(from: [source], kind: .dictation).first)
+        #expect(question.kind == .dictation)
+        #expect(question.spokenLine != nil)
+    }
+
+    @Test("가사에 원형으로 나온 정답은 가나로 바꿔서 읽힌다")
+    func speaksTheAnswerAsKana() {
+        // The synthesiser guesses a kanji's reading exactly like the learner
+        // does, and 「生」 is the standard example of it guessing wrong. Getting
+        // the graded word wrong would mark the learner down for hearing what
+        // was actually said, so that one word is handed over as kana.
+        let question = try! #require(builder.build(from: [source], kind: .dictation).first)
+        let spoken = try! #require(question.spokenLine)
+        #expect(spoken.contains("ゆめ"))
+        #expect(!spoken.contains("夢"))
+        // The rest of the line is left as written — context is what lets the
+        // synthesiser read the remaining kanji correctly.
+        #expect(spoken.hasSuffix("ならばどれほどよかったでしょう"))
+    }
+
+    @Test("활용형·조사 결합형은 원문 그대로 읽는다")
+    func leavesInflectedFormsAlone() {
+        // Substituting the reading here would say something else: 「疲れた」
+        // replaced by 「つかれる」 changes the tense, and 「夜に」 replaced by
+        // 「よる」 drops the particle. Inside a sentence the synthesiser has the
+        // surrounding words to read the kanji from, which is exactly what it
+        // lacks on a word alone — so the line is left as written.
+        let inflected = QuizBuilder.Source(
+            key: "疲れる|つかれる",
+            lemma: "疲れる",
+            reading: "つかれる",
+            meaning: "지치다",
+            lineText: "もう嫌だって 疲れたよなんて",
+            surface: "疲れた",
+            songLabel: "YOASOBI — 夜に駆ける"
+        )
+        let question = try! #require(builder.build(from: [inflected], kind: .dictation).first)
+        #expect(question.spokenLine == "もう嫌だって 疲れたよなんて")
+
+        let withParticle = QuizBuilder.Source(
+            key: "夜|よる", lemma: "夜", reading: "よる", meaning: "밤",
+            lineText: "二人だけの空が広がる夜に", surface: "夜に",
+            songLabel: "YOASOBI — 夜に駆ける"
+        )
+        let particled = try! #require(builder.build(from: [withParticle], kind: .dictation).first)
+        #expect(particled.spokenLine == "二人だけの空が広がる夜に")
+    }
+
+    @Test("화면에 보이는 줄은 단어가 빠져 있다")
+    func promptStillHidesTheWord() {
+        let question = try! #require(builder.build(from: [source], kind: .dictation).first)
+        #expect(question.prompt.contains(QuizQuestion.blank))
+        #expect(!question.prompt.contains("夢"))
+    }
+
+    @Test("채점은 빈칸 채우기와 같다")
+    func gradesLikeCloze() {
+        let dictation = try! #require(builder.build(from: [source], kind: .dictation).first)
+        let cloze = try! #require(builder.build(from: [source], kind: .cloze).first)
+        #expect(dictation.acceptedAnswers == cloze.acceptedAnswers)
+        #expect(dictation.expected == cloze.expected)
+    }
+
+    @Test("가사가 없는 단어로는 만들지 않고 쓰기 문제로 돌린다")
+    func fallsBackWithoutLyric() {
+        let bare = QuizBuilder.Source(
+            key: "k", lemma: "夢", reading: "ゆめ", meaning: "꿈",
+            lineText: nil, surface: nil, songLabel: nil
+        )
+        let question = try! #require(builder.build(from: [bare], kind: .dictation).first)
+        #expect(question.kind == .recall)
+        #expect(question.spokenLine == nil)
+    }
+
+    @Test("랜덤 믹스는 소리 나는 문제를 내지 않는다")
+    func theMixStaysSilent() {
+        // Somewhere quiet, a mixed round that suddenly speaks is a mistake the
+        // learner cannot undo. Sound is offered only when it was chosen.
+        let sources = (0..<40).map { index in
+            QuizBuilder.Source(
+                key: "k\(index)", lemma: "夢", reading: "ゆめ", meaning: "꿈\(index)",
+                lineText: "夢ならばどれほどよかったでしょう", surface: "夢",
+                songLabel: "米津玄師 — Lemon"
+            )
+        }
+        let questions = builder.build(from: sources, limit: 40)
+        #expect(!questions.isEmpty)
+        #expect(!questions.contains { $0.kind == .dictation })
+    }
+}

@@ -59,6 +59,14 @@ struct QuizScreen: View {
             }
         }
         .onAppear(perform: start)
+        // Asked out loud as soon as it is on screen: a listening question that
+        // waits to be tapped reads as a broken one. Keyed on the question so
+        // moving to the next line asks the next line.
+        .task(id: question?.id) {
+            guard let question, question.kind == .dictation else { return }
+            speak(question)
+        }
+        .onDisappear { Pronouncer.shared.stop() }
     }
 
     // MARK: - Question
@@ -90,16 +98,21 @@ struct QuizScreen: View {
         VStack(spacing: JustTheme.Space.snug) {
             Text(question.kind.title).justSectionHeader()
 
-            // The lyric is the prompt for cloze, so it gets lyric-sized type.
+            // The lyric is the prompt for cloze and dictation, so it gets
+            // lyric-sized type.
             Text(question.prompt)
                 .font(
-                    question.kind == .cloze
+                    Self.showsLyricPrompt(question.kind)
                         ? JustTheme.Font.lyricActive
                         : .just(30, weight: .semibold, relativeTo: .title1)
                 )
                 .foregroundStyle(JustTheme.Ink.primary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+
+            if question.kind == .dictation {
+                replayButton(question)
+            }
 
             if let detail = displayedContext(question) {
                 Text(detail)
@@ -111,12 +124,39 @@ struct QuizScreen: View {
         .padding(.top, JustTheme.Space.loose)
     }
 
-    /// For cloze the meaning is withheld until the answer is in — printing it
-    /// under the gap hands over the answer, which is the one thing the
-    /// exercise is testing.
+    /// For cloze and dictation the meaning is withheld until the answer is in —
+    /// printing it under the gap hands over the answer, which is the one thing
+    /// the exercise is testing.
     private func displayedContext(_ question: QuizQuestion) -> String? {
-        guard question.kind == .cloze, outcome == nil else { return question.context }
+        guard Self.showsLyricPrompt(question.kind), outcome == nil else {
+            return question.context
+        }
         return question.songLabelOnly
+    }
+
+    /// The kinds whose prompt is a lyric line rather than a word or a meaning.
+    private static func showsLyricPrompt(_ kind: QuizKind) -> Bool {
+        kind == .cloze || kind == .dictation
+    }
+
+    /// Says the line again.
+    ///
+    /// Prominent rather than tucked away: in a listening exercise this is not a
+    /// convenience, it is how the question is asked, and a learner who missed a
+    /// word needs it more than once.
+    private func replayButton(_ question: QuizQuestion) -> some View {
+        Button {
+            speak(question)
+        } label: {
+            Label("다시 듣기", systemImage: "arrow.trianglehead.counterclockwise")
+        }
+        .buttonStyle(.justSecondary)
+    }
+
+    /// Reads the line, if there is one to read.
+    private func speak(_ question: QuizQuestion) {
+        guard let line = question.spokenLine else { return }
+        Pronouncer.shared.speakLine(line)
     }
 
     private var typedField: some View {

@@ -7,12 +7,15 @@ public enum QuizKind: String, CaseIterable, Sendable {
     case recall
     /// Japanese word shown, meaning picked from four options.
     case choice
+    /// The lyric line spoken aloud, the missing word typed from hearing it.
+    case dictation
 
     public var title: String {
         switch self {
         case .cloze: "빈칸 채우기"
         case .recall: "뜻 보고 쓰기"
         case .choice: "사지선다"
+        case .dictation: "듣고 받아쓰기"
         }
     }
 
@@ -21,6 +24,7 @@ public enum QuizKind: String, CaseIterable, Sendable {
         case .cloze: "가사에서 단어를 지웠습니다. 노래를 떠올리며 채워 보세요."
         case .recall: "한국어 뜻만 보고 일본어를 직접 씁니다. 가장 어렵습니다."
         case .choice: "네 개 중 하나를 고릅니다. 빠르게 훑을 때 좋습니다."
+        case .dictation: "가사 한 줄을 소리로 들려줍니다. 들은 대로 빈칸을 채워 보세요."
         }
     }
 
@@ -29,6 +33,7 @@ public enum QuizKind: String, CaseIterable, Sendable {
         case .cloze: "square.dashed"
         case .recall: "pencil.line"
         case .choice: "list.bullet.circle"
+        case .dictation: "ear"
         }
     }
 
@@ -56,6 +61,12 @@ public struct QuizQuestion: Identifiable, Sendable {
     public let entryKey: String
     /// The song alone, for prompts that must not reveal the meaning yet.
     public let songLabelOnly: String?
+    /// What to read aloud, for the kinds that make a sound.
+    ///
+    /// Not the prompt: the prompt has the answer taken out of it, and the whole
+    /// point here is to hear the part that is missing. Not the raw lyric
+    /// either — see `QuizBuilder.dictation`.
+    public let spokenLine: String?
 
     public init(
         id: String,
@@ -68,7 +79,8 @@ public struct QuizQuestion: Identifiable, Sendable {
         meaning: String,
         options: [String] = [],
         entryKey: String,
-        songLabelOnly: String? = nil
+        songLabelOnly: String? = nil,
+        spokenLine: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -81,6 +93,7 @@ public struct QuizQuestion: Identifiable, Sendable {
         self.options = options
         self.entryKey = entryKey
         self.songLabelOnly = songLabelOnly
+        self.spokenLine = spokenLine
     }
 
     /// The placeholder a cloze prompt leaves behind.

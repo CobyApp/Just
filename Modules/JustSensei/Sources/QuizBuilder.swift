@@ -130,16 +130,62 @@ public struct QuizBuilder: Sendable {
                 return recall(source)
             case .choice:
                 return choice(source, allMeanings: meanings) ?? recall(source)
+            case .dictation:
+                return source.supportsCloze
+                    ? dictation(source)
+                    : recall(source)
             }
         }
     }
 
     /// Cloze when there is a lyric to hide the word in, otherwise fall back —
     /// a blank with no sentence around it is just a recall question.
+    ///
+    /// Dictation is deliberately absent. A mixed round that suddenly makes a
+    /// sound is a mistake the learner cannot take back once they are somewhere
+    /// quiet, so sound is offered only when it was asked for by name.
     private func preferredKind(for source: Source) -> QuizKind {
         source.supportsCloze
             ? [QuizKind.cloze, .cloze, .recall, .choice].randomElement() ?? .cloze
             : [QuizKind.recall, .choice].randomElement() ?? .recall
+    }
+
+    /// Cloze, but heard rather than remembered.
+    ///
+    /// The line is spoken as written, with one exception: when the answer
+    /// appears in its dictionary form it is handed over as kana. The
+    /// synthesiser guesses a kanji's reading exactly like the learner does —
+    /// 「生」 is the standard example — and marking someone down for correctly
+    /// hearing the wrong reading is the one unfair way to lose a point here.
+    ///
+    /// Only the dictionary form, because anything else says something else.
+    /// 「疲れた」 replaced by 「つかれる」 changes the tense; 「夜に」 replaced by
+    /// 「よる」 drops the particle. And the trade is cheap to give up: inside a
+    /// sentence the synthesiser has the surrounding words to read a kanji from,
+    /// which is precisely what it lacks on a word by itself.
+    private func dictation(_ source: Source) -> QuizQuestion? {
+        guard let lineText = source.lineText, let surface = source.surface,
+              let base = cloze(source)
+        else { return nil }
+
+        let isDictionaryForm = surface == source.lemma
+        let spoken = isDictionaryForm && !source.reading.isEmpty
+            ? lineText.replacingOccurrences(of: surface, with: source.reading)
+            : lineText
+
+        return QuizQuestion(
+            id: "\(source.key).dictation",
+            kind: .dictation,
+            prompt: base.prompt,
+            context: base.context,
+            acceptedAnswers: base.acceptedAnswers,
+            expected: base.expected,
+            expectedReading: base.expectedReading,
+            meaning: base.meaning,
+            entryKey: base.entryKey,
+            songLabelOnly: base.songLabelOnly,
+            spokenLine: spoken
+        )
     }
 
     private func cloze(_ source: Source) -> QuizQuestion? {

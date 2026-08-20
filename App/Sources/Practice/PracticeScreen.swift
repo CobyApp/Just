@@ -1,5 +1,6 @@
 import JustCore
 import JustDesign
+import JustSensei
 import SwiftData
 import SwiftUI
 
@@ -51,11 +52,24 @@ struct PracticeScreen: View {
                     reviewRow
                     struggleRow
                     quizRow(nil)
-                    ForEach(QuizKind.allCases, id: \.self) { quizRow($0) }
+                    ForEach(Self.offeredKinds, id: \.self) { quizRow($0) }
                 }
                 .padding(JustTheme.Space.regular)
             }
             .scrollIndicators(.hidden)
+        }
+    }
+
+    /// Every mode this device can actually run.
+    ///
+    /// Dictation needs a Japanese voice. Without one the device would read a
+    /// Japanese line in its own language, and no amount of listening would let
+    /// the learner answer — so the row is withheld rather than offered and
+    /// found broken. Same principle as the struggling row below: do not
+    /// advertise a mode that cannot be used.
+    private static var offeredKinds: [QuizKind] {
+        QuizKind.allCases.filter { kind in
+            kind != .dictation || Pronouncer.shared.canSpeakJapanese
         }
     }
 
