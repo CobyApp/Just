@@ -691,3 +691,52 @@ struct RepeatedLineTests {
         #expect(lines.count - unique.count == 2)
     }
 }
+
+@Suite("모델 세션 재활용")
+struct SessionRecyclerTests {
+    @Test("한도까지는 세션을 새로 만들지 않는다")
+    func reusesUpToTheLimit() {
+        var recycler = SessionRecycler(limit: 3)
+        #expect(recycler.claim() == false)
+        #expect(recycler.claim() == false)
+        #expect(recycler.claim() == false)
+        #expect(recycler.claim() == true)
+    }
+
+    @Test("새 세션을 만든 줄부터 한도를 다시 센다")
+    func countsTheLimitFromTheNewSession() {
+        var recycler = SessionRecycler(limit: 2)
+        _ = recycler.claim()
+        _ = recycler.claim()
+        #expect(recycler.claim() == true)
+        #expect(recycler.claim() == false)
+        #expect(recycler.claim() == true)
+    }
+
+    @Test("곡이 바뀌면 남은 한도를 버리고 새로 시작한다")
+    func startsFreshWhateverIsLeft() {
+        var recycler = SessionRecycler(limit: 8)
+        _ = recycler.claim()
+        recycler.startFresh()
+        // The next line must not be answered by a session that still holds the
+        // previous song's lines — that is what leaks one song into another.
+        #expect(recycler.claim() == true)
+        #expect(recycler.claim() == false)
+    }
+
+    @Test("이미 새로 시작한 상태에서 또 불러도 한 번만 새로 만든다")
+    func startingFreshTwiceBuildsOneSession() {
+        var recycler = SessionRecycler(limit: 8)
+        recycler.startFresh()
+        recycler.startFresh()
+        #expect(recycler.claim() == true)
+        #expect(recycler.claim() == false)
+    }
+
+    @Test("한도가 말이 안 되면 줄마다 새로 만든다")
+    func nonsenseLimitMeansOneLinePerSession() {
+        var recycler = SessionRecycler(limit: 0)
+        #expect(recycler.claim() == false)
+        #expect(recycler.claim() == true)
+    }
+}

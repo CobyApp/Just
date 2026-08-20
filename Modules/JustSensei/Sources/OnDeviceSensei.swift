@@ -117,15 +117,9 @@ public final class OnDeviceSensei {
 
     private var session: LanguageModelSession
     private let tokenizer = JapaneseTokenizer()
-    /// Lines answered by the current session.
-    ///
-    /// The session used to be rebuilt for every line, which paid for the
-    /// instruction prompt — fifteen lines of it — on each call. Keeping one and
-    /// recycling it periodically pays that once per batch instead, while still
-    /// bounding the transcript so a long song cannot overflow the context
-    /// window. That overflow is the reason the per-line rebuild existed.
-    private var linesInSession = 0
-    private static let linesPerSession = 8
+    /// When to stop reusing the session. See `SessionRecycler` for the balance
+    /// it strikes.
+    private var recycler = SessionRecycler()
 
     public init() {
         session = LanguageModelSession { Self.instructions }
@@ -152,6 +146,14 @@ public final class OnDeviceSensei {
     /// Warms the model so the first tap isn't the slow one.
     public func prewarm() {
         session.prewarm()
+    }
+
+    /// Forgets what the model was told about the song being left behind.
+    ///
+    /// The next line builds its own session, so nothing from the old song is in
+    /// context when the new one is asked about.
+    public func startFresh() {
+        recycler.startFresh()
     }
 
     /// Analyses one line. The line above is passed as context because a lyric
@@ -187,11 +189,9 @@ public final class OnDeviceSensei {
         넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
         """
 
-        if linesInSession >= Self.linesPerSession {
+        if recycler.claim() {
             session = LanguageModelSession { Self.instructions }
-            linesInSession = 0
         }
-        linesInSession += 1
 
         let response = try await session.respond(
             to: prompt,

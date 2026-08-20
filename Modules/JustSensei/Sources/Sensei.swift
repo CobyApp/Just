@@ -62,6 +62,11 @@ public final class Sensei {
         self.songID = songID
         entries.removeAll()
         inFlight.removeAll()
+        // The model's own transcript is state too, and it outlives this cache:
+        // one session answers several lines now, so without this the new song's
+        // opening lines are answered with the old song's questions still in
+        // context.
+        onDevice?.startFresh()
     }
 
     /// The cache, but only if it still belongs to the song asking for it.
