@@ -270,10 +270,12 @@ struct SenseiReportSuite {
 
         var strayTranslation = 0
         var untranslatedJapanese = 0
+        var dictionaryFallback = 0
 
         mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
             if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
             lines += 1
+            if study.engine != .onDevice { dictionaryFallback += 1 }
             if study.translationKo.isEmpty { missingTranslation += 1 }
             // Kana surviving into the Korean line means a stretch was copied
             // rather than translated — 「フェンス越しに」 came back as
@@ -349,10 +351,21 @@ struct SenseiReportSuite {
         }
 
         func summary() -> String {
-            var text = "## 셀 수 있는 것\n\n"
+            var text = ""
+            // The model being installed is not the model answering. Twice now a
+            // run has reported "온디바이스 모델" while the asset catalog was empty
+            // underneath and every line fell back — and the numbers from such a
+            // run say nothing about a prompt or a batching change.
+            if lines > 0, dictionaryFallback == lines {
+                text += "> **모든 줄이 사전으로 대체됐습니다.** 모델이 설치되어 있다고\n"
+                text += "> 보고하더라도 실제 생성은 전부 실패했다는 뜻입니다. 아래 숫자로는\n"
+                text += "> 프롬프트나 묶음 변경을 판단할 수 없습니다.\n\n"
+            }
+            text += "## 셀 수 있는 것\n\n"
             text += "| 항목 | 수 |\n|---|---|\n"
             text += "| 줄 | \(lines) |\n"
             text += "| 번역 없음 | \(missingTranslation) |\n"
+            text += "| **사전으로 대체된 줄 (모델 호출 실패)** | \(dictionaryFallback) |\n"
             text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
             text += "| **번역에 금지어(이웃·제목에서 온 말)** | \(strayTranslation) |\n"
             text += "| **번역에 일본어가 그대로 남음** | \(untranslatedJapanese) |\n"
