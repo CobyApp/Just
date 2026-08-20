@@ -148,6 +148,16 @@ public final class OnDeviceSensei {
         session.prewarm()
     }
 
+    private func respond(
+        to prompt: String
+    ) async throws -> LanguageModelSession.Response<GeneratedLine> {
+        try await session.respond(
+            to: prompt,
+            generating: GeneratedLine.self,
+            options: GenerationOptions(temperature: 0.3)
+        )
+    }
+
     /// Forgets what the model was told about the song being left behind.
     ///
     /// The next line builds its own session, so nothing from the old song is in
@@ -193,11 +203,25 @@ public final class OnDeviceSensei {
             session = LanguageModelSession { Self.instructions }
         }
 
-        let response = try await session.respond(
-            to: prompt,
-            generating: GeneratedLine.self,
-            options: GenerationOptions(temperature: 0.3)
-        )
+        let response: LanguageModelSession.Response<GeneratedLine>
+        do {
+            response = try await respond(to: prompt)
+        } catch let error as LanguageModelSession.GenerationError {
+            // A transcript that outgrew the window, not a prompt that is too
+            // long: the session is finished either way, and every later line
+            // asked of it fails too. Counting lines cannot prevent this — how
+            // much a line costs depends on how long it is and how much the
+            // model finds to say about it — so the count is the common case and
+            // this is the guarantee.
+            guard case .exceededContextWindowSize = error else { throw error }
+            recycler.startFresh()
+            if recycler.claim() {
+                session = LanguageModelSession { Self.instructions }
+            }
+            // Once. A fresh session that still overflows is a line that does
+            // not fit at all, and the caller's dictionary fallback is right.
+            response = try await respond(to: prompt)
+        }
         return Self.study(from: response.content, line: line, lineIndex: lineIndex)
     }
 

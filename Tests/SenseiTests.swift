@@ -740,3 +740,40 @@ struct SessionRecyclerTests {
         #expect(recycler.claim() == true)
     }
 }
+
+@Suite("번역으로 볼 수 있는 답")
+struct UsableTranslationTests {
+    @Test("한국어 문장은 번역이다")
+    func koreanIsATranslation() {
+        #expect(Sensei.isUsableTranslation("둘만의 하늘이 펼쳐지는 밤에"))
+    }
+
+    @Test("일본어 원문을 그대로 돌려준 것은 번역이 아니다")
+    func echoedSourceIsNotATranslation() {
+        // Seen in the whole-song report: four lines came back with the lyric
+        // itself in translationKo, and because it was not empty the record
+        // kept it forever and never asked again.
+        #expect(!Sensei.isUsableTranslation("沈むように溶けてゆくように"))
+        #expect(!Sensei.isUsableTranslation("「さよなら」だけだった"))
+        #expect(!Sensei.isUsableTranslation("もう嫌だって 疲れたよなんて"))
+    }
+
+    @Test("한글이 섞여 있으면 일본어가 남아도 번역으로 본다")
+    func partialJapaneseStillCounts() {
+        // Not good, but it is an attempt at Korean, and the report counts it
+        // separately. Throwing it away would show the reader nothing at all.
+        #expect(Sensei.isUsableTranslation("페ンス 너머로 두 사람이 함께 서 있었다"))
+    }
+
+    @Test("빈 답과 공백뿐인 답은 번역이 아니다")
+    func emptyIsNotATranslation() {
+        #expect(!Sensei.isUsableTranslation(""))
+        #expect(!Sensei.isUsableTranslation("   \n "))
+    }
+
+    @Test("숫자나 기호뿐인 답은 번역이 아니다")
+    func punctuationOnlyIsNotATranslation() {
+        #expect(!Sensei.isUsableTranslation("..."))
+        #expect(!Sensei.isUsableTranslation("123"))
+    }
+}

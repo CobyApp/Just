@@ -171,6 +171,26 @@ public final class Sensei {
     /// levels and sometimes writes the *reading* into the dictionary-form
     /// field. Both are facts, not judgements, so the bundled dictionary
     /// overrides the model wherever it has an entry.
+    /// Whether an answer can be shown to the reader as the Korean line.
+    ///
+    /// A Korean sentence contains Hangul. The model sometimes returns the lyric
+    /// itself instead of translating it, and that answer is worse than none:
+    /// `isFinal` only asks whether a translation is non-empty, so an echoed
+    /// line is written to the record as a settled result and the line is never
+    /// asked about again. Six of nine lines came back that way in one
+    /// whole-song run.
+    ///
+    /// Hangul anywhere is enough. 「페ンス 너머로」 left katakana in the middle,
+    /// which is a bad translation rather than a non-translation — the reader is
+    /// better served by seeing it, and the report counts it separately.
+    public nonisolated static func isUsableTranslation(_ translation: String) -> Bool {
+        translation.unicodeScalars.contains { scalar in
+            (0xAC00...0xD7A3).contains(scalar.value)   // 가–힣
+                || (0x1100...0x11FF).contains(scalar.value)  // conjoining jamo
+                || (0x3130...0x318F).contains(scalar.value)  // compatibility jamo
+        }
+    }
+
     private func refine(_ study: LineStudy) -> LineStudy {
         guard study.engine == .onDevice else { return study }
 
@@ -240,10 +260,16 @@ public final class Sensei {
             )
         }
 
+        // An answer that is not Korean is cleared rather than kept. Emptying it
+        // is what keeps the line unsettled, so the next pass asks again instead
+        // of the record freezing the lyric in as its own translation. The words
+        // survive — they were grounded in the line and are worth showing.
+        let translation = Self.isUsableTranslation(study.translationKo) ? study.translationKo : ""
+
         return LineStudy(
             lineIndex: study.lineIndex,
             original: study.original,
-            translationKo: study.translationKo,
+            translationKo: translation,
             words: words,
             grammar: study.grammar.filter { Self.grammarAppears($0.pattern, in: study.original) },
             engine: study.engine

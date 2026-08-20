@@ -165,6 +165,84 @@ struct SenseiReportSuite {
         print("=== SENSEI REPORT END ===")
     }
 
+    /// The same lines again, but run the way the app runs them.
+    ///
+    /// The per-line report above resets the scope for every fixture, so each
+    /// line is answered by a session that knows nothing else. That is not what
+    /// happens to a reader: opening a song runs one pass over every line, and
+    /// one model session answers several of them in a row. Whatever a shared
+    /// transcript does to the answers it does here and nowhere else — and the
+    /// repeated-line copying only exists on this path too.
+    ///
+    /// This is the measurement that matters for a change to batching; the one
+    /// above is the measurement that matters for a change to the prompt. The
+    /// per-line report cannot see this path at all, which is how a session that
+    /// overflowed its context window after three lines — failing every line
+    /// after it — went unnoticed while the report said nothing was wrong.
+    @Test("전곡을 한 번에 돌려 이웃 줄 침범을 센다")
+    func writeWholeSongReport() async {
+        let sensei = Sensei()
+        // A chorus line brought back, so the repeat path runs: it must reappear
+        // as a copy, and must not be counted as bleed.
+        let texts = [
+            "沈むように溶けてゆくように",
+            "二人だけの空が広がる夜に",
+            "「さよなら」だけだった",
+            "その一言で全てが分かった",
+            "日が沈み出した空と君の姿",
+            "フェンス越しに重なっていた",
+            "もう嫌だって 疲れたよなんて",
+            "本当は僕も言いたいんだ",
+            "「さよなら」だけだった",
+        ]
+        // The same words the per-line fixtures forbid. Without them the run
+        // reports zero because it asked nothing, which reads exactly like a run
+        // that asked and found nothing.
+        let forbidden: [String: [String]] = [
+            "沈むように溶けてゆくように": ["달리", "달빛"],
+            "二人だけの空が広がる夜に": ["공기"],
+            "「さよなら」だけだった": ["이해", "공기", "펼쳐"],
+            "もう嫌だって 疲れたよなんて": ["말하고 싶"],
+        ]
+
+        let lyrics = Lyrics(
+            lines: texts.enumerated().map { index, text in
+                LyricLine(id: index, time: Double(index) * 4, text: text)
+            },
+            isSynced: true,
+            source: "fixture"
+        )
+
+        sensei.reset(for: "wholesong")
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "夜に駆ける", artist: "YOASOBI")
+
+        var report = "# 전곡 한 번에 — 이웃 줄 침범\n\n"
+        report += "엔진: \(sensei.usesOnDeviceModel ? "온디바이스 모델" : "사전 (모델 없음)")\n\n"
+
+        var flags = Flags()
+        for line in lyrics.lines {
+            guard let study = sensei.cached(line.id) else {
+                report += "- \(line.text) — **결과 없음**\n"
+                continue
+            }
+            flags.count(study, line: line.text, forbidden: forbidden[line.text] ?? [])
+            let translation = study.translationKo.isEmpty ? "(없음)" : study.translationKo
+            report += "- \(line.text)\n  - \(translation)\n"
+        }
+
+        // The repeat must be a copy of the line it repeats, not a second guess.
+        let first = sensei.cached(2)?.translationKo ?? ""
+        let repeated = sensei.cached(8)?.translationKo ?? ""
+        report += "\n반복 줄 복사: "
+        report += first == repeated ? "같음 (기대대로)" : "다름 — `\(first)` vs `\(repeated)`"
+        report += "\n\n"
+        report += flags.summary()
+
+        print("=== SENSEI WHOLE SONG BEGIN ===")
+        print(report)
+        print("=== SENSEI WHOLE SONG END ===")
+    }
+
     /// The failure modes that can be counted rather than judged.
     ///
     /// Quality is not assertable, but these are: they are properties of the
@@ -181,18 +259,32 @@ struct SenseiReportSuite {
         var noGrammar = 0
         var fabricatedGrammar = 0
         var particleOnlyWord = 0
-        /// Translations collected so the run can spot itself repeating.
-        var translations: [String] = []
+        /// Translations with the line each came from, so the run can spot
+        /// itself repeating. The line is kept because a repeated lyric is
+        /// *supposed* to repeat its translation — the chorus is answered once
+        /// and copied — and counting those would bury the real thing this looks
+        /// for.
+        var translations: [(line: String, text: String)] = []
 
         private static let particles: Set<Character> = ["に", "を", "が", "は", "で", "と", "へ", "も", "の"]
 
         var strayTranslation = 0
+        var untranslatedJapanese = 0
 
         mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
             if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
             lines += 1
             if study.translationKo.isEmpty { missingTranslation += 1 }
-            translations.append(study.translationKo)
+            // Kana surviving into the Korean line means a stretch was copied
+            // rather than translated — 「フェンス越しに」 came back as
+            // 「페ンス를 넘어서서」. Kana rather than kanji: a Korean sentence has
+            // no reason to hold either, but kanji alone would also flag a
+            // legitimately quoted Chinese character.
+            if study.translationKo.unicodeScalars
+                .contains(where: { (0x3040...0x30FF).contains($0.value) }) {
+                untranslatedJapanese += 1
+            }
+            translations.append((line: line, text: study.translationKo))
             if study.grammar.isEmpty { noGrammar += 1 }
 
             // The same rule the word list already lives by: presence in the line
@@ -236,11 +328,11 @@ struct SenseiReportSuite {
         /// two different lyric lines would not produce it by chance.
         private var echoedTranslations: Int {
             var echoed = 0
-            for (index, text) in translations.enumerated() where text.count >= 8 {
+            for (index, entry) in translations.enumerated() where entry.text.count >= 8 {
                 let others = translations.enumerated()
-                    .filter { $0.offset != index }
-                    .map(\.element)
-                if others.contains(where: { Self.shareALongRun(text, $0) }) { echoed += 1 }
+                    .filter { $0.offset != index && $0.element.line != entry.line }
+                    .map(\.element.text)
+                if others.contains(where: { Self.shareALongRun(entry.text, $0) }) { echoed += 1 }
             }
             return echoed
         }
@@ -263,6 +355,7 @@ struct SenseiReportSuite {
             text += "| 번역 없음 | \(missingTranslation) |\n"
             text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
             text += "| **번역에 금지어(이웃·제목에서 온 말)** | \(strayTranslation) |\n"
+            text += "| **번역에 일본어가 그대로 남음** | \(untranslatedJapanese) |\n"
             text += "| 문법 노트 없음 | \(noGrammar) |\n"
             text += "| **가사에 없는 문법 패턴** | \(fabricatedGrammar) |\n"
             text += "| 단어 | \(words) |\n"

@@ -16,7 +16,12 @@ public struct SessionRecycler: Sendable {
 
     /// `limit` lines are answered by one session. The caller is assumed to have
     /// built the first one already, so the first `limit` claims reuse it.
-    public init(limit: Int = 8) {
+    ///
+    /// Three, measured rather than chosen: a fourth line's request reached 4094
+    /// tokens against a 4096-token window and every line after it failed too.
+    /// The instructions and one answer are simply large next to the window this
+    /// model has.
+    public init(limit: Int = 3) {
         self.limit = max(1, limit)
     }
 
