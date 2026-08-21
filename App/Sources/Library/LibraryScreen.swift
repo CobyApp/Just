@@ -110,7 +110,14 @@ struct LibraryScreen: View {
             .scrollContentBackground(.hidden)
         }
         .searchable(text: $search, prompt: "단어, 뜻")
+        .navigationDestination(for: GrammarRoute.self) { _ in GrammarScreen() }
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: GrammarRoute()) {
+                    Image(systemName: "text.book.closed")
+                }
+                .accessibilityLabel("문법 모아보기")
+            }
             if !words.isEmpty, let file = exportFile {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: file) {
@@ -375,3 +382,6 @@ enum WordOrder: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// Empty route value — the grammar list takes no parameters.
+struct GrammarRoute: Hashable {}

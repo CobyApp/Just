@@ -11,6 +11,7 @@ struct SearchScreen: View {
     @State private var results: [Track] = []
     @State private var state: LoadState = .idle
     @State private var showsSettings = false
+    @State private var history = SearchHistory()
 
     private enum LoadState: Equatable {
         case idle, loading, loaded, failed(String)
@@ -42,7 +43,11 @@ struct SearchScreen: View {
         } else {
             switch state {
             case .idle:
-                DiscoveryView()
+                DiscoveryView(
+                    history: history.queries,
+                    onPickHistory: { query = $0 },
+                    onClearHistory: { history.clear() }
+                )
             case .loading:
                 List(0..<8, id: \.self) { _ in
                     SkeletonTrackRow()
@@ -108,6 +113,7 @@ struct SearchScreen: View {
             guard !Task.isCancelled else { return }
             results = found
             state = .loaded
+            if !found.isEmpty { history.record(trimmed) }
         } catch {
             guard !Task.isCancelled else { return }
             state = .failed(error.localizedDescription)

@@ -112,6 +112,56 @@ public struct JustStore {
         return try? context.fetch(descriptor).first
     }
 
+    /// Every grammar note the model has produced, with where it came from.
+    ///
+    /// These are already generated and already persisted on each song, and until
+    /// now the only way to see one was to reopen the exact line it came from.
+    /// Patterns repeat across songs far more than vocabulary does — 「〜 てしまう」
+    /// turns up everywhere — so the same grouping that makes the word list
+    /// useful applies here.
+    public func grammarNotes(limit: Int = 200) -> [GrammarSighting] {
+        var descriptor = FetchDescriptor<StudySong>(
+            sortBy: [SortDescriptor(\.lastOpenedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 100
+        let songs = (try? context.fetch(descriptor)) ?? []
+
+        var byPattern: [String: GrammarSighting] = [:]
+        var order: [String] = []
+
+        for song in songs {
+            let label = "\(song.artist) — \(song.title)"
+            for study in song.analyses.values.sorted(by: { $0.lineIndex < $1.lineIndex }) {
+                for note in study.grammar {
+                    let key = note.pattern.trimmingCharacters(in: .whitespaces)
+                    guard !key.isEmpty else { continue }
+
+                    if var existing = byPattern[key] {
+                        existing.addSighting(song: label)
+                        byPattern[key] = existing
+                    } else {
+                        order.append(key)
+                        byPattern[key] = GrammarSighting(
+                            pattern: key,
+                            explanationKo: note.explanationKo,
+                            example: study.original,
+                            exampleTranslation: study.translationKo,
+                            song: label
+                        )
+                    }
+                }
+            }
+        }
+
+        // Most-seen first: a pattern in four songs is the one worth learning
+        // next, and that ranking is only visible once they are pooled.
+        return order
+            .compactMap { byPattern[$0] }
+            .sorted { $0.songCount > $1.songCount }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     /// Words the user keeps getting wrong.
     ///
     /// FSRS already records every lapse and a per-word difficulty; nothing read

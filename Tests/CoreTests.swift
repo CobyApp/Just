@@ -324,3 +324,44 @@ struct StruggleOrderTests {
         #expect(order == [1, 0])
     }
 }
+
+@Suite("문법 집계")
+struct GrammarSightingTests {
+    private var sighting: GrammarSighting {
+        GrammarSighting(
+            pattern: "〜てしまう",
+            explanationKo: "완료·후회를 나타냅니다",
+            example: "忘れてしまった",
+            exampleTranslation: "잊어버렸다",
+            song: "米津玄師 — Lemon"
+        )
+    }
+
+    @Test("처음 본 곡이 곧 곡 수 1")
+    func startsAtOne() {
+        #expect(sighting.songCount == 1)
+    }
+
+    @Test("다른 곡에서 또 보이면 곡 수가 늘어난다")
+    func countsDistinctSongs() {
+        var note = sighting
+        note.addSighting(song: "YOASOBI — 夜に駆ける")
+        #expect(note.songCount == 2)
+        #expect(note.songs.contains("YOASOBI — 夜に駆ける"))
+    }
+
+    /// A chorus repeating the pattern in one song says nothing about how common
+    /// the pattern is, so only distinct songs count.
+    @Test("같은 곡에서 반복돼도 곡 수는 늘지 않는다")
+    func ignoresRepeatsWithinASong() {
+        var note = sighting
+        note.addSighting(song: "米津玄師 — Lemon")
+        note.addSighting(song: "米津玄師 — Lemon")
+        #expect(note.songCount == 1)
+    }
+
+    @Test("패턴이 곧 식별자")
+    func patternIsIdentity() {
+        #expect(sighting.id == "〜てしまう")
+    }
+}

@@ -11,6 +11,12 @@ import SwiftUI
 /// already worked through shares vocabulary, register and often subject matter,
 /// which makes it a better second song than whatever is trending.
 struct DiscoveryView: View {
+    /// Recent queries, newest first. Owned by the search screen, which is where
+    /// the search field lives.
+    var history: [String] = []
+    var onPickHistory: (String) -> Void = { _ in }
+    var onClearHistory: () -> Void = {}
+
     @Environment(AppModel.self) private var app
 
     @Query(sort: \StudySong.lastOpenedAt, order: .reverse)
@@ -23,6 +29,8 @@ struct DiscoveryView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: JustTheme.Space.section) {
+                if !history.isEmpty { historyRow }
+
                 playlistsLink
 
                 if !recents.isEmpty {
@@ -82,6 +90,43 @@ struct DiscoveryView: View {
             .padding(.horizontal, JustTheme.Space.regular)
         }
         .buttonStyle(.plain)
+    }
+
+    /// Recent queries as chips. Tapping one refills the search field rather than
+    /// searching directly, so the user can edit a near-miss instead of running
+    /// it again unchanged.
+    private var historyRow: some View {
+        VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
+            HStack {
+                Text("최근 검색").justSectionHeader()
+                Spacer()
+                Button("지우기", action: onClearHistory)
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Ink.secondary)
+            }
+            .padding(.horizontal, JustTheme.Space.regular)
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 6) {
+                    ForEach(history, id: \.self) { query in
+                        Button { onPickHistory(query) } label: {
+                            Text(query)
+                                .font(JustTheme.Font.caption)
+                                .foregroundStyle(JustTheme.Ink.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(JustTheme.Surface.raised, in: .capsule)
+                                .overlay {
+                                    Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, JustTheme.Space.regular)
+            }
+            .scrollIndicators(.hidden)
+        }
     }
 
     private var recentShelf: some View {
