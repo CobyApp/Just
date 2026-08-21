@@ -69,11 +69,15 @@ public extension AppleMusicClient {
     /// user staring at an error where a list of songs used to be.
     func shelves(seedArtists: [String], excluding excluded: Set<String> = []) async -> [MusicShelf] {
         async let charts = japaneseCharts()
+        // The user's own history beats anything computed, and at the start it is
+        // the only history there is: the app has none and the account has years.
+        async let recent = recentlyPlayedShelf(excluding: excluded)
         // Three seeds keep this to a handful of requests while still reflecting
         // more than whatever song was played last.
         async let artists = artistShelves(for: Array(seedArtists.prefix(3)))
 
         var shelves: [MusicShelf] = []
+        if let recent = await recent { shelves.append(recent) }
         if let charts = await charts { shelves.append(charts) }
         shelves.append(contentsOf: await artists)
 

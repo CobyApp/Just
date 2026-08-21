@@ -23,6 +23,8 @@ struct DiscoveryView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: JustTheme.Space.section) {
+                playlistsLink
+
                 if !recents.isEmpty {
                     recentShelf
                 }
@@ -49,6 +51,38 @@ struct DiscoveryView: View {
     }
 
     // MARK: - Shelves
+
+    /// The way into the user's own playlists.
+    ///
+    /// A row rather than a shelf: playlists are a place to go, not a thing to
+    /// scroll past, and loading every one of their artworks to decorate the
+    /// browse screen would spend a lot of network on a signpost.
+    private var playlistsLink: some View {
+        NavigationLink(value: PlaylistsRoute()) {
+            HStack(spacing: JustTheme.Space.snug) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(JustTheme.Accent.end)
+                    .frame(width: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("내 플레이리스트")
+                        .font(JustTheme.Font.body.weight(.semibold))
+                        .foregroundStyle(JustTheme.Ink.primary)
+                    Text("Apple Music에 있는 목록에서 바로 고르기")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(JustTheme.Ink.secondary)
+            }
+            .padding(JustTheme.Space.snug)
+            .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
+            .padding(.horizontal, JustTheme.Space.regular)
+        }
+        .buttonStyle(.plain)
+    }
 
     private var recentShelf: some View {
         shelfContainer(title: "이어서 공부하기", subtitle: nil) {

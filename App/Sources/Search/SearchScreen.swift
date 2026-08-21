@@ -28,6 +28,7 @@ struct SearchScreen: View {
                     Button("설정", systemImage: "gearshape") { showsSettings = true }
                 }
             }
+            .navigationDestination(for: PlaylistsRoute.self) { _ in PlaylistScreen() }
             .searchable(text: $query, prompt: "곡 이름, 아티스트")
             .task(id: query) { await searchAsTyped() }
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
@@ -162,3 +163,6 @@ extension TimeInterval {
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
+
+/// Empty route value — the playlist list takes no parameters.
+struct PlaylistsRoute: Hashable {}
