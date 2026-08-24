@@ -533,20 +533,50 @@ public final class Sensei {
         artist: String,
         onProgress: @MainActor (Int, Int) -> Void = { _, _ in }
     ) async {
-        let pending = pendingLines(in: lyrics)
+        let total = pendingLines(in: lyrics).count
+        guard total > 0 else { return }
 
+        // Repeated while it is getting somewhere. One pass used to be the whole
+        // run, so a line the model dropped — a moment's guardrail, a busy
+        // system, a context window that overflowed — stayed blank until the
+        // reader found the menu item for it. Looping until nothing is pending
+        // would never return on a line that always fails, so the condition is
+        // progress rather than completion: the first pass that settles nothing
+        // ends the run. At most one pass per line, so it terminates.
+        while !Task.isCancelled {
+            let before = pendingLines(in: lyrics).count
+            guard before > 0 else { return }
+
+            await onePass(lyrics: lyrics, songTitle: songTitle, artist: artist) {
+                // Lines that now have an answer, not attempts made. A bar that
+                // fills while every line is failing says the opposite of what
+                // is happening, and the remaining-time estimate is computed off
+                // this number.
+                onProgress(total - self.pendingLines(in: lyrics).count, total)
+            }
+
+            if pendingLines(in: lyrics).count >= before { return }
+        }
+    }
+
+    /// One attempt at each line that still needs one.
+    private func onePass(
+        lyrics: Lyrics,
+        songTitle: String,
+        artist: String,
+        onLine: @MainActor () -> Void
+    ) async {
         // Grouped by the text itself. A song is not a list of distinct lines —
         // the chorus comes back — and the model has nothing new to say the
         // second time it sees the same words.
         var groups: [String: [LyricLine]] = [:]
         var order: [String] = []
-        for line in pending {
+        for line in pendingLines(in: lyrics) {
             let key = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
             if groups[key] == nil { order.append(key) }
             groups[key, default: []].append(line)
         }
 
-        var done = 0
         for key in order {
             guard let lines = groups[key], let first = lines.first else { continue }
             if Task.isCancelled { return }
@@ -557,18 +587,16 @@ public final class Sensei {
                 songTitle: songTitle,
                 artist: artist
             )
-            done += 1
 
             // The repeats are filled in from the one answer, each under its own
             // index so the lyric view and the record still address them by line.
             if let study {
                 for repeated in lines.dropFirst() {
                     entries[repeated.id] = study.moved(to: repeated.id)
-                    done += 1
                 }
             }
 
-            onProgress(min(done, pending.count), pending.count)
+            onLine()
         }
     }
 

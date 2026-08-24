@@ -471,11 +471,12 @@ struct AnalyzeAllSinglePassTests {
         source: "test"
     )
 
-    @Test("사전으로 대체된 줄이 남아도 한 바퀴 뒤에 끝난다")
-    func stopsAfterOnePass() async {
+    @Test("해결되지 않는 줄이 있으면 진전이 없으므로 멈춘다")
+    func stopsWhenAPassSettlesNothing() async {
         // A device that has the model but cannot reach it: every line falls
-        // back to the dictionary and stays unsettled. Preparation must still
-        // finish — retrying until nothing is pending would never return.
+        // back to the dictionary and stays unsettled. The run now repeats while
+        // it is getting somewhere, so what has to be true is that a pass which
+        // settles nothing ends it — otherwise this never returns.
         let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
         sensei.reset(for: "songA")
 
@@ -484,9 +485,30 @@ struct AnalyzeAllSinglePassTests {
             reported.append(done)
         }
 
-        #expect(reported == [1, 2])
+        // Nothing settled, so the count stays at zero rather than counting
+        // attempts. Progress means lines that now have an answer — a bar that
+        // fills while every line is failing says the opposite of the truth.
+        #expect(reported == [0, 0])
         // Still pending, so opening the song again tries them once more.
         #expect(sensei.pendingLines(in: lyrics).count == 2)
+    }
+
+    @Test("모델이 없는 기기에서는 한 바퀴에 모두 끝난다")
+    func settlesEverythingWithoutAModel() async {
+        // The dictionary is the best this device can do, so its answers are
+        // final and nothing is left pending. The loop must notice that and stop
+        // rather than run a second pass over an empty list.
+        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: false)
+        sensei.reset(for: "songB")
+
+        var reported: [Int] = []
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, total in
+            reported.append(done)
+            #expect(total == 2)
+        }
+
+        #expect(reported == [1, 2])
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
     }
 }
 
