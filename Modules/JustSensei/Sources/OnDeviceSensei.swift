@@ -195,9 +195,23 @@ public final class OnDeviceSensei {
         prompt += "<target>\(line)</target>\n"
         prompt += """
 
-        <target> 안의 일본어 문장만 다루세요. <before>는 문맥 파악에만 쓰고 결과에
+        <target> 안의 문장만 다루세요. <before>는 문맥 파악에만 쓰고 결과에
         넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
         """
+
+        // J-pop hooks are often entirely English. Told that the target is
+        // always Japanese, the model treats the English as Japanese and invents
+        // kana readings for it; told what it is, it translates it and leaves
+        // the vocabulary alone. The words are dropped either way — see
+        // `Sensei.learnable` — but a model that is not fighting the prompt
+        // writes a better translation.
+        if !LineScript.hasJapanese(line) {
+            prompt += """
+
+            <target>은 일본어가 아닙니다. 한국어로 번역만 하고 words와 grammar는
+            비워 두세요.
+            """
+        }
 
         if recycler.claim() {
             session = LanguageModelSession { Self.instructions }

@@ -142,7 +142,7 @@ public final class Sensei {
             result = dictionary.analyze(line: text, lineIndex: lineIndex)
         }
 
-        let refined = refine(result)
+        let refined = Self.learnable(refine(result))
         // Kept even when it is not a settled answer, so the line shows its words
         // instead of nothing. `isFinal` is what stops it being treated as the
         // last word — the short-circuit above skips it, so the next pass tries
@@ -189,6 +189,40 @@ public final class Sensei {
                 || (0x1100...0x11FF).contains(scalar.value)  // conjoining jamo
                 || (0x3130...0x318F).contains(scalar.value)  // compatibility jamo
         }
+    }
+
+    /// Drops what there is nothing to learn from, whichever engine produced it.
+    ///
+    /// Applied outside the model-only refinement below, and that placement is
+    /// the point: the dictionary path used to return its words untouched, so on
+    /// a device without the model an English line handed back English "words"
+    /// with invented readings, and they went into the review schedule.
+    ///
+    /// A line with no Japanese in it keeps its translation and loses everything
+    /// else — its words are not Japanese words, and a grammar note about an
+    /// English phrase is the model filling in a form it was handed.
+    public nonisolated static func learnable(_ study: LineStudy) -> LineStudy {
+        guard LineScript.hasJapanese(study.original) else {
+            return LineStudy(
+                lineIndex: study.lineIndex,
+                original: study.original,
+                translationKo: study.translationKo,
+                words: [],
+                grammar: [],
+                engine: study.engine
+            )
+        }
+
+        let japanese = study.words.filter { LineScript.hasJapanese($0.surface) }
+        guard japanese.count != study.words.count else { return study }
+        return LineStudy(
+            lineIndex: study.lineIndex,
+            original: study.original,
+            translationKo: study.translationKo,
+            words: japanese,
+            grammar: study.grammar,
+            engine: study.engine
+        )
     }
 
     private func refine(_ study: LineStudy) -> LineStudy {

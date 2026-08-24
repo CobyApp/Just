@@ -886,3 +886,83 @@ struct DictationQuizTests {
         #expect(!questions.contains { $0.kind == .dictation })
     }
 }
+
+@Suite("영어 구절 구분")
+struct LineScriptTests {
+    @Test("가나나 한자가 있으면 일본어다")
+    func kanaOrKanjiIsJapanese() {
+        #expect(LineScript.hasJapanese("夜に駆ける"))
+        #expect(LineScript.hasJapanese("さよなら"))
+        #expect(LineScript.hasJapanese("フェンス"))
+        #expect(LineScript.hasJapanese("Oh baby 君だけ"))
+    }
+
+    @Test("로마자만 있으면 일본어가 아니다")
+    func latinOnlyIsNot() {
+        #expect(!LineScript.hasJapanese("Wake me up"))
+        #expect(!LineScript.hasJapanese("I don't wanna know"))
+        #expect(!LineScript.hasJapanese("La la la"))
+    }
+
+    @Test("글자가 아닌 것만 있으면 일본어가 아니다")
+    func symbolsAreNot() {
+        #expect(!LineScript.hasJapanese("♪"))
+        #expect(!LineScript.hasJapanese("1 2 3 4"))
+        #expect(!LineScript.hasJapanese(""))
+    }
+
+    @Test("한국어는 일본어가 아니다")
+    func koreanIsNot() {
+        // The translation is Korean and lives next to the line; nothing should
+        // ever mistake one for the other.
+        #expect(!LineScript.hasJapanese("둘만의 하늘이 펼쳐지는 밤에"))
+    }
+}
+
+@Suite("외울 단어만 남기기")
+struct LearnableWordsTests {
+    private func word(_ surface: String, _ lemma: String) -> StudyWord {
+        StudyWord(
+            surface: surface, dictionaryForm: lemma, reading: "よ",
+            meaningKo: "뜻", partOfSpeech: .noun, jlpt: .n3, note: ""
+        )
+    }
+
+    private func study(line: String, words: [StudyWord], grammar: [GrammarNote] = []) -> LineStudy {
+        LineStudy(
+            lineIndex: 0, original: line, translationKo: "번역",
+            words: words, grammar: grammar, engine: .onDevice
+        )
+    }
+
+    @Test("영어 줄에서는 단어를 하나도 만들지 않는다")
+    func anEnglishLineHasNothingToMemorise() {
+        // Translated, yes — an English hook is part of the song and the reader
+        // wants to know what it says. Memorised as Japanese vocabulary, no.
+        let result = Sensei.learnable(study(
+            line: "Wake me up before you go",
+            words: [word("Wake", "wake"), word("up", "up")],
+            grammar: [GrammarNote(pattern: "before", explanationKo: "지어낸 것")]
+        ))
+        #expect(result.words.isEmpty)
+        #expect(result.grammar.isEmpty)
+        // The translation is untouched — that is the half that stays.
+        #expect(result.translationKo == "번역")
+    }
+
+    @Test("섞인 줄에서는 일본어 단어만 남는다")
+    func aMixedLineKeepsOnlyTheJapanese() {
+        let result = Sensei.learnable(study(
+            line: "Oh baby 君だけ",
+            words: [word("baby", "baby"), word("君", "君"), word("Oh", "oh")]
+        ))
+        #expect(result.words.map(\.surface) == ["君"])
+    }
+
+    @Test("일본어 줄은 그대로 둔다")
+    func aJapaneseLineIsLeftAlone() {
+        let words = [word("夜", "夜"), word("駆ける", "駆ける")]
+        let result = Sensei.learnable(study(line: "夜に駆ける", words: words))
+        #expect(result.words.count == 2)
+    }
+}

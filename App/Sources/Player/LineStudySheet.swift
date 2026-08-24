@@ -134,11 +134,20 @@ struct LineStudySheet: View {
     }
 
     private func emptyState(_ study: LineStudy) -> some View {
-        VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
-            Text("이 줄에서 뽑을 단어가 없습니다.")
+        // An English line has nothing missing — there is nothing there to
+        // learn as Japanese, and saying so is different from saying the
+        // analysis came up short.
+        let isForeign = !LineScript.hasJapanese(study.original)
+
+        return VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
+            Text(isForeign ? "영어 구절 — 외울 단어가 없습니다." : "이 줄에서 뽑을 단어가 없습니다.")
                 .font(JustTheme.Font.body)
                 .foregroundStyle(JustTheme.Ink.secondary)
-            if study.engine == .dictionary {
+            if isForeign {
+                Text("뜻은 위에 있습니다. 일본어가 아니라서 단어장에 담을 것은 없습니다.")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Ink.tertiary)
+            } else if study.engine == .dictionary {
                 Text("사전 모드에서는 수록된 단어만 찾을 수 있습니다. Apple Intelligence를 켜면 문맥까지 해석합니다.")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.tertiary)
