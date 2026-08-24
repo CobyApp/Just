@@ -363,6 +363,9 @@ struct GrammarSightingTests {
     @Test("패턴이 곧 식별자")
     func patternIsIdentity() {
         #expect(sighting.id == "〜てしまう")
+    }
+}
+
 @Suite("재생 위치가 어느 시계인지")
 struct PlaybackPositionTests {
     private let lyrics = Lyrics(
