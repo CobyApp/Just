@@ -103,11 +103,17 @@ public enum AnalysisEngineKind: String, Sendable, Codable {
     case onDevice
     /// Bundled dictionary lookup — no translation, meanings only.
     case dictionary
+    /// Dictionary meanings with the system translator's Korean line.
+    ///
+    /// What an older device can do: no nuance, no grammar notes, a fairly
+    /// literal sentence — but a translation, where before there was none.
+    case plainTranslation
 
     public var label: String {
         switch self {
         case .onDevice: "온디바이스 AI"
         case .dictionary: "사전"
+        case .plainTranslation: "사전 + 시스템 번역"
         }
     }
 }

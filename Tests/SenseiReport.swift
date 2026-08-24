@@ -138,7 +138,7 @@ struct SenseiReportSuite {
             flags.count(study, line: fixture.lines[fixture.target], forbidden: fixture.forbidden)
 
             report += "- 번역: \(study.translationKo.isEmpty ? "(없음)" : study.translationKo)\n"
-            report += "- 엔진: \(study.engine == .onDevice ? "모델" : "사전")\n"
+            report += "- 엔진: \(study.engine.label)\n"
             report += "- 단어 \(study.words.count)개\n"
             for word in study.words {
                 report += "  - `\(word.dictionaryForm)`"
@@ -275,6 +275,10 @@ struct SenseiReportSuite {
         mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
             if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
             lines += 1
+            // Anything but the model means the model did not answer this line —
+            // the system translator filling in counts here too, because what
+            // this number is for is telling a real measurement of the model
+            // apart from a run where it never spoke.
             if study.engine != .onDevice { dictionaryFallback += 1 }
             if study.translationKo.isEmpty { missingTranslation += 1 }
             // Kana surviving into the Korean line means a stretch was copied

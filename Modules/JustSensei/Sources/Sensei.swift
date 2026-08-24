@@ -22,6 +22,9 @@ public final class Sensei {
     public private(set) var inFlight: Set<Int> = []
 
     private let onDevice: OnDeviceSensei?
+    /// The system translator, injected so the rules around it can be tested
+    /// without one.
+    private let translate: @MainActor (String) async -> String?
     private let dictionary: DictionarySensei
     /// Used to read the line the way the line reads, rather than the way the
     /// model guessed it.
@@ -36,11 +39,17 @@ public final class Sensei {
         self.unavailability = reason
         self.onDevice = reason == nil ? OnDeviceSensei() : nil
         self.modelIsAvailable = reason == nil
+        self.translate = { await PlainTranslator.shared.translate($0) }
     }
 
     /// Test seam: the model cannot be summoned in a test run, but the rules
     /// about what its absence means still need checking.
-    init(dictionary: DictionarySensei, modelIsAvailable: Bool) {
+    init(
+        dictionary: DictionarySensei,
+        modelIsAvailable: Bool,
+        translate: @escaping @MainActor (String) async -> String? = { _ in nil }
+    ) {
+        self.translate = translate
         self.dictionary = dictionary
         self.onDevice = nil
         self.unavailability = modelIsAvailable ? nil : .deviceNotEligible
@@ -142,7 +151,14 @@ public final class Sensei {
             result = dictionary.analyze(line: text, lineIndex: lineIndex)
         }
 
-        let refined = Self.learnable(refine(result))
+        var refined = Self.learnable(refine(result))
+
+        // No model on this device, so nothing better is coming for this line:
+        // fill it now rather than leaving it blank. Where there *is* a model,
+        // this waits until the model has had its passes — see `analyzeAll`.
+        if refined.translationKo.isEmpty, onDevice == nil {
+            refined = await translated(refined)
+        }
         // Kept even when it is not a settled answer, so the line shows its words
         // instead of nothing. `isFinal` is what stops it being treated as the
         // last word — the short-circuit above skips it, so the next pass tries
@@ -555,8 +571,43 @@ public final class Sensei {
                 onProgress(total - self.pendingLines(in: lyrics).count, total)
             }
 
-            if pendingLines(in: lyrics).count >= before { return }
+            if pendingLines(in: lyrics).count >= before { break }
         }
+
+        // Whatever the model never managed. Last, deliberately: a line the
+        // model can answer is worth more than a literal rendering of it, so the
+        // translator only gets what is left after the model has stopped making
+        // progress.
+        for line in pendingLines(in: lyrics) {
+            if Task.isCancelled { return }
+            guard let study = entries[line.id] else { continue }
+            let filled = await translated(study)
+            guard !filled.translationKo.isEmpty else { continue }
+            entries[line.id] = filled
+            onProgress(total - pendingLines(in: lyrics).count, total)
+        }
+    }
+
+    /// The same study with a translation from the system translator, when it
+    /// can give one that is actually Korean.
+    ///
+    /// The words and their meanings are left exactly as they were — they came
+    /// from the bundled dictionary and are the part this path does well. Only
+    /// the sentence is new, and the engine says so, because "사전" would be a
+    /// lie about where it came from and the report counts on the difference.
+    private func translated(_ study: LineStudy) async -> LineStudy {
+        guard let text = await translate(study.original),
+              Self.isUsableTranslation(text)
+        else { return study }
+
+        return LineStudy(
+            lineIndex: study.lineIndex,
+            original: study.original,
+            translationKo: text,
+            words: study.words,
+            grammar: study.grammar,
+            engine: .plainTranslation
+        )
     }
 
     /// One attempt at each line that still needs one.

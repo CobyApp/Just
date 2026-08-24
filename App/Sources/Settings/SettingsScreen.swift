@@ -2,6 +2,9 @@ import JustDesign
 import JustMusic
 import JustSensei
 import SwiftUI
+// Same reason as JustSensei's wrapper: TranslationSession is not
+// Sendable-audited, so the download call below reads as sending it.
+@preconcurrency import Translation
 
 /// Settings, cut down to what a user actually decides.
 ///
@@ -13,6 +16,31 @@ struct SettingsScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+
+    @State private var plainTranslationOn = PlainTranslator.shared.isEnabled
+    @State private var packStatus: LanguageAvailability.Status?
+    /// Non-nil while a download is being asked for.
+    @State private var download: TranslationSession.Configuration?
+
+    /// Says what the fallback will actually do on this device, which depends on
+    /// both the model and the language pack.
+    private var translationFooter: String {
+        guard plainTranslationOn else {
+            return "모델이 답하지 못한 줄은 번역 없이 단어만 남습니다."
+        }
+        switch packStatus {
+        case .installed:
+            return "Apple Intelligence가 답하지 못한 줄은 시스템 번역으로 채웁니다. 직역에 가깝고 문법 노트는 없습니다."
+        case .supported:
+            return "시스템 번역을 쓰려면 한국어 번역 파일을 한 번 받아야 합니다."
+        case .unsupported:
+            return "이 기기에서는 일본어→한국어 시스템 번역을 쓸 수 없습니다."
+        case nil:
+            return "시스템 번역을 쓸 수 있는지 확인하고 있습니다."
+        @unknown default:
+            return "시스템 번역을 쓸 수 있는지 확인하고 있습니다."
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -67,10 +95,30 @@ struct SettingsScreen: View {
                             Text(policy.title).tag(policy)
                         }
                     }
+                    Toggle("단순 번역으로 채우기", isOn: Binding(
+                        get: { plainTranslationOn },
+                        set: {
+                            plainTranslationOn = $0
+                            PlainTranslator.shared.isEnabled = $0
+                        }
+                    ))
+
+                    if plainTranslationOn, packStatus == .supported {
+                        // The pack can only be fetched from a view, and it puts
+                        // a system prompt on screen — so it is asked for here,
+                        // by someone who opened this screen, rather than in the
+                        // middle of an analysis run.
+                        Button("한국어 번역 파일 받기") {
+                            download = PlainTranslator.configuration
+                        }
+                    }
                 } header: {
                     Text("가사 해석")
                 } footer: {
-                    Text(app.autoAnalysis.detail)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(app.autoAnalysis.detail)
+                        Text(translationFooter)
+                    }
                 }
 
                 Section {
@@ -90,6 +138,14 @@ struct SettingsScreen: View {
                 }
             }
             .navigationTitle("설정")
+            .translationTask(download) { session in
+                // Downloads on first use and then answers; either way the
+                // status is re-read so the row stops offering what is done.
+                try? await session.prepareTranslation()
+                packStatus = await PlainTranslator.shared.availability()
+                download = nil
+            }
+            .task { packStatus = await PlainTranslator.shared.availability() }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

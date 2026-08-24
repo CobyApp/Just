@@ -988,3 +988,77 @@ struct LearnableWordsTests {
         #expect(result.words.count == 2)
     }
 }
+
+@Suite("단순 번역 폴백")
+@MainActor
+struct PlainTranslationTests {
+    private let lyrics = Lyrics(
+        lines: [LyricLine(id: 0, time: 0, text: "夢を見た")],
+        isSynced: true,
+        source: "test"
+    )
+
+    @Test("엔진 값이 사전과 구분된다")
+    func hasItsOwnEngineValue() {
+        // The report counts anything that is not `.onDevice` as a failed model
+        // call, and a line the translator answered is not that. The label is
+        // shown to the reader too, and "사전" would be a lie about where the
+        // translation came from.
+        #expect(AnalysisEngineKind.plainTranslation.label != AnalysisEngineKind.dictionary.label)
+        #expect(AnalysisEngineKind.plainTranslation.label != AnalysisEngineKind.onDevice.label)
+    }
+
+    @Test("번역이 채워진 줄은 다시 시도하지 않는다")
+    func aTranslatedLineIsSettled() async {
+        // Without this the retry loop would ask the model again on every pass
+        // for a line that already reads correctly, and on a device that has no
+        // model that is every line, every time.
+        let sensei = Sensei(
+            dictionary: DictionarySensei(),
+            modelIsAvailable: true,
+            translate: { _ in "꿈을 꿨다" }
+        )
+        sensei.reset(for: "songC")
+
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수")
+
+        let study = sensei.cached(0)
+        #expect(study?.translationKo == "꿈을 꿨다")
+        #expect(study?.engine == .plainTranslation)
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
+    }
+
+    @Test("번역기가 답하지 못하면 줄은 그대로 남는다")
+    func aRefusedTranslationLeavesTheLinePending() async {
+        // Nothing to show and nothing to freeze in: the language pack may
+        // arrive later, so the line has to stay askable.
+        let sensei = Sensei(
+            dictionary: DictionarySensei(),
+            modelIsAvailable: true,
+            translate: { _ in nil }
+        )
+        sensei.reset(for: "songD")
+
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수")
+
+        #expect(sensei.cached(0)?.translationKo.isEmpty == true)
+        #expect(sensei.pendingLines(in: lyrics).count == 1)
+    }
+
+    @Test("한국어가 아닌 답은 번역으로 받지 않는다")
+    func aNonKoreanAnswerIsRefused() async {
+        // Apple's translator hands back the source unchanged when it has no
+        // pack for the pair. That is the same defect the model has, and the
+        // same rule catches it.
+        let sensei = Sensei(
+            dictionary: DictionarySensei(),
+            modelIsAvailable: true,
+            translate: { line in line }
+        )
+        sensei.reset(for: "songE")
+
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수")
+
+        #expect(sensei.cached(0)?.translationKo.isEmpty == true)
+    }
+}
