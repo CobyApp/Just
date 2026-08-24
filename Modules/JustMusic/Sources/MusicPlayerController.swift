@@ -36,6 +36,15 @@ public final class MusicPlayerController {
 
     public var isPlaying: Bool { status == .playing }
 
+    /// Where playback is, saying which clock it is on.
+    ///
+    /// `currentTime` alone cannot say. It is a position in the clip while a
+    /// preview is playing and a position in the song otherwise, and the lyrics
+    /// need the difference — see `PlaybackPosition`.
+    public var position: PlaybackPosition {
+        isPreview ? .excerpt(currentTime) : .inSong(currentTime)
+    }
+
     @ObservationIgnored
     private let player = ApplicationMusicPlayer.shared
     /// Used only for preview clips. The catalog player cannot play them, and an
@@ -204,6 +213,11 @@ public final class MusicPlayerController {
         isPlaying ? pause() : play()
     }
 
+    /// Moves playback to a position in whatever is playing.
+    ///
+    /// Callers holding a *song* time must check `position.followsLyrics` first.
+    /// A song time seeked into a preview clip lands wherever the clamp puts it,
+    /// which for any line past thirty seconds is the clip's end.
     public func seek(to time: TimeInterval) {
         let target = max(0, duration > 0 ? min(time, duration) : time)
         if isPreview {

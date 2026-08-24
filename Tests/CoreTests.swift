@@ -363,5 +363,54 @@ struct GrammarSightingTests {
     @Test("패턴이 곧 식별자")
     func patternIsIdentity() {
         #expect(sighting.id == "〜てしまう")
+@Suite("재생 위치가 어느 시계인지")
+struct PlaybackPositionTests {
+    private let lyrics = Lyrics(
+        lines: [
+            LyricLine(id: 0, time: 0.9, text: "沈むように溶けてゆくように"),
+            LyricLine(id: 1, time: 8.0, text: "二人だけの空が広がる夜に"),
+            LyricLine(id: 2, time: 120.0, text: "「さよなら」だけだった"),
+        ],
+        isSynced: true,
+        source: "test"
+    )
+
+    @Test("전곡 재생의 위치는 곡 안의 위치다")
+    func inSongIsASongTime() {
+        #expect(PlaybackPosition.inSong(8.5).songTime == 8.5)
+    }
+
+    @Test("미리듣기 클립의 위치는 곡 안의 위치가 아니다")
+    func anExcerptHasNoSongTime() {
+        // Measured, not assumed: the first second of an Apple preview sits
+        // within 0.3–3.5 dB of the whole clip's mean level, so the clip starts
+        // mid-song rather than at the beginning. Its clock therefore says
+        // nothing about where the song is, and there is no published offset to
+        // convert it with.
+        #expect(PlaybackPosition.excerpt(8.5).songTime == nil)
+    }
+
+    @Test("클립에서도 경과 시간은 그대로 쓸 수 있다")
+    func anExcerptStillReportsElapsed() {
+        // The transport needs a number to draw — 0:08 of 0:30 is true and
+        // useful. It is only the lyrics that need it to mean a place in the song.
+        #expect(PlaybackPosition.excerpt(8.5).elapsed == 8.5)
+        #expect(PlaybackPosition.inSong(8.5).elapsed == 8.5)
+    }
+
+    @Test("전곡 재생이면 가사가 따라간다")
+    func lyricsFollowTheSong() {
+        #expect(lyrics.activeLineIndex(at: PlaybackPosition.inSong(8.0)) == 1)
+        #expect(lyrics.activeLineIndex(at: PlaybackPosition.inSong(130)) == 2)
+    }
+
+    @Test("미리듣기면 어떤 줄도 강조하지 않는다")
+    func lyricsDoNotFollowAnExcerpt() {
+        // Highlighting the line at 8 seconds while the clip plays the chorus is
+        // worse than highlighting nothing: it is confidently wrong, and the
+        // reader has no way to tell.
+        #expect(lyrics.activeLineIndex(at: PlaybackPosition.excerpt(8.0)) == nil)
+        #expect(PlaybackPosition.excerpt(8.0).followsLyrics == false)
+        #expect(PlaybackPosition.inSong(8.0).followsLyrics == true)
     }
 }

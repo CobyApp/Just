@@ -44,7 +44,9 @@ struct LineStudySheet: View {
                             .foregroundStyle(JustTheme.Ink.tertiary)
                     }
                 }
-                if session.canLoop {
+                // Also gated on the clock: repeating a line needs a song
+                // position to rewind to, and a preview clip has none.
+                if session.canLoop, app.player.position.followsLyrics {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             session.toggleLoop(lineIndex)

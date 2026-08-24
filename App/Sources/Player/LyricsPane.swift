@@ -40,12 +40,18 @@ struct LyricsPane: View {
                 .presentationDetents([.medium, .large])
                 .presentationBackground(.ultraThinMaterial)
         }
-        .onChange(of: player.currentTime) { _, time in
-            if let rewind = session.loopRewindTarget(at: time) {
+        .onChange(of: player.currentTime) { _, _ in
+            let position = player.position
+            if let rewind = session.loopRewindTarget(at: position) {
                 player.seek(to: rewind)
                 return
             }
-            guard let index = session.activeLine(at: time), index != activeLine else { return }
+            // nil while a preview clip is playing: its clock is not the song's,
+            // so there is no line to move to. The previous highlight is left
+            // alone rather than cleared — the reader put it there by tapping.
+            guard let index = session.activeLine(at: position), index != activeLine else {
+                return
+            }
             activeLine = index
         }
     }
@@ -76,6 +82,7 @@ struct LyricsPane: View {
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: JustTheme.Space.tight) {
+                    previewNotice
                     followBar(proxy: proxy)
                     bulkBar
                 }
@@ -108,7 +115,7 @@ struct LyricsPane: View {
     /// never moves the playhead, which is what tapping a line would do.
     @ViewBuilder
     private func followBar(proxy: ScrollViewProxy) -> some View {
-        if !session.followsPlayback, let activeLine {
+        if !session.followsPlayback, let activeLine, player.position.followsLyrics {
             Button {
                 session.followsPlayback = true
                 withAnimation(.easeInOut(duration: 0.35)) {
@@ -128,6 +135,29 @@ struct LyricsPane: View {
             }
             .buttonStyle(.plain)
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        }
+    }
+
+    /// Why the lyrics are sitting still.
+    ///
+    /// A preview clip is cut from the middle of the song and Apple publishes no
+    /// offset for where, so there is no honest way to point at a line. Saying
+    /// that is better than a reader deciding the app is broken — and the lyrics
+    /// are still fully usable: tap a line for its words and translation.
+    @ViewBuilder
+    private var previewNotice: some View {
+        if !player.position.followsLyrics, session.lyrics?.isSynced == true {
+            Label(
+                "미리듣기 30초 구간이라 가사가 따라가지 않습니다. 줄을 눌러 뜻을 볼 수 있습니다.",
+                systemImage: "info.circle"
+            )
+            .font(JustTheme.Font.caption)
+            .foregroundStyle(JustTheme.Ink.secondary)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, JustTheme.Space.snug)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial, in: .rect(cornerRadius: 12))
+            .padding(.horizontal, JustTheme.Space.regular)
         }
     }
 
@@ -161,7 +191,10 @@ struct LyricsPane: View {
     }
 
     private func select(_ line: LyricLine, in lyrics: Lyrics) {
-        if let time = line.time {
+        // Only when the clock is the song's. A line's timestamp seeked into a
+        // thirty-second preview lands wherever the clamp puts it — the clip's
+        // end, for every line past the half-minute mark.
+        if let time = line.time, player.position.followsLyrics {
             player.seek(to: max(0, time))
         }
         // Choosing a line is choosing where the song is, so the list has no

@@ -364,7 +364,12 @@ final class SongSession {
     ///
     /// Returns nil while still inside the line, so the caller can call this on
     /// every clock tick without tracking state of its own.
-    func loopRewindTarget(at time: TimeInterval) -> TimeInterval? {
+    func loopRewindTarget(at position: PlaybackPosition) -> TimeInterval? {
+        guard let time = position.songTime else { return nil }
+        return loopRewindTarget(at: time)
+    }
+
+    private func loopRewindTarget(at time: TimeInterval) -> TimeInterval? {
         guard let loopingLine,
               let lyrics,
               let range = lyrics.range(of: loopingLine)
@@ -381,9 +386,13 @@ final class SongSession {
     /// the view stops chasing the song, not that the song stops. Reading the two
     /// off one flag froze the highlight on whatever line was current when the
     /// user first touched the list.
-    func activeLine(at time: TimeInterval) -> Int? {
+    ///
+    /// Takes a position rather than a number so a preview clip's clock cannot
+    /// be mistaken for the song's — it returns nil there, because a highlight
+    /// drawn from the wrong clock is wrong with nothing to show that it is.
+    func activeLine(at position: PlaybackPosition) -> Int? {
         guard let lyrics, lyrics.isSynced else { return nil }
-        return lyrics.activeLineIndex(at: time)
+        return lyrics.activeLineIndex(at: position)
     }
 
     func seekTarget(for lineIndex: Int) -> TimeInterval? {
