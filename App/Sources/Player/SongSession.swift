@@ -69,6 +69,12 @@ final class SongSession {
 
     var isBulkAnalyzing: Bool { bulkProgress != nil }
 
+    /// Seconds the words are sung later than the sheet says. See `LyricSync`.
+    var lyricsOffset: TimeInterval {
+        get { song?.lyricsOffset ?? 0 }
+        set { song?.lyricsOffset = LyricSync.clamped(newValue) }
+    }
+
     func translation(for lineIndex: Int) -> String? {
         let translation = sensei.cached(lineIndex)?.translationKo
         return (translation?.isEmpty == false) ? translation : nil
@@ -372,8 +378,14 @@ final class SongSession {
     private func loopRewindTarget(at time: TimeInterval) -> TimeInterval? {
         guard let loopingLine,
               let lyrics,
-              let range = lyrics.range(of: loopingLine)
+              let sheetRange = lyrics.range(of: loopingLine)
         else { return nil }
+        // Shifted with everything else: a loop set from a corrected highlight
+        // has to repeat the words the reader saw, not the sheet's timings.
+        let range = (
+            start: LyricSync.seekTarget(forLine: sheetRange.start, offset: lyricsOffset),
+            end: LyricSync.seekTarget(forLine: sheetRange.end, offset: lyricsOffset)
+        )
         // Also rewinds when playback has jumped *before* the line, so a loop
         // survives the user scrubbing away from it.
         guard time >= range.end || time < range.start - 0.5 else { return nil }
@@ -391,11 +403,16 @@ final class SongSession {
     /// be mistaken for the song's — it returns nil there, because a highlight
     /// drawn from the wrong clock is wrong with nothing to show that it is.
     func activeLine(at position: PlaybackPosition) -> Int? {
-        guard let lyrics, lyrics.isSynced else { return nil }
-        return lyrics.activeLineIndex(at: position)
+        guard let lyrics, lyrics.isSynced, let songTime = position.songTime else { return nil }
+        return lyrics.activeLineIndex(
+            at: LyricSync.lyricTime(forSongTime: songTime, offset: lyricsOffset)
+        )
     }
 
     func seekTarget(for lineIndex: Int) -> TimeInterval? {
-        lyrics?.lines.first { $0.id == lineIndex }?.time
+        guard let time = lyrics?.lines.first(where: { $0.id == lineIndex })?.time else {
+            return nil
+        }
+        return LyricSync.seekTarget(forLine: time, offset: lyricsOffset)
     }
 }

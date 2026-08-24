@@ -44,6 +44,13 @@ public final class StudySong {
     /// difficulty without decoding every analysis it lists.
     public var levelCounts: [String: Int] = [:]
 
+    /// Seconds the words are actually sung later than the sheet says.
+    ///
+    /// Per song, because it is a property of the sheet rather than the device.
+    /// Defaulted like every other field here, which is what lets the store open
+    /// an older database without a migration plan.
+    public var lyricsOffset: Double = 0
+
     @Relationship(deleteRule: .cascade, inverse: \VocabOccurrence.song)
     public var occurrences: [VocabOccurrence] = []
 

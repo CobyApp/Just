@@ -414,3 +414,60 @@ struct PlaybackPositionTests {
         #expect(PlaybackPosition.inSong(8.0).followsLyrics == true)
     }
 }
+
+@Suite("가사 싱크 오프셋")
+struct LyricSyncTests {
+    @Test("오프셋이 없으면 아무것도 바꾸지 않는다")
+    func zeroChangesNothing() {
+        #expect(LyricSync.lyricTime(forSongTime: 10, offset: 0) == 10)
+        #expect(LyricSync.seekTarget(forLine: 8, offset: 0) == 8)
+    }
+
+    @Test("양수는 가사를 늦춘다")
+    func positiveDelaysTheLyrics() {
+        // The sheet runs ahead: the line marked 8.0 is actually sung at 10.0.
+        // With +2 the app looks up 8.0 when the song is at 10.0, so the line
+        // lights up when it is heard rather than two seconds early.
+        #expect(LyricSync.lyricTime(forSongTime: 10, offset: 2) == 8)
+        // And jumping to that line has to land where it really is.
+        #expect(LyricSync.seekTarget(forLine: 8, offset: 2) == 10)
+    }
+
+    @Test("음수는 가사를 당긴다")
+    func negativePullsTheLyricsForward() {
+        #expect(LyricSync.lyricTime(forSongTime: 10, offset: -2) == 12)
+        #expect(LyricSync.seekTarget(forLine: 8, offset: -2) == 6)
+    }
+
+    @Test("곡 시작 앞으로는 넘어가지 않는다")
+    func neverSeeksBeforeTheStart() {
+        #expect(LyricSync.seekTarget(forLine: 0.9, offset: -3) == 0)
+    }
+
+    @Test("다섯 초를 넘는 보정은 받지 않는다")
+    func refusesMoreThanFiveSeconds() {
+        // Past five seconds it is not a timing offset any more — it is the wrong
+        // sheet, and letting someone dial in twenty seconds hides that.
+        #expect(LyricSync.clamped(12) == 5)
+        #expect(LyricSync.clamped(-12) == -5)
+        #expect(LyricSync.clamped(1.5) == 1.5)
+    }
+
+    @Test("들리는 줄을 누르면 그 줄에 맞는 오프셋이 나온다")
+    func calibratesFromTheLineBeingHeard() {
+        // Heard the line stamped 8.0 while playback said 10.0.
+        #expect(LyricSync.calibrated(songTime: 10, lineTime: 8) == 2)
+        // The other way round, and clamped like any other value.
+        #expect(LyricSync.calibrated(songTime: 8, lineTime: 10) == -2)
+        #expect(LyricSync.calibrated(songTime: 100, lineTime: 8) == 5)
+    }
+
+    @Test("한 단계씩 미는 값은 소수점에서 어긋나지 않는다")
+    func steppingStaysExact() {
+        // 0.1 three times has to read as 0.3, not 0.30000000000000004 — the
+        // sheet prints this number.
+        var offset = 0.0
+        for _ in 0..<3 { offset = LyricSync.stepped(offset, by: 0.1) }
+        #expect(offset == 0.3)
+    }
+}

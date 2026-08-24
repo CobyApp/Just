@@ -191,11 +191,15 @@ struct LyricsPane: View {
     }
 
     private func select(_ line: LyricLine, in lyrics: Lyrics) {
+        // Through the session, so the sheet's correction is applied here as
+        // well — a corrected highlight with an uncorrected tap has the two
+        // halves of the screen disagreeing.
+        //
         // Only when the clock is the song's. A line's timestamp seeked into a
         // thirty-second preview lands wherever the clamp puts it — the clip's
         // end, for every line past the half-minute mark.
-        if let time = line.time, player.position.followsLyrics {
-            player.seek(to: max(0, time))
+        if player.position.followsLyrics, let target = session.seekTarget(for: line.id) {
+            player.seek(to: target)
         }
         // Choosing a line is choosing where the song is, so the list has no
         // reason to stay detached from it afterwards.

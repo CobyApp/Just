@@ -15,6 +15,7 @@ struct PlayerScreen: View {
     @State private var artwork = ArtworkLoader()
     @State private var showsAlbum = false
     @State private var showsWords = false
+    @State private var showsSyncOffset = false
     @State private var savedBanner: String?
 
     var body: some View {
@@ -96,6 +97,12 @@ struct PlayerScreen: View {
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
         .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
+        .sheet(isPresented: $showsSyncOffset) {
+            if let session {
+                SyncOffsetSheet(session: session, player: app.player)
+                    .presentationDetents([.medium, .large])
+            }
+        }
         .sheet(isPresented: $showsWords) {
             if let song = session?.song {
                 SongWordsSheet(song: song)
@@ -176,6 +183,19 @@ struct PlayerScreen: View {
                     Label("남은 줄 분석", systemImage: "sparkles")
                 }
                 .disabled(session.lyrics == nil || session.isBulkAnalyzing)
+
+                // Withheld while a preview is playing: there is no song clock
+                // to line the sheet up against, so nothing could be adjusted.
+                if session.lyrics?.isSynced == true, app.player.position.followsLyrics {
+                    Button { showsSyncOffset = true } label: {
+                        Label(
+                            session.lyricsOffset == 0
+                                ? "가사 싱크 조절"
+                                : "가사 싱크 \(SyncOffsetSheet.label(for: session.lyricsOffset))",
+                            systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right"
+                        )
+                    }
+                }
 
                 Picker("가사 크기", selection: Binding(
                     get: { session.textSize },
