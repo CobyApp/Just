@@ -106,6 +106,15 @@ let project = Project(
                     "UIInterfaceOrientationLandscapeRight",
                 ],
                 "NSAppTransportSecurity": ["NSAllowsArbitraryLoads": false],
+                // AdMob refuses to start without this and takes the app down
+                // with it. Google's public test application id: real earnings
+                // need the account holder's own, and shipping someone else's
+                // placeholder would serve no ads at all.
+                "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511",
+                // Banner ads only, on the analysis wait screen. Personalised
+                // advertising would need an App Tracking Transparency prompt
+                // and a tracking declaration; this app asks for neither.
+                "GADIsAdManagerApp": false,
                 "UIUserInterfaceStyle": "Dark",
                 // Lets notifications and the widget deep-link into a screen.
                 "CFBundleURLTypes": [
@@ -125,6 +134,7 @@ let project = Project(
                 .target(name: "JustMusic"),
                 .target(name: "JustLyrics"),
                 .target(name: "JustSensei"),
+                .external(name: "GoogleMobileAds"),
             ],
             settings: .settings(base: baseSettings.merging([
                 "TARGETED_DEVICE_FAMILY": "1,2",

@@ -62,7 +62,7 @@ struct AppleMusicGate: View {
     private var message: String {
         switch app.access {
         case .notDetermined:
-            "곡 검색과 재생에 Apple Music을 씁니다. 계정 정보는 기기를 벗어나지 않고, 가사 해석도 전부 기기 안에서 처리됩니다."
+            "곡 검색과 재생에 Apple Music을 씁니다. 계정 정보는 기기를 벗어나지 않고, 가사 해석도 기기 안에서 처리됩니다."
         case .denied:
             "iOS는 한 번 거부한 권한을 앱에서 다시 물어볼 수 없습니다. 설정 > Just에서 '미디어 및 Apple Music'을 켠 뒤 돌아와 주세요."
         case .restricted:

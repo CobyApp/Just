@@ -1,3 +1,4 @@
+import GoogleMobileAds
 import JustCore
 import JustDesign
 import SwiftData
@@ -11,6 +12,11 @@ struct JustApp: App {
     private let notifications = NotificationRouter()
 
     init() {
+        // Started here rather than on the wait screen: the first request after
+        // start-up is slow, and the wait screen is exactly where that delay
+        // would be visible.
+        MobileAds.shared.start(completionHandler: nil)
+
         do {
             container = try JustSchema.container()
         } catch {

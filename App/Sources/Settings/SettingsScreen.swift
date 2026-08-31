@@ -134,7 +134,12 @@ struct SettingsScreen: View {
                         }
                     }
                 } footer: {
-                    Text("가사 해석은 전부 기기 안에서 처리됩니다. 가사 원문이나 학습 기록이 서버로 올라가지 않습니다.")
+                    // Reworded when ads arrived. The claim about lyrics and
+                    // study records is still exactly true, but "전부 기기
+                    // 안에서" as a blanket statement stopped being — the ad on
+                    // the wait screen reaches Google. Saying so is the point:
+                    // a privacy note that is quietly wrong is worse than none.
+                    Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.")
                 }
             }
             .navigationTitle("설정")
