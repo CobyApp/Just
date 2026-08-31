@@ -27,6 +27,19 @@ struct GeneratedLine {
     var grammar: [GeneratedGrammar]
 }
 
+/// Translation only, for a line there is nothing to learn from.
+///
+/// An English hook gets its words and grammar thrown away by
+/// `Sensei.learnable` whatever the model says about them — so asking for them
+/// is time spent generating output that is discarded. Generation cost tracks
+/// output length, which makes this the cheapest kind of saving: the answer
+/// does not get worse, there is just less of it to wait for.
+@Generable
+struct GeneratedTranslation {
+    @Guide(description: "가사 한 줄의 한국어 번역.")
+    var translation: String
+}
+
 @Generable
 struct GeneratedWord {
     @Guide(description: "가사에 나온 그대로의 형태. 예: 歩いてる")
@@ -150,6 +163,46 @@ public final class OnDeviceSensei {
         session.prewarm()
     }
 
+    /// The short path: one field instead of a nested list of words.
+    private func translateOnly(
+        prompt: String,
+        line: String,
+        lineIndex: Int
+    ) async throws -> LineStudy {
+        if recycler.claim() {
+            session = LanguageModelSession { Self.instructions }
+        }
+
+        let response: LanguageModelSession.Response<GeneratedTranslation>
+        do {
+            response = try await session.respond(
+                to: prompt,
+                generating: GeneratedTranslation.self,
+                options: GenerationOptions(temperature: 0.3)
+            )
+        } catch let error as LanguageModelSession.GenerationError {
+            guard case .exceededContextWindowSize = error else { throw error }
+            recycler.startFresh()
+            if recycler.claim() {
+                session = LanguageModelSession { Self.instructions }
+            }
+            response = try await session.respond(
+                to: prompt,
+                generating: GeneratedTranslation.self,
+                options: GenerationOptions(temperature: 0.3)
+            )
+        }
+
+        return LineStudy(
+            lineIndex: lineIndex,
+            original: line,
+            translationKo: response.content.translation.trimmingCharacters(in: .whitespaces),
+            words: [],
+            grammar: [],
+            engine: .onDevice
+        )
+    }
+
     private func respond(
         to prompt: String
     ) async throws -> LanguageModelSession.Response<GeneratedLine> {
@@ -227,6 +280,10 @@ public final class OnDeviceSensei {
 
         if recycler.claim() {
             session = LanguageModelSession { Self.instructions }
+        }
+
+        if !LineScript.hasJapanese(line) {
+            return try await translateOnly(prompt: prompt, line: line, lineIndex: lineIndex)
         }
 
         let response: LanguageModelSession.Response<GeneratedLine>

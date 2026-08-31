@@ -214,7 +214,18 @@ struct SenseiReportSuite {
         )
 
         sensei.reset(for: "wholesong")
-        await sensei.analyzeAll(lyrics: lyrics, songTitle: "夜に駆ける", artist: "YOASOBI")
+
+        // Timed, because speed is a thing being traded against accuracy now and
+        // the trade cannot be judged without both numbers in the same report.
+        var perLine: [TimeInterval] = []
+        var lastTick = Date.now
+        let started = lastTick
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "夜に駆ける", artist: "YOASOBI") { _, _ in
+            let now = Date.now
+            perLine.append(now.timeIntervalSince(lastTick))
+            lastTick = now
+        }
+        let elapsed = Date.now.timeIntervalSince(started)
 
         var report = "# 전곡 한 번에 — 이웃 줄 침범\n\n"
         report += "엔진: \(sensei.usesOnDeviceModel ? "온디바이스 모델" : "사전 (모델 없음)")\n\n"
@@ -236,6 +247,17 @@ struct SenseiReportSuite {
         report += "\n반복 줄 복사: "
         report += first == repeated ? "같음 (기대대로)" : "다름 — `\(first)` vs `\(repeated)`"
         report += "\n\n"
+        report += "## 속도\n\n"
+        report += "| 항목 | 값 |\n|---|---|\n"
+        report += "| 전체 |  \(String(format: "%.1f", elapsed))초 |\n"
+        if !perLine.isEmpty {
+            let sorted = perLine.sorted()
+            let median = sorted[sorted.count / 2]
+            report += "| 응답당 중앙값 | \(String(format: "%.2f", median))초 |\n"
+            report += "| 응답 수 | \(perLine.count) |\n"
+        }
+        report += "\n"
+
         report += flags.summary()
 
         print("=== SENSEI WHOLE SONG BEGIN ===")
