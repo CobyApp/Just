@@ -184,7 +184,8 @@ public final class OnDeviceSensei {
         previous: String?,
         next: String?,
         songTitle: String,
-        artist: String
+        artist: String,
+        glossary: [String] = []
     ) async throws -> LineStudy {
         // Tagged delimiters rather than Korean labels like "분석할 줄:".
         // A 3B model reads a bare label as content — labelling the target with
@@ -195,10 +196,19 @@ public final class OnDeviceSensei {
             prompt += "<before>\(previous)</before>\n"
         }
         prompt += "<target>\(line)</target>\n"
+
+        // The dictionary's own reading of the line's words, handed over before
+        // the model answers. It reads sentences well and recalls words badly,
+        // and both failures measured here are recall: 空 came back as 「공기」,
+        // which is 空気. The dictionary has it right; nothing was saying so.
+        if !glossary.isEmpty {
+            prompt += "<words>\(glossary.joined(separator: " / "))</words>\n"
+        }
         prompt += """
 
         <target> 안의 문장만 다루세요. <before>는 문맥 파악에만 쓰고 결과에
         넣지 않습니다. words에는 <target> 문장에 실제로 나오는 표현만 넣습니다.
+        <words>는 사전이 확인한 뜻이니 번역에서 그 뜻을 따르세요.
         """
 
         // J-pop hooks are often entirely English. Told that the target is

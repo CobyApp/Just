@@ -72,6 +72,34 @@ public struct DictionarySensei: Sendable {
 
     public var count: Int { byLemma.count }
 
+    /// What the line's words mean, for handing to the model before it answers.
+    ///
+    /// The model is good at reading a sentence and bad at recall, and the two
+    /// failures it makes here are both recall: it wrote 「공기」 for 空, which is
+    /// 空気 — a different word the dictionary has right — and it pads short
+    /// lines with things that are not in them. Telling it what the words are
+    /// gives it less room for either.
+    ///
+    /// Only what the dictionary actually holds. A guessed gloss would ground
+    /// the model in an invention, which is worse than leaving it to guess.
+    ///
+    /// Capped, because the context window overflows after three lines as it is
+    /// and a list that grew with the line would bring that forward.
+    public func glossary(for line: String, limit: Int = 4) -> [String] {
+        var seen = Set<String>()
+        var glosses: [String] = []
+
+        for token in tokenizer.studyCandidates(in: line) {
+            guard glosses.count < limit else { break }
+            guard let entry = entry(forSpelling: token.surface, reading: token.reading)
+                ?? lookup(lemma: token.lemma, reading: token.reading)
+            else { continue }
+            guard !entry.k.isEmpty, seen.insert(entry.l).inserted else { continue }
+            glosses.append("\(entry.l)(\(entry.r)) \(entry.k)")
+        }
+        return glosses
+    }
+
     public func lookup(lemma: String, reading: String? = nil) -> Entry? {
         if let hit = sense(byLemma[lemma], reading: reading) { return hit }
 

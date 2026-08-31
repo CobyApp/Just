@@ -1093,3 +1093,61 @@ struct JapaneseLeftInTranslationTests {
         #expect(Sensei.isUsableTranslation("둘만의 하늘이 펼쳐지는 밤에"))
     }
 }
+
+@Suite("줄의 단어를 모델에 미리 알려주기")
+struct GlossaryTests {
+    private let dictionary = DictionarySensei()
+
+    @Test("줄에 있는 한자 단어의 사전 뜻을 모은다")
+    func collectsMeaningsFromTheLine() {
+        // 空 is the case this exists for: the model kept translating it as
+        // 「공기」, which is 空気 — a different word. The dictionary has it right,
+        // but nothing was telling the model.
+        let glossary = dictionary.glossary(for: "二人だけの空が広がる夜に")
+        #expect(glossary.contains { $0.contains("空") && $0.contains("하늘") })
+        #expect(glossary.contains { $0.contains("夜") && $0.contains("밤") })
+    }
+
+    @Test("사전에 없는 말은 넣지 않는다")
+    func skipsWhatItDoesNotKnow() {
+        // A guessed gloss would be worse than none: it would ground the model
+        // in something invented.
+        let glossary = dictionary.glossary(for: "ズギャギャン")
+        #expect(glossary.isEmpty)
+    }
+
+    @Test("한 줄에서 너무 많이 넣지 않는다")
+    func staysShort() {
+        // The context window overflows at three lines as it is. A gloss list
+        // that grows with the line would bring that forward.
+        let glossary = dictionary.glossary(for: "夢を見た夜が明ける空が広がる君の姿が見えた朝", limit: 3)
+        #expect(glossary.count <= 3)
+    }
+}
+
+@Suite("한국어 문장인지")
+struct MostlyKoreanTests {
+    @Test("거의 영어인 답은 한글이 한 글자 있어도 받지 않는다")
+    func mostlyEnglishIsRefused() {
+        // Measured: 「フェンス越しに重なっていた」 came back as 「가 fence across
+        // from each other.」 and passed, because the rule only asked whether
+        // there was any Hangul at all. One character is not a translation.
+        #expect(!Sensei.isUsableTranslation("가 fence across from each other."))
+        #expect(!Sensei.isUsableTranslation("그 I don't wanna know anything now"))
+    }
+
+    @Test("인용된 영어는 세지 않는다")
+    func quotedEnglishDoesNotCount() {
+        // A Korean line quoting the song's own English hook is right, and the
+        // quote is longer than the sentence around it often enough that
+        // counting it would throw the good answer away.
+        #expect(Sensei.isUsableTranslation("'Wake me up'이라고 말했다"))
+        #expect(Sensei.isUsableTranslation("「I love you」 그 한마디뿐이었다"))
+    }
+
+    @Test("한국어 문장은 그대로 통과한다")
+    func koreanPasses() {
+        #expect(Sensei.isUsableTranslation("두 사람만의 하늘이 펼쳐진 밤"))
+        #expect(Sensei.isUsableTranslation("작별 인사만 남았어요"))
+    }
+}
