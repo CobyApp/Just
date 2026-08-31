@@ -271,6 +271,7 @@ struct SenseiReportSuite {
         var strayTranslation = 0
         var untranslatedJapanese = 0
         var dictionaryFallback = 0
+        var paddedTranslation = 0
 
         mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
             if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
@@ -286,11 +287,28 @@ struct SenseiReportSuite {
             // 「페ンス를 넘어서서」. Kana rather than kanji: a Korean sentence has
             // no reason to hold either, but kanji alone would also flag a
             // legitimately quoted Chinese character.
-            if study.translationKo.unicodeScalars
-                .contains(where: { (0x3040...0x30FF).contains($0.value) }) {
+            // Only outside quotation marks. Counting quoted Japanese made this
+            // read 3 when one line was broken and two were the same repeated
+            // line quoting 「さよなら」 back, exactly as the lyric does — the same
+            // over-counting the bleed metric had.
+            if !Sensei.isUsableTranslation(study.translationKo), !study.translationKo.isEmpty {
                 untranslatedJapanese += 1
             }
             translations.append((line: line, text: study.translationKo))
+
+            // A translation far longer than the line it renders is the model
+            // padding. Measured, not guessed: 「「さよなら」だけだった」 — eleven
+            // characters — came back as a conditional about parting being
+            // enough, and 「沈むように溶けてゆくように」 gained an inner door that
+            // is in no part of the song. Both are short lines stretched.
+            //
+            // A ratio rather than a length, because a long line has room for a
+            // long sentence. Korean is more compact than Japanese here, so
+            // twice the characters already means words were added.
+            if !study.translationKo.isEmpty, !line.isEmpty,
+               Double(study.translationKo.count) > Double(line.count) * 2.0 {
+                paddedTranslation += 1
+            }
             if study.grammar.isEmpty { noGrammar += 1 }
 
             // The same rule the word list already lives by: presence in the line
@@ -373,6 +391,7 @@ struct SenseiReportSuite {
             text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
             text += "| **번역에 금지어(이웃·제목에서 온 말)** | \(strayTranslation) |\n"
             text += "| **번역에 일본어가 그대로 남음** | \(untranslatedJapanese) |\n"
+            text += "| **번역이 원문의 두 배 넘게 길다(부풀림)** | \(paddedTranslation) |\n"
             text += "| 문법 노트 없음 | \(noGrammar) |\n"
             text += "| **가사에 없는 문법 패턴** | \(fabricatedGrammar) |\n"
             text += "| 단어 | \(words) |\n"

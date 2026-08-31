@@ -200,11 +200,45 @@ public final class Sensei {
     /// which is a bad translation rather than a non-translation — the reader is
     /// better served by seeing it, and the report counts it separately.
     public nonisolated static func isUsableTranslation(_ translation: String) -> Bool {
-        translation.unicodeScalars.contains { scalar in
+        let hasHangul = translation.unicodeScalars.contains { scalar in
             (0xAC00...0xD7A3).contains(scalar.value)   // 가–힣
                 || (0x1100...0x11FF).contains(scalar.value)  // conjoining jamo
                 || (0x3130...0x318F).contains(scalar.value)  // compatibility jamo
         }
+        return hasHangul && !hasUnquotedJapanese(translation)
+    }
+
+    /// Whether Japanese survives outside quotation marks.
+    ///
+    /// Quoted is fine, and often right: the lyric 「「さよなら」だけだった」 quotes
+    /// the word, so a translation that quotes it back is showing the reader what
+    /// was said. Unquoted is a sentence half-converted — 「フェンス越しに重なって
+    /// いた」 came back as 「페ンス를 넘어 서로重ね어져 있었다」 — which is not
+    /// readable in either language.
+    ///
+    /// Asked politely first: an instruction not to leave Japanese in the
+    /// translation made no measurable difference across three runs, and a
+    /// prompt line that does nothing still costs context on every line of every
+    /// song. So it is refused here instead, and the line gets another attempt.
+    private nonisolated static func hasUnquotedJapanese(_ text: String) -> Bool {
+        // Every mark either language uses for a quotation, including the ones a
+        // model reaches for unprompted.
+        let openers: Set<Character> = ["'", "\"", "「", "『", "\u{2018}", "\u{201C}", "\u{300C}"]
+        let closers: Set<Character> = ["'", "\"", "」", "』", "\u{2019}", "\u{201D}", "\u{300D}"]
+
+        var quoted = false
+        for character in text {
+            if quoted {
+                if closers.contains(character) { quoted = false }
+                continue
+            }
+            if openers.contains(character) {
+                quoted = true
+                continue
+            }
+            if LineScript.hasJapanese(String(character)) { return true }
+        }
+        return false
     }
 
     /// Drops what there is nothing to learn from, whichever engine produced it.

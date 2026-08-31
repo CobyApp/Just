@@ -780,11 +780,15 @@ struct UsableTranslationTests {
         #expect(!Sensei.isUsableTranslation("もう嫌だって 疲れたよなんて"))
     }
 
-    @Test("한글이 섞여 있으면 일본어가 남아도 번역으로 본다")
-    func partialJapaneseStillCounts() {
-        // Not good, but it is an attempt at Korean, and the report counts it
-        // separately. Throwing it away would show the reader nothing at all.
-        #expect(Sensei.isUsableTranslation("페ンス 너머로 두 사람이 함께 서 있었다"))
+    @Test("한글이 섞여도 일본어가 인용부호 밖에 남으면 번역이 아니다")
+    func partialJapaneseIsRefused() {
+        // This test used to assert the opposite, on the reasoning that half a
+        // translation beats none. Measuring the real output settled it the
+        // other way: 「페ンス를 넘어 서로重ね어져 있었다」 is not readable in
+        // either language, and by then there was somewhere better for the line
+        // to go — another model pass, or the system translator. Showing it was
+        // the worst of the three.
+        #expect(!Sensei.isUsableTranslation("페ンス 너머로 두 사람이 함께 서 있었다"))
     }
 
     @Test("빈 답과 공백뿐인 답은 번역이 아니다")
@@ -1060,5 +1064,32 @@ struct PlainTranslationTests {
         await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수")
 
         #expect(sensei.cached(0)?.translationKo.isEmpty == true)
+    }
+}
+
+@Suite("번역에 일본어가 남은 답")
+struct JapaneseLeftInTranslationTests {
+    @Test("인용부호 안의 일본어는 그대로 둔다")
+    func quotedJapaneseIsFine() {
+        // The lyric itself quotes the word — 「「さよなら」だけだった」 — so a
+        // translation that quotes it back is doing the right thing.
+        #expect(Sensei.isUsableTranslation("그 외에는 'さよなら'만 남았어요."))
+        #expect(Sensei.isUsableTranslation("「さよなら」 그 한마디뿐이었다"))
+    }
+
+    @Test("인용부호 밖에 일본어가 남으면 번역이 아니다")
+    func unquotedJapaneseIsNotATranslation() {
+        // Measured failure: 「フェンス越しに重なっていた」 came back as
+        // 「페ンス를 넘어 서로重ね어져 있었다」 — katakana half-converted and kanji
+        // left standing. Asking the model not to do this had no measurable
+        // effect over three runs, so it is refused here instead: the line stays
+        // unsettled and gets another attempt, or the system translator fills it.
+        #expect(!Sensei.isUsableTranslation("페ンス를 넘어 서로重ね어져 있었다"))
+        #expect(!Sensei.isUsableTranslation("해가 沈み 하늘과 당신의 모습"))
+    }
+
+    @Test("한글만 있는 번역은 그대로 통과한다")
+    func plainKoreanPasses() {
+        #expect(Sensei.isUsableTranslation("둘만의 하늘이 펼쳐지는 밤에"))
     }
 }
