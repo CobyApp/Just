@@ -169,11 +169,18 @@ final class SongSession {
             let now = Date.now
             pace.record(now.timeIntervalSince(lastTick))
             lastTick = now
-            self.phase = .analyzing(
-                done: done,
-                total: total,
-                remaining: pace.estimate(remaining: total - done)
-            )
+            let remaining = pace.estimate(remaining: total - done)
+            self.phase = .analyzing(done: done, total: total, remaining: remaining)
+
+            // Handed over rather than endured. Waiting for a finished song is
+            // still the default and still what happens on a song that finishes
+            // quickly — but once the first few lines have been timed and say
+            // this one runs into minutes, the reader gets the lyrics now and
+            // the rest fills in behind them. Same mechanism as the button,
+            // decided from the same number the label is showing.
+            if WaitBudget.shouldOpenEarly(estimate: remaining, done: done) {
+                self.skipWaiting()
+            }
             // Flushed periodically rather than per line: `flush` re-encodes the
             // whole analysis dictionary, so doing it on every line makes saving
             // quadratic in the length of the song. Every fifth line still keeps

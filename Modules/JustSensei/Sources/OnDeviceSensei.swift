@@ -15,17 +15,26 @@ struct GeneratedLine {
     var translation: String
 
     @Guide(
-        description: "이 줄에서 한국인 학습자에게 배울 가치가 있는 단어. 조사와 극히 기본적인 단어는 넣지 말 것.",
-        .maximumCount(6)
+        description: "이 줄에서 한국인 학습자에게 배울 가치가 있는 단어. 조사와 극히 기본적인 단어는 넣지 말 것. 가장 중요한 것부터.",
+        // Six became three. Nine lines produced sixteen words, so the average
+        // was under two and the cap was rarely the binding constraint — but a
+        // list the model may fill to six is a list it plans for, and asking for
+        // the important ones first loses less than trimming a full list would.
+        .maximumCount(3)
     )
     var words: [GeneratedWord]
 
-    @Guide(
-        description: "이 줄에 쓰인 문법 패턴이나 관용 표현. 특별한 게 없으면 빈 배열.",
-        .maximumCount(3)
-    )
-    var grammar: [GeneratedGrammar]
 }
+
+// Grammar notes are no longer asked for. Across the measured runs five to seven
+// of nine lines came back with none, so the field was mostly generating an empty
+// list — and generation cost tracks output length, so a field that is usually
+// empty is still a field the model walks through every line. What is given up
+// is the occasional idiom explanation; what is bought is a shorter wait on every
+// line of every song. Explicitly a trade, made once it was asked for.
+//
+// `GeneratedGrammar` stays: `LineStudy` still carries grammar, older songs have
+// notes stored, and the collection screen reads them.
 
 /// Translation only, for a line there is nothing to learn from.
 ///
@@ -136,6 +145,18 @@ public final class OnDeviceSensei {
     /// it strikes.
     private var recycler = SessionRecycler()
 
+    /// Greedy rather than sampled.
+    ///
+    /// Two reasons, and the second is the bigger one. Sampling costs a little
+    /// time per token. And it makes the output different every run, which meant
+    /// every judgement about a prompt change needed three runs to see past the
+    /// noise — with greedy decoding the same line gives the same answer, so a
+    /// change that moves a number moved it for a reason.
+    ///
+    /// What is lost is variety, which a study aid has no use for: there is one
+    /// right reading of a lyric line, not a distribution of them.
+    private static let generation = GenerationOptions(sampling: .greedy)
+
     public init() {
         session = LanguageModelSession { Self.instructions }
     }
@@ -178,7 +199,7 @@ public final class OnDeviceSensei {
             response = try await session.respond(
                 to: prompt,
                 generating: GeneratedTranslation.self,
-                options: GenerationOptions(temperature: 0.3)
+                options: Self.generation
             )
         } catch let error as LanguageModelSession.GenerationError {
             guard case .exceededContextWindowSize = error else { throw error }
@@ -189,7 +210,7 @@ public final class OnDeviceSensei {
             response = try await session.respond(
                 to: prompt,
                 generating: GeneratedTranslation.self,
-                options: GenerationOptions(temperature: 0.3)
+                options: Self.generation
             )
         }
 
@@ -209,7 +230,7 @@ public final class OnDeviceSensei {
         try await session.respond(
             to: prompt,
             generating: GeneratedLine.self,
-            options: GenerationOptions(temperature: 0.3)
+            options: Self.generation
         )
     }
 
@@ -333,9 +354,8 @@ public final class OnDeviceSensei {
             original: line,
             translationKo: generated.translation.trimmingCharacters(in: .whitespaces),
             words: words,
-            grammar: generated.grammar
-                .filter { !$0.pattern.isEmpty }
-                .map { GrammarNote(pattern: $0.pattern, explanationKo: $0.explanationKo) },
+            // No longer asked for; see the note on the schema above.
+            grammar: [],
             engine: .onDevice
         )
     }

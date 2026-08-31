@@ -474,3 +474,35 @@ struct LyricSyncTests {
         #expect(offset == 0.3)
     }
 }
+
+@Suite("얼마나 기다릴지")
+struct WaitBudgetTests {
+    @Test("재본 적이 없으면 계속 기다린다")
+    func waitsWithoutASample() {
+        // Nothing to judge by yet. Bailing out on no evidence would open the
+        // player for a song that was about to finish.
+        #expect(WaitBudget.shouldOpenEarly(estimate: nil, done: 0) == false)
+    }
+
+    @Test("표본이 적으면 아직 판단하지 않는다")
+    func needsAFewLinesFirst() {
+        // The first line pays for the session and the instructions, so its time
+        // says more about start-up than about the song.
+        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 1) == false)
+        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 2) == false)
+    }
+
+    @Test("남은 시간이 짧으면 끝까지 기다린다")
+    func finishesAShortWait() {
+        // A completed song is the better thing to hand over, so a wait worth
+        // sitting through is sat through.
+        #expect(WaitBudget.shouldOpenEarly(estimate: 20, done: 3) == false)
+        #expect(WaitBudget.shouldOpenEarly(estimate: 30, done: 5) == false)
+    }
+
+    @Test("남은 시간이 길면 먼저 열어준다")
+    func doesNotMakeThemWaitMinutes() {
+        #expect(WaitBudget.shouldOpenEarly(estimate: 31, done: 3))
+        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 3))
+    }
+}
