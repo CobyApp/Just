@@ -146,6 +146,15 @@ struct ReviewScreen: View {
     }
 
     private var finished: some View {
+        VStack(spacing: JustTheme.Space.loose) {
+            finishedState
+            // Only once the day's cards are done. Never between the card and
+            // the grade buttons, where it would sit under a tapping finger.
+            AdBanner(unitID: AdBanner.testUnitID)
+        }
+    }
+
+    private var finishedState: some View {
         ContentUnavailableView {
             Label(
                 completed > 0 ? "오늘 복습 끝" : "복습할 단어가 없습니다",

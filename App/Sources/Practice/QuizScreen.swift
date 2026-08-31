@@ -321,6 +321,11 @@ struct QuizScreen: View {
                 .foregroundStyle(JustTheme.Ink.secondary)
             Button("한 번 더") { start() }
                 .buttonStyle(.justPrimary)
+
+            // The round is over, so the screen is not being used for anything.
+            // Kept clear of the button above it.
+            AdBanner(unitID: AdBanner.testUnitID)
+                .padding(.top, JustTheme.Space.loose)
         }
     }
 

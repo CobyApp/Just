@@ -3,10 +3,19 @@ import JustDesign
 import SwiftUI
 import UIKit
 
-/// A banner for the analysis wait, and nowhere else.
+/// The app's only ad surface.
 ///
-/// The wait is the one place in this app where the reader is asked to sit and
-/// do nothing, so it is the one place an ad costs them nothing they were using.
+/// Where it may appear, and why only there: an ad is acceptable at a moment the
+/// reader is not using the screen for anything. There are three such moments
+/// and no more — waiting for a song to be analysed, finishing a quiz, and
+/// finishing the day's review. All three are places where the work just
+/// stopped.
+///
+/// Where it must not appear, for reasons worth writing down rather than
+/// rediscovering: the lyrics and the player, which are the product; any screen
+/// with a question on it, where an ad competes with the thing being learned;
+/// and directly against a button, which invites the accidental taps AdMob's own
+/// policy forbids. Every use below leaves space above it for that last reason.
 ///
 /// A banner rather than an interstitial, deliberately. The wait exists because
 /// the on-device model is working, and a video ad would compete with it for the
