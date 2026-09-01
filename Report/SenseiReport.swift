@@ -33,7 +33,15 @@ import Testing
 /// xcodebuild -workspace Just.xcworkspace -scheme JustReport \
 ///   -destination 'platform=iOS,name=Coby' -allowProvisioningUpdates test
 /// ```
-@Suite("해석 품질 보고서")
+/// Serialised, and that is not a detail. Swift Testing runs tests in parallel
+/// by default, so these three were asking the on-device model at the same time
+/// — and the model rejects concurrent requests outright, which is why
+/// `GenerationError.concurrentRequests` exists. The report was competing with
+/// itself: lines fell back to the dictionary because another test held the
+/// model, and one test kept taking the process down with it.
+///
+/// Numbers from a run that raced itself are not measurements of anything.
+@Suite("해석 품질 보고서", .serialized)
 @MainActor
 struct SenseiReportSuite {
     /// Lines whose failures were actually observed, each with what a correct
@@ -284,6 +292,16 @@ struct SenseiReportSuite {
         report += "\n반복 줄 복사: "
         report += first == repeated ? "같음 (기대대로)" : "다름 — `\(first)` vs `\(repeated)`"
         report += "\n\n"
+        if !sensei.lastFailure.isEmpty {
+            var counts: [String: Int] = [:]
+            for reason in sensei.lastFailure.values { counts[reason, default: 0] += 1 }
+            report += "## 모델이 답하지 않은 이유\n\n"
+            for (reason, count) in counts.sorted(by: { $0.value > $1.value }) {
+                report += "- \(reason): \(count)\n"
+            }
+            report += "\n"
+        }
+
         report += "## 속도\n\n"
         report += "| 항목 | 값 |\n|---|---|\n"
         report += "| 전체 |  \(String(format: "%.1f", elapsed))초 |\n"
