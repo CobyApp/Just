@@ -87,17 +87,41 @@ public struct DictionarySensei: Sendable {
     /// and a list that grew with the line would bring that forward.
     public func glossary(for line: String, limit: Int = 4) -> [String] {
         var seen = Set<String>()
-        var glosses: [String] = []
+        var withKanji: [String] = []
+        var kanaOnly: [String] = []
 
         for token in tokenizer.studyCandidates(in: line) {
-            guard glosses.count < limit else { break }
             guard let entry = entry(forSpelling: token.surface, reading: token.reading)
                 ?? lookup(lemma: token.lemma, reading: token.reading)
             else { continue }
-            guard !entry.k.isEmpty, seen.insert(entry.l).inserted else { continue }
-            glosses.append("\(entry.l)(\(entry.r)) \(entry.k)")
+            guard !entry.k.isEmpty else { continue }
+            // A kana word matched to a kanji headword is a reading collision,
+            // not a match: 「だけ」 — the particle — found 丈(だけ), 「길이, 키」,
+            // and the prompt tells the model to follow what it is given. The
+            // lyric wrote it in kana; the dictionary's kanji word is a
+            // different word that happens to sound the same.
+            guard LineScript.hasJapanese(token.surface) else { continue }
+            if !Self.containsKanji(token.surface), Self.containsKanji(entry.l) { continue }
+            guard seen.insert(entry.l).inserted else { continue }
+
+            let gloss = "\(entry.l)(\(entry.r)) \(entry.k)"
+            // Kanji words go in first. They are where the misreadings are —
+            // 空 came back as 「공기」, which is 空気 — while a kana word says its
+            // own reading and leaves the model much less room. With the list
+            // capped for context, the ambiguous ones are worth the slots.
+            if Self.containsKanji(entry.l) {
+                withKanji.append(gloss)
+            } else {
+                kanaOnly.append(gloss)
+            }
         }
-        return glosses
+        return Array((withKanji + kanaOnly).prefix(limit))
+    }
+
+    private static func containsKanji(_ text: String) -> Bool {
+        text.unicodeScalars.contains {
+            (0x3400...0x4DBF).contains($0.value) || (0x4E00...0x9FFF).contains($0.value)
+        }
     }
 
     public func lookup(lemma: String, reading: String? = nil) -> Entry? {
@@ -202,8 +226,39 @@ enum Deinflector {
         "し": ["す"],
     ]
 
+    /// A stem's own ending, mapped back to the dictionary form's.
+    ///
+    /// The tagger reports a bare 連用形 or 未然形 — 「沈み」, 「言い」, 「戻ら」 —
+    /// with nothing attached to strip, so the て/た rules below never fire and
+    /// the lookup gives up on a word the dictionary actually holds. Fourteen of
+    /// the twenty-nine misses in the coverage report were exactly this.
+    ///
+    /// Both the い-row (連用形) and the あ-row (未然形) map to the same う-row
+    /// ending, so one table covers both.
+    private static let stemToDictionary: [Character: [String]] = [
+        "い": ["う", "く"], "き": ["く"], "ぎ": ["ぐ"], "し": ["す"], "ち": ["つ"],
+        "に": ["ぬ"], "び": ["ぶ"], "み": ["む"], "り": ["る"],
+        "わ": ["う"], "か": ["く"], "が": ["ぐ"], "さ": ["す"], "た": ["つ"],
+        "な": ["ぬ"], "ば": ["ぶ"], "ま": ["む"], "ら": ["る"],
+        "っ": ["る", "う", "つ"],
+        "ん": ["ぬ", "ぶ", "む"],
+    ]
+
     static func candidates(for word: String) -> [String] {
         var results: [String] = []
+
+        // Read as a stem first. Every candidate is looked up and discarded if
+        // the dictionary does not have it, so guessing generously costs nothing
+        // — 「疲れ」 proposes both 疲れる and 疲る, and only one exists.
+        if word.count > 1 {
+            results.append(word + "る")
+            if let last = word.last, let endings = stemToDictionary[last] {
+                let trimmed = String(word.dropLast())
+                if !trimmed.isEmpty {
+                    results.append(contentsOf: endings.map { trimmed + $0 })
+                }
+            }
+        }
 
         for rule in suffixRules where word.hasSuffix(rule.suffix) {
             let stem = String(word.dropLast(rule.suffix.count))

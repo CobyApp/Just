@@ -68,7 +68,31 @@ def main():
             entries.append({"l": word, "r": reading, "k": meaning})
             imported += 1
     else:
-        print(f"warning: {source} not found — writing curated entries only")
+        # The imported half cannot be re-fetched — the sibling project is not on
+        # every machine, and on this one it is nowhere at all. Writing curated
+        # entries only would silently replace a 6,900-word dictionary with a
+        # 180-word one, and the app would go on running with most of its
+        # vocabulary gone. So the previous build is read back and its imported
+        # entries are kept.
+        for row in json.loads(OUTPUT.read_text()) if OUTPUT.exists() else []:
+            key = (row["l"], row["r"])
+            if key in seen:
+                continue
+            seen.add(key)
+            entries.append(row)
+            imported += 1
+        print(f"note: {source} not found — kept {imported} entries from the previous build")
+
+    # A build that loses most of the dictionary is a mistake, not an edit. The
+    # sibling project going missing is exactly how that happens, and the app
+    # ships whatever this file says.
+    if OUTPUT.exists():
+        previous = len(json.loads(OUTPUT.read_text()))
+        if len(entries) < previous * 0.9:
+            sys.exit(
+                f"refusing to write: {len(entries)} entries would replace {previous}. "
+                "Point at the import source, or pass --shrink if this is deliberate."
+            )
 
     OUTPUT.write_text(
         json.dumps(entries, ensure_ascii=False, separators=(",", ":")) + "\n"

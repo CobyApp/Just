@@ -265,6 +265,81 @@ struct SenseiReportSuite {
         print("=== SENSEI WHOLE SONG END ===")
     }
 
+    /// How much of real lyrics the bundled dictionary actually knows.
+    ///
+    /// This is what feeds `<words>` into the prompt, and that grounding is what
+    /// fixed 空 — the model kept writing 「공기」 until the dictionary's own
+    /// reading was put in front of it. Where the dictionary is blank the model
+    /// is back to guessing, so the gap is worth knowing rather than assuming.
+    ///
+    /// Needs no model, which is why it is here: it measures on a machine where
+    /// the on-device assets have gone missing, which they have all day.
+    @Test("사전이 실제 가사를 얼마나 아는지")
+    func writeCoverageReport() async {
+        let dictionary = DictionarySensei()
+        let tokenizer = JapaneseTokenizer()
+
+        // Consecutive lines from songs a learner would actually open.
+        let songs: [(String, [String])] = [
+            ("夜に駆ける", [
+                "沈むように溶けてゆくように",
+                "二人だけの空が広がる夜に",
+                "「さよなら」だけだった",
+                "その一言で全てが分かった",
+                "日が沈み出した空と君の姿",
+                "フェンス越しに重なっていた",
+                "もう嫌だって 疲れたよなんて",
+                "本当は僕も言いたいんだ",
+            ]),
+            ("Lemon", [
+                "夢ならばどれほどよかったでしょう",
+                "未だにあなたのことを夢にみる",
+                "忘れた物を取りに帰るように",
+                "古びた思い出の埃を払う",
+                "戻らない幸せがあることを",
+                "最後にあなたが教えてくれた",
+            ]),
+            ("マリーゴールド", [
+                "風が吹いて飛ばされそうな",
+                "軽い電話が鳴る",
+                "予報士が今日を教えてくれる",
+                "また晴れた空を眺めながら",
+            ]),
+        ]
+
+        var known = 0
+        var unknown: [String] = []
+
+        for (_, lines) in songs {
+            for line in lines {
+                for token in tokenizer.studyCandidates(in: line) {
+                    let hit = dictionary.entry(forSpelling: token.surface, reading: token.reading)
+                        ?? dictionary.lookup(lemma: token.lemma, reading: token.reading)
+                    if hit != nil {
+                        known += 1
+                    } else {
+                        unknown.append("\(token.surface)(\(token.lemma)/\(token.reading))")
+                    }
+                }
+            }
+        }
+
+        let total = known + unknown.count
+        var report = "# 사전 커버리지\n\n"
+        report += "| 항목 | 값 |\n|---|---|\n"
+        report += "| 후보 단어 | \(total) |\n"
+        report += "| 사전이 아는 것 | \(known) |\n"
+        if total > 0 {
+            report += "| 비율 | \(Int(Double(known) / Double(total) * 100))% |\n"
+        }
+        report += "\n## 모르는 것\n\n"
+        for miss in Array(Set(unknown)).sorted() { report += "- \(miss)\n" }
+
+        print("=== COVERAGE BEGIN ===")
+        print(report)
+        print("=== COVERAGE END ===")
+    }
+
     /// The failure modes that can be counted rather than judged.
     ///
     /// Quality is not assertable, but these are: they are properties of the

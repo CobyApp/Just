@@ -1108,6 +1108,16 @@ struct GlossaryTests {
         #expect(glossary.contains { $0.contains("夜") && $0.contains("밤") })
     }
 
+    @Test("가나로 쓰인 말을 읽기가 같은 한자 단어로 넘기지 않는다")
+    func doesNotMatchKanaToAKanjiHomophone() {
+        // 「だけ」 in this line is the particle, but the dictionary holds 丈(だけ)
+        // — length, height — and matching on reading alone handed that over as
+        // 「사전이 확인한 뜻」. A wrong gloss is worse than none: the prompt tells
+        // the model to follow it.
+        let glossary = dictionary.glossary(for: "二人だけの空が広がる夜に")
+        #expect(!glossary.contains { $0.contains("丈") })
+    }
+
     @Test("사전에 없는 말은 넣지 않는다")
     func skipsWhatItDoesNotKnow() {
         // A guessed gloss would be worse than none: it would ground the model
@@ -1149,5 +1159,52 @@ struct MostlyKoreanTests {
     func koreanPasses() {
         #expect(Sensei.isUsableTranslation("두 사람만의 하늘이 펼쳐진 밤"))
         #expect(Sensei.isUsableTranslation("작별 인사만 남았어요"))
+    }
+}
+
+@Suite("활용형에서 사전형 되돌리기")
+struct StemDeinflectionTests {
+    private let dictionary = DictionarySensei()
+
+    /// Every one of these came out of the coverage report as a word the
+    /// dictionary holds but the lookup could not reach.
+    private func resolves(_ surface: String, to lemma: String) -> Bool {
+        dictionary.lookup(lemma: surface)?.l == lemma
+    }
+
+    @Test("이치단 동사의 어간에 る를 붙여 찾는다")
+    func ichidanStems() {
+        #expect(resolves("溶け", to: "溶ける"))
+        #expect(resolves("疲れ", to: "疲れる"))
+        #expect(resolves("眺め", to: "眺める"))
+        #expect(resolves("忘れ", to: "忘れる"))
+    }
+
+    @Test("고단 동사의 い단 어간을 う단으로 되돌린다")
+    func godanContinuative() {
+        #expect(resolves("沈み", to: "沈む"))
+        #expect(resolves("言い", to: "言う"))
+        #expect(resolves("取り", to: "取る"))
+        #expect(resolves("出し", to: "出す"))
+    }
+
+    @Test("あ단 어간도 되돌린다")
+    func godanIrrealis() {
+        #expect(resolves("戻ら", to: "戻る"))
+        #expect(resolves("飛ばさ", to: "飛ばす"))
+    }
+
+    @Test("촉음편도 되돌린다")
+    func soundChanges() {
+        #expect(resolves("分かっ", to: "分かる"))
+        #expect(resolves("重なっ", to: "重なる"))
+        #expect(resolves("吹い", to: "吹く"))
+    }
+
+    @Test("아무 말이나 사전형으로 만들지는 않는다")
+    func doesNotInventWords() {
+        // Every candidate is looked up, so a wrong guess costs nothing — but it
+        // must not resolve to something unrelated.
+        #expect(dictionary.lookup(lemma: "ズギャ") == nil)
     }
 }
