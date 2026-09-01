@@ -42,6 +42,9 @@ public final class PlainTranslator {
     /// Set once the pair is known to be unusable, so a song's worth of lines
     /// does not each pay for the same failed setup.
     private var isUnavailable = false
+    /// Set once the pack has been confirmed present, so the check is paid once
+    /// rather than per line.
+    private var isInstalled = false
 
     private init() {}
 
@@ -72,6 +75,20 @@ public final class PlainTranslator {
         guard isEnabled, !isUnavailable else { return nil }
         let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
+
+        // Asked before the session is built, not after. The initializer below
+        // is `installedSource:` — it takes the pack being present as given, and
+        // on a device where it is not, building one took the app down with it:
+        // 「Connection to translationd was interrupted, the process exited or
+        // crashed」. The simulator never showed this because it reports the pair
+        // unsupported and the path was never entered.
+        if !isInstalled {
+            guard await availability() == .installed else {
+                isUnavailable = true
+                return nil
+            }
+            isInstalled = true
+        }
 
         do {
             return try await currentSession().translate(text).targetText

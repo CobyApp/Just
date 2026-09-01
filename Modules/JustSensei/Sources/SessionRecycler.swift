@@ -17,16 +17,19 @@ public struct SessionRecycler: Sendable {
     /// `limit` lines are answered by one session. The caller is assumed to have
     /// built the first one already, so the first `limit` claims reuse it.
     ///
-    /// Six, measured rather than chosen — and re-measured after the answer got
-    /// smaller. Three was right when a turn carried a translation, six words
-    /// with readings and JLPT levels, and grammar notes: the fourth line's
-    /// request reached 4094 tokens against a 4096-token window. Grammar is no
-    /// longer asked for and words are capped at three, so a turn is far smaller
-    /// and more of them fit.
+    /// Three, measured rather than chosen: a fourth line's request reached 4094
+    /// tokens against a 4096-token window and every line after it failed too.
+    ///
+    /// Six was tried on the device once the answers got smaller — grammar
+    /// dropped, words capped at three — on the theory that more turns would now
+    /// fit. They do: no overflow at all. But the median response went from 3.5
+    /// to 9.2 seconds, because a longer transcript is more context to read
+    /// before every answer. Reusing a session saves the instruction prompt and
+    /// pays for the conversation; past a few lines the second cost is larger.
     ///
     /// Getting it wrong costs nothing now: an overflow rebuilds the session and
     /// asks again, which is the guarantee the count never was.
-    public init(limit: Int = 6) {
+    public init(limit: Int = 3) {
         self.limit = max(1, limit)
     }
 
