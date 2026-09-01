@@ -124,6 +124,24 @@ public struct DictionarySensei: Sendable {
         }
     }
 
+    /// The Korean meanings the dictionary can find in a line.
+    ///
+    /// The glossary's raw material, exposed because a check outside this type
+    /// needs the same question answered: which of these meanings belong to this
+    /// line, and which came from somewhere else.
+    public func meanings(in line: String) -> [String] {
+        var results: [String] = []
+        for token in tokenizer.studyCandidates(in: line) {
+            guard let entry = entry(forSpelling: token.surface, reading: token.reading)
+                ?? lookup(lemma: token.lemma, reading: token.reading)
+            else { continue }
+            guard !entry.k.isEmpty else { continue }
+            if !Self.containsKanji(token.surface), Self.containsKanji(entry.l) { continue }
+            results.append(entry.k)
+        }
+        return results
+    }
+
     public func lookup(lemma: String, reading: String? = nil) -> Entry? {
         if let hit = sense(byLemma[lemma], reading: reading) { return hit }
 

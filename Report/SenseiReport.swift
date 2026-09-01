@@ -236,14 +236,46 @@ struct SenseiReportSuite {
         report += "엔진: \(sensei.usesOnDeviceModel ? "온디바이스 모델" : "사전 (모델 없음)")\n\n"
 
         var flags = Flags()
+        let dictionary = DictionarySensei()
+        var carried: [String] = []
+
         for line in lyrics.lines {
             guard let study = sensei.cached(line.id) else {
                 report += "- \(line.text) — **결과 없음**\n"
                 continue
             }
             flags.count(study, line: line.text, forbidden: forbidden[line.text] ?? [])
+
+            // Words the line before had and this one does not. If one of their
+            // meanings turns up in this translation, it came from next door.
+            //
+            // The character-overlap check cannot see this: 「「さよなら」だけだった」
+            // came back as 「작별 인사만 있었던 밤에」, and 「밤에」 overlaps the
+            // previous line's translation by two characters — far under any
+            // threshold that would not also flag every coincidence. The
+            // dictionary can see it, because it knows 夜 means 밤 and that this
+            // line has no 夜 in it.
+            let previous = lyrics.lines.first { $0.id == line.id - 1 }?.text
+            if let previous {
+                let mine = Set(dictionary.meanings(in: line.text))
+                for meaning in dictionary.meanings(in: previous) where !mine.contains(meaning) {
+                    // First sense only: a dictionary entry reads 「밤」 or
+                    // 「길이, 키」, and the whole string rarely appears verbatim.
+                    let head = meaning.split(separator: ",").first.map(String.init) ?? meaning
+                    guard head.count >= 2, study.translationKo.contains(head) else { continue }
+                    carried.append("\(line.text) ← \(head)")
+                    flags.carriedFromNeighbour += 1
+                    break
+                }
+            }
+
             let translation = study.translationKo.isEmpty ? "(없음)" : study.translationKo
             report += "- \(line.text)\n  - \(translation)\n"
+        }
+
+        if !carried.isEmpty {
+            report += "\n앞 줄에서 넘어온 말:\n"
+            for entry in carried { report += "- \(entry)\n" }
         }
 
         // The repeat must be a copy of the line it repeats, not a second guess.
@@ -481,6 +513,7 @@ struct SenseiReportSuite {
         var untranslatedJapanese = 0
         var dictionaryFallback = 0
         var paddedTranslation = 0
+        var carriedFromNeighbour = 0
 
         mutating func count(_ study: LineStudy, line: String, forbidden: [String]) {
             if forbidden.contains(where: study.translationKo.contains) { strayTranslation += 1 }
@@ -598,6 +631,7 @@ struct SenseiReportSuite {
             text += "| 번역 없음 | \(missingTranslation) |\n"
             text += "| **사전으로 대체된 줄 (모델 호출 실패)** | \(dictionaryFallback) |\n"
             text += "| **다른 줄의 번역과 겹침** | \(echoedTranslations) |\n"
+            text += "| **앞 줄의 단어가 번역에 넘어옴** | \(carriedFromNeighbour) |\n"
             text += "| **번역에 금지어(이웃·제목에서 온 말)** | \(strayTranslation) |\n"
             text += "| **번역에 일본어가 그대로 남음** | \(untranslatedJapanese) |\n"
             text += "| **번역이 원문의 두 배 넘게 길다(부풀림)** | \(paddedTranslation) |\n"

@@ -1,4 +1,6 @@
 import Foundation
+// For the refusal cases only — the model itself lives behind OnDeviceSensei.
+import FoundationModels
 import JustCore
 import Observation
 
@@ -25,6 +27,18 @@ public final class Sensei {
     /// The system translator, injected so the rules around it can be tested
     /// without one.
     private let translate: @MainActor (String) async -> String?
+
+    /// Lines the model refused, keyed by their text.
+    ///
+    /// A guardrail refusal is deterministic — the same words get the same
+    /// refusal — so asking again is a model call spent on a known answer. It
+    /// happens more than it sounds like it would: J-pop is full of parting and
+    /// death, and 「夜に駆ける」 alone tripped the guardrail three times in one
+    /// nine-line run. Those are the lines that made the song slow.
+    ///
+    /// Keyed by text rather than index so a repeated chorus line is only
+    /// refused once. Cleared with the rest of the scope when the song changes.
+    private var refusedByModel: Set<String> = []
     private let dictionary: DictionarySensei
     /// Used to read the line the way the line reads, rather than the way the
     /// model guessed it.
@@ -100,6 +114,7 @@ public final class Sensei {
         self.songID = songID
         entries.removeAll()
         inFlight.removeAll()
+        refusedByModel.removeAll()
         // The model's own transcript is state too, and it outlives this cache:
         // one session answers several lines now, so without this the new song's
         // opening lines are answered with the old song's questions still in
@@ -228,7 +243,7 @@ public final class Sensei {
         defer { inFlight.remove(lineIndex) }
 
         let result: LineStudy
-        if let onDevice, useModel {
+        if let onDevice, useModel, !refusedByModel.contains(text) {
             do {
                 result = try await onDevice.analyze(
                     line: text,
@@ -239,6 +254,17 @@ public final class Sensei {
                     artist: artist,
                     glossary: dictionary.glossary(for: text)
                 )
+            } catch let error as LanguageModelSession.GenerationError {
+                // A refusal is about these words and will not change on a
+                // second asking. Anything else — a busy system, a moment's
+                // failure — is worth another attempt on the next pass.
+                switch error {
+                case .guardrailViolation, .refusal:
+                    refusedByModel.insert(text)
+                default:
+                    break
+                }
+                result = dictionary.analyze(line: text, lineIndex: lineIndex)
             } catch {
                 result = dictionary.analyze(line: text, lineIndex: lineIndex)
             }
@@ -273,7 +299,9 @@ public final class Sensei {
         // Nothing better is coming for this line, so fill it now rather than
         // leaving it blank. Where the model *is* being asked, this waits until
         // it has had its passes — see `analyzeAll`.
-        if refined.translationKo.isEmpty, !useModel {
+        // A line the model refused is in the same position as a device with no
+        // model: asking again is spending a call on an answer already known.
+        if refined.translationKo.isEmpty, !useModel || refusedByModel.contains(text) {
             refined = await translated(refined)
         }
         // A failed attempt must not cost the reader what they already had.

@@ -1487,3 +1487,29 @@ struct GrammarPatternFalsePositiveTests {
         #expect(patterns("夢ならばどれほどよかったでしょう").contains("〜なら"))
     }
 }
+
+@Suite("줄에서 사전이 찾는 뜻")
+struct MeaningsInLineTests {
+    private let dictionary = DictionarySensei()
+
+    @Test("줄에 있는 단어의 뜻을 돌려준다")
+    func findsTheLineOwnMeanings() {
+        let meanings = dictionary.meanings(in: "二人だけの空が広がる夜に")
+        #expect(meanings.contains { $0.contains("하늘") })
+        #expect(meanings.contains { $0.contains("밤") })
+    }
+
+    @Test("줄에 없는 단어의 뜻은 돌려주지 않는다")
+    func doesNotInventMeanings() {
+        // This is what the bleed check leans on: 「「さよなら」だけだった」 has no
+        // 夜 in it, so 「밤」 appearing in its translation came from the line
+        // before it.
+        let meanings = dictionary.meanings(in: "「さよなら」だけだった")
+        #expect(!meanings.contains { $0.contains("밤") })
+    }
+
+    @Test("읽기가 같은 한자 단어를 끌어오지 않는다")
+    func keepsTheGlossaryRule() {
+        #expect(!dictionary.meanings(in: "二人だけの空が広がる夜に").contains { $0.contains("길이") })
+    }
+}
