@@ -185,5 +185,53 @@ let project = Project(
             ],
             settings: .settings(base: baseSettings)
         ),
+
+        // The measurement harness, which is a different kind of thing from the
+        // tests above: it asserts almost nothing and instead runs the real
+        // analyser over fixed lines and prints what came out, so two runs can
+        // be compared.
+        //
+        // Its own target for one reason — it is hosted by the app, and a hosted
+        // target can run on a device. The simulator's on-device model has gone
+        // missing three times in a day, and the phone in the room has a real
+        // one. Being unable to measure has blocked more work than any bug.
+        //
+        // Hosting the existing JustTests instead would have put an app launch
+        // in front of a suite that finishes in under a second and runs on every
+        // change. Two targets keeps both properties.
+        .target(
+            name: "JustReport",
+            destinations: allDevices,
+            product: .unitTests,
+            bundleId: "\(bundlePrefix).report",
+            deploymentTargets: iOSTarget,
+            infoPlist: .default,
+            sources: ["Report/**"],
+            dependencies: [
+                .target(name: "Just"),
+                .target(name: "JustCore"),
+                .target(name: "JustLyrics"),
+                .target(name: "JustSensei"),
+            ],
+            settings: .settings(base: baseSettings)
+        ),
+    ],
+    schemes: [
+        // The default scheme tests the fast suite only, so `xcodebuild test`
+        // and CI stay as they were. The report is asked for by name.
+        .scheme(
+            name: "Just",
+            shared: true,
+            buildAction: .buildAction(targets: ["Just"]),
+            testAction: .targets(["JustTests"]),
+            runAction: .runAction(executable: "Just")
+        ),
+        .scheme(
+            name: "JustReport",
+            shared: true,
+            buildAction: .buildAction(targets: ["Just", "JustReport"]),
+            testAction: .targets(["JustReport"]),
+            runAction: .runAction(executable: "Just")
+        ),
     ]
 )

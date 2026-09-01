@@ -8,26 +8,31 @@ import Testing
 /// produced, so a change to the prompt or the refinement rules can be judged by
 /// comparing two runs instead of squinting at two lines in the simulator.
 ///
-/// Compiled in only when asked for. A runtime switch was tried first and does
-/// not reach here: unit tests run inside the app process, and neither
-/// `xcodebuild`'s environment nor the app's defaults arrive in it. A compile
-/// flag is the one gate that certainly works, and CI never passes it — so this
-/// file does not exist as far as a normal test run is concerned.
+/// Lives in its own target, which is what keeps it out of a normal test run and
+/// what lets it run on a device: the target is hosted by the app, and a hosted
+/// test target can be installed on a phone. That matters because the
+/// simulator's on-device model has gone missing three times in a day, and the
+/// phone in the room has a real one — being unable to measure has blocked more
+/// work here than any bug.
+///
+/// A compile flag did the first job before. It worked, but it had to be
+/// remembered, and a run without it measured nothing while looking like it had.
 ///
 /// It asserts nothing about quality — quality is not assertable — but it does
 /// count the failure modes that *are* checkable, and those counts are the thing
 /// to compare between runs.
 ///
-/// Run:
+/// Run on the simulator:
 /// ```
-/// xcodebuild -workspace Just.xcworkspace -scheme Just \
-///   -destination 'platform=iOS Simulator,name=iPhone 17' \
-///   -only-testing:JustTests/SenseiReportSuite \
-///   OTHER_SWIFT_FLAGS="-DSENSEI_REPORT" test 2>&1 \
-///   | sed -n '/SENSEI REPORT BEGIN/,/SENSEI REPORT END/p'
+/// xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+///   -destination 'platform=iOS Simulator,name=iPhone 17' test
 /// ```
-#if SENSEI_REPORT
-
+///
+/// Or on the phone, where the model is real:
+/// ```
+/// xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+///   -destination 'platform=iOS,name=Coby' -allowProvisioningUpdates test
+/// ```
 @Suite("해석 품질 보고서")
 @MainActor
 struct SenseiReportSuite {
@@ -501,5 +506,3 @@ struct SenseiReportSuite {
         }
     }
 }
-
-#endif

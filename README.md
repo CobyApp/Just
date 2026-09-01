@@ -218,6 +218,31 @@ Tracking Transparency 프롬프트도 띄우지 않습니다.
 시스템 프롬프트가 뜨는 일이라 해석 도중이 아니라 사용자가 연 화면에 있어야
 맞습니다. 스위치로 끌 수 있고 기본은 켬입니다.
 
+### 해석 품질 측정
+
+`Report/SenseiReport.swift`는 테스트가 아니라 **측정 장치**입니다. 고정된 가사에
+실제 해석기를 돌려 나온 것을 찍고, 셀 수 있는 실패(이웃 줄 침범, 금지어,
+번역에 남은 일본어, 부풀림, 사전으로 대체된 줄)와 소요 시간을 표로 냅니다.
+품질은 단언할 수 없지만 이 숫자들은 단언할 수 있고, 두 실행을 비교하는 것이
+프롬프트나 묶음 변경을 판단하는 유일한 방법입니다.
+
+**별도 타깃(`JustReport`)이고 앱이 호스트입니다.** 그래서 실기기에서 돌릴 수
+있습니다 — 시뮬레이터의 온디바이스 모델 자산은 하루에 세 번 사라졌고, 그때마다
+보고서는 「모든 줄이 사전으로 대체됐습니다」라고 스스로 말합니다.
+
+```bash
+# 시뮬레이터
+xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+  -destination 'platform=iOS Simulator,name=iPhone 17' test
+
+# 실기기 (모델이 진짜인 곳). 기기 잠금을 풀어야 합니다.
+xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+  -destination 'platform=iOS,name=Coby' -allowProvisioningUpdates test
+```
+
+기본 `Just` 스킴의 테스트는 `JustTests`만 돌립니다. 유닛 테스트는 1초 미만이고
+매 변경마다 돌리는 것이라, 그 앞에 앱 실행을 얹지 않기 위해 타깃을 나눴습니다.
+
 ### 번들 사전
 
 `Modules/JustSensei/Resources/seed-dictionary.json`은 생성물입니다.
