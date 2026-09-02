@@ -321,6 +321,13 @@ final class SongSession {
     /// screen is still mounted, and `onDisappear` flushes on the way out — so
     /// without the scope check the departing session would write the new song's
     /// cache, usually empty, over everything this song had analysed.
+    /// `flush`, for the one caller outside this class.
+    ///
+    /// A line the reader improved by hand is not part of any automatic pass, so
+    /// nothing else is going to save it — and the periodic flush that covers the
+    /// bulk runs only fires while one is running.
+    func flushNow() { flush() }
+
     private func flush() {
         guard let song, let studies = sensei.cache(for: song.videoID) else { return }
         song.analyses = studies

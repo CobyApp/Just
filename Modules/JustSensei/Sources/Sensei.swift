@@ -159,11 +159,76 @@ public final class Sensei {
         let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
 
+        return await produce(
+            text: text,
+            lineIndex: lineIndex,
+            in: lyrics,
+            songTitle: songTitle,
+            artist: artist,
+            useModel: usesModel
+        )
+    }
+
+    /// A better reading of one line, whatever mode the song was analysed in.
+    ///
+    /// This is what makes the fast mode worth choosing rather than merely
+    /// enduring. Quick gives the whole song in seconds, and most lines only ever
+    /// need that much — but the one line the reader stops on, the one they came
+    /// back to the song for, deserves the model. Asking for it a line at a time
+    /// costs seconds instead of the minutes a whole song costs.
+    ///
+    /// The cache is deliberately not consulted: a quick answer for this line is
+    /// already settled by `isFinal`, and being asked to improve it is precisely
+    /// a request to ignore that.
+    /// - Returns: nil when there is no model to ask, or the line is not there.
+    @discardableResult
+    public func deepen(
+        lineIndex: Int,
+        in lyrics: Lyrics,
+        songTitle: String,
+        artist: String
+    ) async -> LineStudy? {
+        guard modelIsAvailable else { return nil }
+        guard let line = lyrics.lines.first(where: { $0.id == lineIndex }) else { return nil }
+        let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        guard !inFlight.contains(lineIndex) else { return entries[lineIndex] }
+
+        return await produce(
+            text: text,
+            lineIndex: lineIndex,
+            in: lyrics,
+            songTitle: songTitle,
+            artist: artist,
+            useModel: true
+        )
+    }
+
+    /// Whether a line has an answer that the model could improve on.
+    ///
+    /// Not merely "is there a model": a line the model already answered has
+    /// nothing better coming, and offering to redo it would promise something
+    /// that is not on offer.
+    public func canDeepen(_ lineIndex: Int) -> Bool {
+        guard modelIsAvailable, !inFlight.contains(lineIndex) else { return false }
+        guard let study = entries[lineIndex] else { return false }
+        return study.engine != .onDevice
+    }
+
+    /// Runs one line through one of the two engines and files the result.
+    private func produce(
+        text: String,
+        lineIndex: Int,
+        in lyrics: Lyrics,
+        songTitle: String,
+        artist: String,
+        useModel: Bool
+    ) async -> LineStudy? {
         inFlight.insert(lineIndex)
         defer { inFlight.remove(lineIndex) }
 
         let result: LineStudy
-        if let onDevice, depth == .deep {
+        if let onDevice, useModel {
             do {
                 result = try await onDevice.analyze(
                     line: text,
@@ -208,9 +273,25 @@ public final class Sensei {
         // Nothing better is coming for this line, so fill it now rather than
         // leaving it blank. Where the model *is* being asked, this waits until
         // it has had its passes — see `analyzeAll`.
-        if refined.translationKo.isEmpty, !usesModel {
+        if refined.translationKo.isEmpty, !useModel {
             refined = await translated(refined)
         }
+        // A failed attempt must not cost the reader what they already had.
+        //
+        // The model's failure path falls back to the dictionary, which has no
+        // translation — so a line that already carried one, asked to be read
+        // more carefully and refused, would come back *worse* than before. That
+        // is a plain loss caused by asking for an improvement, and it is exactly
+        // what `deepen` invites people to do.
+        //
+        // Only compared on the translation. Words and grammar come from the
+        // dictionary either way, so there is nothing to lose there.
+        if refined.translationKo.isEmpty,
+           let existing = entries[lineIndex],
+           !existing.translationKo.isEmpty {
+            return existing
+        }
+
         // Kept even when it is not a settled answer, so the line shows its words
         // instead of nothing. `isFinal` is what stops it being treated as the
         // last word — the short-circuit above skips it, so the next pass tries

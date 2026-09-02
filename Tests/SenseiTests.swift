@@ -1340,3 +1340,77 @@ struct AnalysisDepthTests {
         #expect(sensei.depth == .quick)
     }
 }
+
+@MainActor
+@Suite("줄 하나만 정확하게")
+struct DeepenTests {
+    private let lyrics = Lyrics(
+        lines: [LyricLine(id: 0, time: 0, text: "夢を見ている")],
+        isSynced: true,
+        source: "test"
+    )
+
+    private func sensei(modelIsAvailable: Bool = true) -> Sensei {
+        Sensei(
+            dictionary: DictionarySensei(entries: [
+                .init(l: "夢", r: "ゆめ", k: "꿈", p: "명사", j: "N4")
+            ]),
+            modelIsAvailable: modelIsAvailable,
+            depth: .quick,
+            translate: { _ in "직역된 문장" }
+        )
+    }
+
+    /// A quick answer is settled as far as `isFinal` is concerned, and asking to
+    /// improve it is exactly a request to ignore that.
+    @Test("빠른 결과가 있는 줄은 다시 해석할 수 있다")
+    func offersDeepenOnQuickResult() async {
+        let sensei = sensei()
+        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(sensei.canDeepen(0))
+    }
+
+    @Test("모델이 낸 답은 다시 해석하자고 하지 않는다")
+    func noDeepenOnModelResult() {
+        let sensei = sensei()
+        sensei.preload([0: LineStudy(
+            lineIndex: 0,
+            original: "夢を見ている",
+            translationKo: "꿈을 꾸고 있어",
+            words: [],
+            grammar: [],
+            engine: .onDevice
+        )])
+        #expect(!sensei.canDeepen(0))
+    }
+
+    @Test("해석되지 않은 줄에는 제안하지 않는다")
+    func noDeepenBeforeAnalysis() {
+        #expect(!sensei().canDeepen(0))
+    }
+
+    @Test("모델이 없는 기기에서는 제안하지 않는다")
+    func noDeepenWithoutModel() async {
+        let sensei = sensei(modelIsAvailable: false)
+        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(!sensei.canDeepen(0))
+        #expect(await sensei.deepen(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수") == nil)
+    }
+
+    /// Asking for an improvement must never cost the reader what they had. The
+    /// model's failure path falls back to the dictionary, which has no
+    /// translation of its own — so without this the line comes back blank.
+    @Test("다시 해석이 실패해도 이미 있던 번역은 남는다")
+    func failedDeepenKeepsTranslation() async {
+        let sensei = sensei()
+        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(sensei.cached(0)?.translationKo == "직역된 문장")
+
+        // The seam has no model, so `deepen` takes the model's failure path.
+        let result = await sensei.deepen(
+            lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수"
+        )
+        #expect(result?.translationKo == "직역된 문장")
+        #expect(sensei.cached(0)?.translationKo == "직역된 문장")
+    }
+}

@@ -30,6 +30,7 @@ struct LineStudySheet: View {
                         }
                     } else if let study {
                         results(study)
+                        deepenButton(study)
                     }
                 }
                 .padding(JustTheme.Space.regular)
@@ -147,14 +148,64 @@ struct LineStudySheet: View {
                 Text("뜻은 위에 있습니다. 일본어가 아니라서 단어장에 담을 것은 없습니다.")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.tertiary)
-            } else if study.engine == .dictionary {
-                Text("사전 모드에서는 수록된 단어만 찾을 수 있습니다. Apple Intelligence를 켜면 문맥까지 해석합니다.")
+            } else if study.engine != .onDevice {
+                // Points at what can actually be done from here. "Apple
+                // Intelligence를 켜면" described a system switch, and the choice
+                // now lives in this app — either the button below this text, or
+                // the mode in settings.
+                Text(
+                    app.sensei.usesOnDeviceModel
+                        ? "빠른 해석은 사전에 수록된 단어만 찾습니다. 아래에서 이 줄만 다시 해석할 수 있습니다."
+                        : "사전에 수록된 단어만 찾을 수 있습니다. 이 기기에서는 문맥 해석을 쓸 수 없습니다."
+                )
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .justCard()
+    }
+
+    /// Asks the model to read this one line properly.
+    ///
+    /// Shown only where there is something to improve on — a line the model
+    /// already answered has nothing better coming. This is the other half of
+    /// the fast mode: the whole song in seconds, and the model on the line the
+    /// reader actually stopped at, which costs seconds rather than the minutes
+    /// a whole song costs.
+    @ViewBuilder
+    private func deepenButton(_ study: LineStudy) -> some View {
+        if app.sensei.canDeepen(lineIndex) {
+            VStack(spacing: JustTheme.Space.tight) {
+                Button {
+                    Task { await deepen() }
+                } label: {
+                    Label("이 줄만 정확하게", systemImage: "sparkles")
+                }
+                .buttonStyle(.justSecondary)
+
+                Text("Apple Intelligence가 앞뒤 줄까지 읽고 이 줄을 다시 해석합니다. 몇 초 걸립니다.")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Ink.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func deepen() async {
+        guard let lyrics = session.lyrics else { return }
+        await app.sensei.deepen(
+            lineIndex: lineIndex,
+            in: lyrics,
+            songTitle: session.track.title,
+            artist: session.track.artist
+        )
+        // Written to the record right away. A line improved by hand is worth
+        // more than the automatic passes, and losing it because the player was
+        // closed before the next flush would be the reader paying twice.
+        session.flushNow()
+        syncSavedState()
     }
 
     private func toggle(_ word: StudyWord, in study: LineStudy) {
