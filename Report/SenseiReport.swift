@@ -270,6 +270,113 @@ struct SenseiReportSuite {
         print("=== SENSEI WHOLE SONG END ===")
     }
 
+    /// What the fast mode actually produces on real lyrics.
+    ///
+    /// The mode is offered as a complete answer — words, grammar and a sentence
+    /// — so the claim worth checking is whether the three are actually there,
+    /// line by line, on lyrics rather than on a test string. It needs no model,
+    /// which is the whole point: this is the one path that can be measured
+    /// wherever it is run.
+    ///
+    /// The sentence comes from the system translator, and that is the part that
+    /// may be missing here — a simulator often has Japanese-to-Korean as
+    /// `.supported` rather than `.installed`, meaning a language pack that only
+    /// a real screen can be asked to download. The report says which it got, so
+    /// a run with no translations is not mistaken for a broken mode.
+    @Test("빠른 해석이 실제 가사에서 무엇을 채우는지")
+    func writeQuickModeReport() async {
+        let packStatus = await PlainTranslator.shared.availability()
+        let sensei = Sensei()
+        sensei.depth = .quick
+
+        var lines: [String] = []
+        var withWords = 0
+        var withGrammar = 0
+        var withTranslation = 0
+        var grammarCounts: [String: Int] = [:]
+        var bare: [String] = []
+
+        for (song, songLines) in Self.realLyrics {
+            let lyrics = Lyrics(
+                lines: songLines.enumerated().map { LyricLine(id: $0.offset, time: nil, text: $0.element) },
+                isSynced: false,
+                source: "report"
+            )
+            sensei.reset(for: song)
+
+            for line in lyrics.lines {
+                guard let study = await sensei.analyze(
+                    lineIndex: line.id, in: lyrics, songTitle: song, artist: "-"
+                ) else { continue }
+
+                if !study.words.isEmpty { withWords += 1 }
+                if !study.grammar.isEmpty { withGrammar += 1 }
+                if !study.translationKo.isEmpty { withTranslation += 1 }
+                for note in study.grammar { grammarCounts[note.pattern, default: 0] += 1 }
+                // A line with no words and no grammar is a line the fast mode
+                // had nothing to say about, which is what to go and look at.
+                if study.words.isEmpty, study.grammar.isEmpty, LineScript.hasJapanese(line.text) {
+                    bare.append(line.text)
+                }
+                lines.append(
+                    "\(line.text)\n  단어 \(study.words.count) · 문법 \(study.grammar.map(\.pattern).joined(separator: " "))"
+                        + (study.translationKo.isEmpty ? "" : "\n  → \(study.translationKo)")
+                )
+            }
+        }
+
+        let total = lines.count
+        func share(_ n: Int) -> String {
+            total == 0 ? "-" : "\(n)/\(total) (\(Int((Double(n) / Double(total) * 100).rounded()))%)"
+        }
+
+        var report = lines.joined(separator: "\n")
+        report += "\n\n--- 빠른 해석 요약 ---\n"
+        report += "줄 \(total)\n"
+        report += "단어가 붙은 줄 \(share(withWords))\n"
+        report += "문법이 붙은 줄 \(share(withGrammar))\n"
+        report += "번역이 붙은 줄 \(share(withTranslation))  [번역 팩: \(packStatus)]\n"
+        report += "아무것도 못 붙인 일본어 줄 \(bare.count)\n"
+        for line in bare { report += "  · \(line)\n" }
+        report += "\n패턴 출현\n"
+        for (pattern, count) in grammarCounts.sorted(by: { $0.value > $1.value }) {
+            report += "  \(pattern) \(count)\n"
+        }
+
+        print("=== QUICK MODE BEGIN ===")
+        print(report)
+        print("=== QUICK MODE END ===")
+    }
+
+    /// Consecutive lines from songs a learner would actually open. Shared by the
+    /// reports that measure over real lyrics rather than over fixtures.
+    static let realLyrics: [(String, [String])] = [
+        ("夜に駆ける", [
+            "沈むように溶けてゆくように",
+            "二人だけの空が広がる夜に",
+            "「さよなら」だけだった",
+            "その一言で全てが分かった",
+            "日が沈み出した空と君の姿",
+            "フェンス越しに重なっていた",
+            "もう嫌だって 疲れたよなんて",
+            "本当は僕も言いたいんだ",
+        ]),
+        ("Lemon", [
+            "夢ならばどれほどよかったでしょう",
+            "今でもあなたはわたしの光",
+            "暗闇であなたの背をなぞった",
+            "その輪郭を鮮明に覚えている",
+            "戻らない幸せがあることを",
+            "最後にあなたが教えてくれた",
+        ]),
+        ("マリーゴールド", [
+            "麦わらの帽子の君が",
+            "揺れたマリーゴールドに似てる",
+            "あれから七年経っても",
+            "僕は君に会いたいんだ",
+        ]),
+    ]
+
     /// How much of real lyrics the bundled dictionary actually knows.
     ///
     /// This is what feeds `<words>` into the prompt, and that grounding is what

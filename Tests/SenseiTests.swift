@@ -1414,3 +1414,76 @@ struct DeepenTests {
         #expect(sensei.cached(0)?.translationKo == "직역된 문장")
     }
 }
+
+/// The false positives that substring matching produces, each one taken from a
+/// real lyric line the report ran over. Every one of these was a note the reader
+/// would have been taught wrongly, which is the one thing this approach was
+/// justified by not doing.
+@Suite("문법 패턴 오탐")
+struct GrammarPatternFalsePositiveTests {
+    private func patterns(_ line: String) -> [String] {
+        GrammarPatterns.matches(in: line).map(\.pattern)
+    }
+
+    /// 「あれから七年」 is "seven years since then". A note calling it a reason
+    /// says the opposite of what the line means.
+    @Test("명사에 붙은 から는 이유가 아니다")
+    func fromANounIsNotCausal() {
+        #expect(!patterns("あれから七年経っても").contains("〜から"))
+        #expect(!patterns("今から行こう").contains("〜から"))
+        #expect(!patterns("ここから始まる").contains("〜から"))
+    }
+
+    @Test("서술어에 붙은 から는 이유로 잡는다")
+    func fromAPredicateIsCausal() {
+        #expect(patterns("寂しいから").contains("〜から"))
+        #expect(patterns("言ったから").contains("〜から"))
+        #expect(patterns("好きだから").contains("〜から"))
+    }
+
+    /// 「今でも」 is 今 + でも, "even now" — not a verb concession.
+    @Test("명사에 붙은 でも는 양보 활용이 아니다")
+    func nounPlusDemoIsNotConcessive() {
+        #expect(!patterns("今でもあなたはわたしの光").contains("〜ても"))
+        #expect(!patterns("それでも歩く").contains("〜ても"))
+    }
+
+    /// The で-form only comes from ぐ/ぬ/ぶ/む verbs, which always leave ん.
+    @Test("ん 뒤의 でも는 양보로 잡는다")
+    func ndemoIsConcessive() {
+        #expect(patterns("本を読んでも分からない").contains("〜ても"))
+        #expect(patterns("経っても").contains("〜ても"))
+    }
+
+    /// 「ものに」 is a noun and a particle. 「大切なのに」 is the pattern.
+    @Test("명사에 붙은 のに는 역접이 아니다")
+    func nounPlusNoniIsNotConcessive() {
+        #expect(!patterns("大切なものになる").contains("〜のに"))
+        #expect(patterns("時間がないのに").contains("〜のに"))
+    }
+
+    /// Words that end in a pattern without being it. All three are common enough
+    /// in lyrics that leaving them in meant teaching the wrong thing regularly.
+    @Test("패턴 글자를 품은 다른 단어는 잡지 않는다")
+    func falseFriends() {
+        #expect(!patterns("「さよなら」だけだった").contains("〜なら"))
+        #expect(!patterns("素晴らしい世界").contains("〜らしい"))
+        #expect(!patterns("切ない気持ち").contains("〜ない"))
+        #expect(!patterns("少ない時間").contains("〜ない"))
+    }
+
+    /// Blanking a word must not glue its neighbours into a form nobody wrote.
+    @Test("가린 단어가 이웃을 붙여 새 패턴을 만들지 않는다")
+    func maskingDoesNotCreateForms() {
+        let masked = GrammarPatterns.masked("君にさよならを言う")
+        #expect(masked.count == "君にさよならを言う".count)
+        #expect(!masked.contains("にを"))
+    }
+
+    /// The real conditional still fires — the fix must not have removed the
+    /// pattern along with its lookalikes.
+    @Test("진짜 조건형은 그대로 잡는다")
+    func realConditionalStillMatches() {
+        #expect(patterns("夢ならばどれほどよかったでしょう").contains("〜なら"))
+    }
+}

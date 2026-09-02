@@ -24,18 +24,88 @@ public enum GrammarPatterns {
         /// Patterns whose match implies this one too, so only the longer one is
         /// reported: 「なければならない」 contains 「ない」.
         let supersedes: [String]
+        /// Whether the form must follow a predicate to be this pattern.
+        ///
+        /// For the handful of forms that are two different things depending on
+        /// what they attach to. 「から」 after a predicate is a reason — 「言った
+        /// から」, 「寂しいから」 — and after a noun it is a starting point:
+        /// 「あれから七年」 is "seven years since then", and a note calling that
+        /// a reason teaches the opposite of what the line says.
+        let requiresPredicate: Bool
 
         init(
             _ forms: [String],
             display: String? = nil,
             _ explanationKo: String,
-            supersedes: [String] = []
+            supersedes: [String] = [],
+            requiresPredicate: Bool = false
         ) {
             self.forms = forms
             self.display = display ?? "〜\(forms[0])"
             self.explanationKo = explanationKo
             self.supersedes = supersedes
+            self.requiresPredicate = requiresPredicate
         }
+    }
+
+    /// Kana a predicate ends in, right before an attached particle.
+    ///
+    /// The う-row (a plain verb), plus い (an adjective), plus た/だ/な. It does
+    /// not have to be exact — a noun ending in one of these slips through,
+    /// 「あなたから」 being the notable one — but it removes the whole class of
+    /// noun-plus-particle that the substring match otherwise reports as
+    /// conjugation: 今から, ここから, 明日から, ものに.
+    private static let predicateEndings: Set<Character> = [
+        "う", "く", "ぐ", "す", "つ", "ぬ", "ぶ", "む", "る",
+        "い", "た", "だ", "な",
+    ]
+
+    /// Words that contain a pattern's letters without being that pattern.
+    ///
+    /// The cost of matching on substrings, and it has to be paid explicitly
+    /// because there is no way to spot them by shape: 「さよなら」 ends in the
+    /// conditional 「なら」, 「素晴らしい」 contains the hearsay 「らしい」, and
+    /// 「切ない」 is one adjective rather than a negation. Each of these is a
+    /// common word in lyrics, so every one was a note the reader would have been
+    /// taught wrongly.
+    ///
+    /// Blanked out of the line before matching, rather than checked per pattern:
+    /// one pass, and a word that hides two patterns only has to be listed once.
+    private static let falseFriends = [
+        "さよなら", "サヨナラ", "さようなら",   // 〜なら
+        "素晴らし", "すばらし",                 // 〜らしい
+        "切ない", "せつない", "少ない", "危ない", "はかない", "あどけない",  // 〜ない
+        "だいたい", "たいてい", "たいへん",     // 〜たい
+        "そのまま", "たまたま",                 // 〜まで is safe; these guard 〜まま
+    ]
+
+    /// The line with its false friends blanked out.
+    ///
+    /// Replaced with a space rather than removed, so blanking a word cannot glue
+    /// its neighbours into a form that was never written.
+    static func masked(_ line: String) -> String {
+        var text = line
+        for word in falseFriends where text.contains(word) {
+            text = text.replacingOccurrences(
+                of: word,
+                with: String(repeating: " ", count: word.count)
+            )
+        }
+        return text
+    }
+
+    /// Whether `form` occurs in `line` attached to a predicate.
+    private static func followsPredicate(_ form: String, in line: String) -> Bool {
+        var searchRange = line.startIndex..<line.endIndex
+        while let found = line.range(of: form, range: searchRange) {
+            if found.lowerBound > line.startIndex {
+                let preceding = line[line.index(before: found.lowerBound)]
+                if predicateEndings.contains(preceding) { return true }
+            }
+            guard found.upperBound < line.endIndex else { return false }
+            searchRange = found.upperBound..<line.endIndex
+        }
+        return false
     }
 
     /// Ordered longest-intent first: the list is scanned in order and a match
@@ -91,8 +161,12 @@ public enum GrammarPatterns {
               "그렇다면, 이라는 가정입니다. 화제를 받아 조건으로 세웁니다."),
         .init(["ければ", "えば", "けば", "せば", "てば", "めば", "れば"], display: "〜ば",
               "가정형입니다. 그렇게 하면, 이라는 조건을 만듭니다."),
-        .init(["ても", "でも"], display: "〜ても",
-              "그렇더라도, 라는 양보입니다. 「たとえ」와 자주 함께 씁니다."),
+        // 「でも」 is the concessive only after ん — the て-form of ぐ/ぬ/ぶ/む
+        // verbs, 「読んでも」, 「飲んでも」. Everywhere else it is the particle:
+        // 「今でも」 is "even now", not a conjugation, and 「それでも」 is a
+        // conjunction. Listing bare 「でも」 reported both as verb concession.
+        .init(["ても", "んでも"], display: "〜ても",
+              "동사·형용사의 て형에 붙어 '그렇더라도'라는 양보를 나타냅니다. 「たとえ」와 자주 함께 씁니다."),
 
         // Ability, change, causation
         .init(["ことができる", "ことができない"], display: "〜ことができる",
@@ -110,11 +184,14 @@ public enum GrammarPatterns {
         .init(["けれど", "けど", "だけど"], display: "〜けど",
               "역접입니다. 앞말과 반대되는 내용이 이어집니다."),
         .init(["から"], display: "〜から",
-              "이유를 나타냅니다. 그러니까, 이므로."),
+              "이유를 나타냅니다. 그러니까, 이므로.",
+              requiresPredicate: true),
         .init(["ので"], display: "〜ので",
-              "이유를 나타냅니다. 「から」보다 부드럽습니다."),
+              "이유를 나타냅니다. 「から」보다 부드럽습니다.",
+              requiresPredicate: true),
         .init(["のに"], display: "〜のに",
-              "그런데도, 라는 아쉬움이나 불만이 섞인 역접입니다."),
+              "그런데도, 라는 아쉬움이나 불만이 섞인 역접입니다.",
+              requiresPredicate: true),
         .init(["だけ"], display: "〜だけ",
               "그것뿐이라는 한정입니다."),
         .init(["しか"], display: "〜しか",
@@ -140,10 +217,14 @@ public enum GrammarPatterns {
 
         var claimed = Set<String>()
         var notes: [GrammarNote] = []
+        let text = masked(line)
 
         for pattern in all {
             guard !claimed.contains(pattern.display) else { continue }
-            guard pattern.forms.contains(where: line.contains) else { continue }
+            let appears = pattern.requiresPredicate
+                ? pattern.forms.contains { followsPredicate($0, in: text) }
+                : pattern.forms.contains(where: text.contains)
+            guard appears else { continue }
 
             notes.append(
                 GrammarNote(pattern: pattern.display, explanationKo: pattern.explanationKo)
