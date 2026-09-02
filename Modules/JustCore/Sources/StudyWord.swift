@@ -101,12 +101,16 @@ public extension LineStudy {
 public enum AnalysisEngineKind: String, Sendable, Codable {
     /// Apple Intelligence, on-device.
     case onDevice
-    /// Bundled dictionary lookup — no translation, meanings only.
+    /// Bundled dictionary lookup — meanings and matched grammar, no
+    /// translation. Either the system translator is off, or the model failed
+    /// on the line and the translator could not answer it either.
     case dictionary
-    /// Dictionary meanings with the system translator's Korean line.
+    /// Dictionary meanings, matched grammar, and the system translator's
+    /// Korean line. The whole of what `AnalysisDepth.quick` produces.
     ///
-    /// What an older device can do: no nuance, no grammar notes, a fairly
-    /// literal sentence — but a translation, where before there was none.
+    /// No nuance and a fairly literal sentence — but fast, and complete. This
+    /// began as what an old device could manage; it is now also what someone
+    /// picks when they would rather read the chorus than wait for it.
     case plainTranslation
 
     public var label: String {

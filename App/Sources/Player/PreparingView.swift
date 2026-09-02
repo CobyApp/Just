@@ -15,6 +15,10 @@ struct PreparingView: View {
     /// nil while there is nothing to skip — during the lyric fetch there is no
     /// partial result to go and read.
     let onSkip: (() -> Void)?
+    /// nil unless the slow reading is what is being waited on. Offering the
+    /// fast one during the lyric fetch would promise a speed-up of a step that
+    /// is not the slow part.
+    let onUseQuick: (() -> Void)?
 
     var body: some View {
         VStack(spacing: JustTheme.Space.loose) {
@@ -49,6 +53,17 @@ struct PreparingView: View {
                     Text("남은 줄은 들으면서 이어서 해석합니다")
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
+                }
+                // Offered here because this screen is where the wait is
+                // actually felt. A mode switch that lives only in settings is a
+                // switch nobody finds while they are waiting for it.
+                if let onUseQuick {
+                    Button("빠른 해석으로 끝내기", action: onUseQuick)
+                        .buttonStyle(.justSecondary)
+                    Text("남은 줄을 사전과 시스템 번역으로 바로 채웁니다. 이후 곡도 빠른 해석으로 열립니다.")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                        .multilineTextAlignment(.center)
                 }
                 Button("중단", action: onCancel)
                     .buttonStyle(.justSecondary)

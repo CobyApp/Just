@@ -143,6 +143,30 @@ final class SongSession {
         prepareAnalysis?.cancel()
     }
 
+    /// Abandons the slow reading and lets the fast one finish the song.
+    ///
+    /// Nothing is cancelled and nothing is thrown away. The run in flight asks
+    /// `sensei` which mode it is in once per line, so the line already with the
+    /// model still comes back as the model's — and every line after it is
+    /// answered from the dictionary immediately. The lines already analysed
+    /// keep the better answer they were given.
+    ///
+    /// The choice is remembered, and the button says so. Leaving it to expire
+    /// at the next launch would be a mode the reader cannot see, cannot find in
+    /// settings, and did not know they were still in.
+    func useQuickAnalysis() {
+        guard sensei.depth == .deep else { return }
+        sensei.depth = .quick
+        AnalysisDepthPreference.chosen = .quick
+    }
+
+    /// Whether there is a slow reading in progress to abandon.
+    var canUseQuickAnalysis: Bool {
+        guard sensei.usesOnDeviceModel, sensei.depth == .deep else { return false }
+        if case .analyzing = phase { return true }
+        return false
+    }
+
     var canSkipWaiting: Bool {
         if case .analyzing = phase { return true }
         return false

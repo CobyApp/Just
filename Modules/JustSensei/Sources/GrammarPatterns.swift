@@ -1,0 +1,163 @@
+import Foundation
+import JustCore
+
+/// Grammar patterns found by matching the line, not by asking the model.
+///
+/// Asking cost a field on every line and came back empty five times in nine, so
+/// it was dropped — and the collection screen it fed would have emptied out with
+/// it. Matching restores the feature for nothing: Japanese grammar is a finite,
+/// well-catalogued set, a lyric either contains 「〜てしまう」 or it does not, and
+/// the explanation of what it means does not vary by song. This is the same
+/// division the rest of the analyser already makes — the model for judgement,
+/// fixed data for facts.
+///
+/// What is given up against the model's version is the note tailored to the
+/// line. What is gained is that it always fires, always says the same thing, and
+/// costs no generation at all.
+public enum GrammarPatterns {
+    public struct Pattern: Sendable {
+        /// What to look for in the line.
+        public let forms: [String]
+        /// How it is written when shown to the learner.
+        public let display: String
+        public let explanationKo: String
+        /// Patterns whose match implies this one too, so only the longer one is
+        /// reported: 「なければならない」 contains 「ない」.
+        let supersedes: [String]
+
+        init(
+            _ forms: [String],
+            display: String? = nil,
+            _ explanationKo: String,
+            supersedes: [String] = []
+        ) {
+            self.forms = forms
+            self.display = display ?? "〜\(forms[0])"
+            self.explanationKo = explanationKo
+            self.supersedes = supersedes
+        }
+    }
+
+    /// Ordered longest-intent first: the list is scanned in order and a match
+    /// removes the patterns it supersedes.
+    public static let all: [Pattern] = [
+        // Aspect and completion
+        .init(["てしまう", "ちゃう", "ちゃった", "てしまった"], display: "〜てしまう",
+              "동작이 끝나 버렸음, 또는 그에 대한 아쉬움·후회를 나타냅니다."),
+        .init(["ている", "てる", "でいる", "でる"], display: "〜ている",
+              "지금 진행 중이거나 그 상태가 이어지고 있음을 나타냅니다. 가사에서는 「〜てる」로 줄여 씁니다."),
+        .init(["ておく", "とく"], display: "〜ておく",
+              "나중을 위해 미리 해 둔다는 뜻입니다."),
+        .init(["てくる"], display: "〜てくる",
+              "동작이 이쪽으로 향하거나, 점점 그렇게 되어 옴을 나타냅니다."),
+        .init(["ていく", "てゆく"], display: "〜ていく",
+              "동작이 멀어지거나, 앞으로 계속 그렇게 되어 감을 나타냅니다."),
+
+        // Desire, intent, attempt
+        .init(["たい"], display: "〜たい",
+              "말하는 사람이 그렇게 하고 싶다는 뜻입니다."),
+        .init(["ようとする", "うとする"], display: "〜ようとする",
+              "그렇게 하려고 한다는 의지나 시도를 나타냅니다."),
+        .init(["ように"], display: "〜ように",
+              "그렇게 되도록, 또는 그런 모양으로. 비유에도 씁니다."),
+        .init(["つもり"], display: "〜つもり",
+              "그렇게 할 작정이라는 뜻입니다."),
+
+        // Obligation and permission
+        .init(["なければならない", "なきゃ", "なくちゃ", "ねばならない"], display: "〜なければならない",
+              "그렇게 해야 한다는 의무를 나타냅니다. 가사에서는 「〜なきゃ」로 줄여 씁니다.",
+              supersedes: ["ない"]),
+        .init(["てもいい"], display: "〜てもいい",
+              "그래도 괜찮다는 허락이나 양보입니다."),
+
+        // Conjecture and hearsay
+        .init(["かもしれない", "かもしれません"], display: "〜かもしれない",
+              "그럴지도 모른다는 추측입니다.", supersedes: ["ない"]),
+        .init(["だろう", "でしょう"], display: "〜だろう",
+              "그럴 것이라는 추측이나 확인입니다."),
+        .init(["そうだ", "そうな", "そうに"], display: "〜そうだ",
+              "그렇게 보인다, 또는 그렇게 될 것 같다는 뜻입니다."),
+        .init(["みたい"], display: "〜みたい",
+              "그런 것 같다, 또는 그것과 비슷하다는 뜻입니다."),
+        .init(["らしい"], display: "〜らしい",
+              "그렇다고 들었다, 또는 그것답다는 뜻입니다."),
+        .init(["はず"], display: "〜はず",
+              "당연히 그럴 것이라는 근거 있는 예상입니다."),
+
+        // Conditions
+        .init(["たら"], display: "〜たら",
+              "그렇게 되면, 이라는 가정입니다."),
+        .init(["ならば", "なら"], display: "〜なら",
+              "그렇다면, 이라는 가정입니다. 화제를 받아 조건으로 세웁니다."),
+        .init(["ければ", "えば", "けば", "せば", "てば", "めば", "れば"], display: "〜ば",
+              "가정형입니다. 그렇게 하면, 이라는 조건을 만듭니다."),
+        .init(["ても", "でも"], display: "〜ても",
+              "그렇더라도, 라는 양보입니다. 「たとえ」와 자주 함께 씁니다."),
+
+        // Ability, change, causation
+        .init(["ことができる", "ことができない"], display: "〜ことができる",
+              "그렇게 할 수 있다는 능력이나 가능성입니다."),
+        .init(["ようになる"], display: "〜ようになる",
+              "그렇게 되기에 이르렀다는 변화입니다."),
+        .init(["なくなる"], display: "〜なくなる",
+              "더 이상 그렇지 않게 되었다는 변화입니다.", supersedes: ["ない"]),
+        .init(["すぎる"], display: "〜すぎる",
+              "지나치게 그렇다는 뜻입니다."),
+
+        // Connectives and discourse
+        .init(["ながら"], display: "〜ながら",
+              "두 동작을 동시에 함을 나타냅니다."),
+        .init(["けれど", "けど", "だけど"], display: "〜けど",
+              "역접입니다. 앞말과 반대되는 내용이 이어집니다."),
+        .init(["から"], display: "〜から",
+              "이유를 나타냅니다. 그러니까, 이므로."),
+        .init(["ので"], display: "〜ので",
+              "이유를 나타냅니다. 「から」보다 부드럽습니다."),
+        .init(["のに"], display: "〜のに",
+              "그런데도, 라는 아쉬움이나 불만이 섞인 역접입니다."),
+        .init(["だけ"], display: "〜だけ",
+              "그것뿐이라는 한정입니다."),
+        .init(["しか"], display: "〜しか",
+              "그것밖에 없다는 한정입니다. 뒤에 부정이 옵니다."),
+        .init(["ばかり"], display: "〜ばかり",
+              "그것만, 또는 막 그렇게 한 직후를 나타냅니다."),
+        .init(["まで"], display: "〜まで",
+              "그때까지, 그 정도까지라는 범위입니다."),
+        .init(["ずに", "ないで"], display: "〜ずに",
+              "그렇게 하지 않은 채로.", supersedes: ["ない"]),
+
+        // Negation, last so a longer negative pattern claims the line first
+        .init(["ない", "ません"], display: "〜ない",
+              "부정입니다."),
+    ]
+
+    /// Patterns the line contains, most specific first.
+    ///
+    /// Capped because a lyric line is short and a list of eight notes on one
+    /// line is not a lesson, it is noise.
+    public static func matches(in line: String, limit: Int = 3) -> [GrammarNote] {
+        guard LineScript.hasJapanese(line) else { return [] }
+
+        var claimed = Set<String>()
+        var notes: [GrammarNote] = []
+
+        for pattern in all {
+            guard !claimed.contains(pattern.display) else { continue }
+            guard pattern.forms.contains(where: line.contains) else { continue }
+
+            notes.append(
+                GrammarNote(pattern: pattern.display, explanationKo: pattern.explanationKo)
+            )
+            claimed.insert(pattern.display)
+            // A longer pattern that contains a shorter one reports only itself:
+            // 「なきゃ」 is not a lesson about 「ない」.
+            for superseded in pattern.supersedes {
+                if let hidden = all.first(where: { $0.forms.contains(superseded) }) {
+                    claimed.insert(hidden.display)
+                }
+            }
+            if notes.count >= limit { break }
+        }
+        return notes
+    }
+}

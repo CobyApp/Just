@@ -42,6 +42,14 @@ struct SettingsScreen: View {
         }
     }
 
+    /// What the chosen mode will do, or why the choice is not on offer.
+    private var depthFooter: String {
+        guard app.sensei.usesOnDeviceModel else {
+            return "이 기기에서는 Apple Intelligence를 쓸 수 없어 빠른 해석으로만 동작합니다. \(AnalysisDepth.quick.detail)"
+        }
+        return app.sensei.depth.detail
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -87,6 +95,23 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    // The choice worth putting first, and the only one on this
+                    // screen the reader will feel immediately: it is the
+                    // difference between a song being ready in seconds and in
+                    // minutes.
+                    Picker("해석 방식", selection: Binding(
+                        get: { app.sensei.depth },
+                        set: {
+                            app.sensei.depth = $0
+                            AnalysisDepthPreference.chosen = $0
+                        }
+                    )) {
+                        ForEach(AnalysisDepth.allCases) { depth in
+                            Text(depth.title).tag(depth)
+                        }
+                    }
+                    .disabled(!app.sensei.usesOnDeviceModel)
+
                     Picker("자동 해석", selection: Binding(
                         get: { app.autoAnalysis },
                         set: { app.autoAnalysis = $0 }
@@ -116,8 +141,14 @@ struct SettingsScreen: View {
                     Text("가사 해석")
                 } footer: {
                     VStack(alignment: .leading, spacing: 6) {
+                        Text(depthFooter)
                         Text(app.autoAnalysis.detail)
-                        Text(translationFooter)
+                        // Quick mode *is* the system translator, so a note
+                        // about what happens when the model falls back to it
+                        // would be describing a fallback that cannot occur.
+                        if app.sensei.depth == .deep {
+                            Text(translationFooter)
+                        }
                     }
                 }
 

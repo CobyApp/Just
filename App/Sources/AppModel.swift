@@ -156,8 +156,16 @@ final class AppModel {
         }
     }
 
+    /// What is answering right now — the mode, not merely what the device can
+    /// do. Availability used to be the whole story; now the reader chooses, and
+    /// a device that *can* run Apple Intelligence but is set to quick should not
+    /// claim to be using it.
     var engineLabel: String {
-        sensei.usesOnDeviceModel ? "Apple Intelligence (온디바이스)" : "사전 (오프라인)"
+        guard sensei.usesOnDeviceModel else { return "사전 (오프라인)" }
+        switch sensei.depth {
+        case .quick: return "빠른 해석 (사전 · 시스템 번역)"
+        case .deep: return "정밀 해석 (Apple Intelligence)"
+        }
     }
 
     var playbackLabel: String {

@@ -29,9 +29,35 @@ public final class Sensei {
     /// Used to read the line the way the line reads, rather than the way the
     /// model guessed it.
     private let tokenizer = JapaneseTokenizer()
-    /// Whether the on-device model is there at all, which is what decides
-    /// whether a dictionary result is an answer or a failure.
+    /// Whether the on-device model is there at all.
     private let modelIsAvailable: Bool
+
+    /// Which of the two analyses runs.
+    ///
+    /// Settable, and changing it clears the results the other mode produced so
+    /// the song is answered again by the newly chosen one. Only *its* results:
+    /// switching to quick keeps the model's answers, because a mode that
+    /// discarded better work to be fast would be a strange thing to offer.
+    public var depth: AnalysisDepth {
+        didSet {
+            guard depth != oldValue else { return }
+            if depth == .deep {
+                // The dictionary's answers are exactly what deep mode is meant
+                // to improve on, so they stop counting as answers. The system
+                // translator's are dropped with them: it filled the sentence
+                // but left the words as the dictionary had them.
+                entries = entries.filter { $0.value.engine == .onDevice }
+            }
+        }
+    }
+
+    /// Whether the model will be asked, which is what decides whether a
+    /// dictionary result is an answer or a failure.
+    /// Asked of `modelIsAvailable` rather than of `onDevice`, which are the
+    /// same thing in the app and deliberately not in a test: the seam claims
+    /// availability without a model instance, because the rules about what the
+    /// model's absence means are exactly what needs checking.
+    private var usesModel: Bool { modelIsAvailable && depth == .deep }
 
     public init(dictionary: DictionarySensei = DictionarySensei()) {
         self.dictionary = dictionary
@@ -39,6 +65,7 @@ public final class Sensei {
         self.unavailability = reason
         self.onDevice = reason == nil ? OnDeviceSensei() : nil
         self.modelIsAvailable = reason == nil
+        self.depth = AnalysisDepthPreference.resolved(modelIsAvailable: reason == nil)
         self.translate = { await PlainTranslator.shared.translate($0) }
     }
 
@@ -47,6 +74,7 @@ public final class Sensei {
     init(
         dictionary: DictionarySensei,
         modelIsAvailable: Bool,
+        depth: AnalysisDepth = .deep,
         translate: @escaping @MainActor (String) async -> String? = { _ in nil }
     ) {
         self.translate = translate
@@ -54,6 +82,7 @@ public final class Sensei {
         self.onDevice = nil
         self.unavailability = modelIsAvailable ? nil : .deviceNotEligible
         self.modelIsAvailable = modelIsAvailable
+        self.depth = modelIsAvailable ? depth : .quick
     }
 
     public var usesOnDeviceModel: Bool { modelIsAvailable }
@@ -134,7 +163,7 @@ public final class Sensei {
         defer { inFlight.remove(lineIndex) }
 
         let result: LineStudy
-        if let onDevice {
+        if let onDevice, depth == .deep {
             do {
                 result = try await onDevice.analyze(
                     line: text,
@@ -154,10 +183,32 @@ public final class Sensei {
 
         var refined = Self.learnable(refine(result))
 
-        // No model on this device, so nothing better is coming for this line:
-        // fill it now rather than leaving it blank. Where there *is* a model,
-        // this waits until the model has had its passes — see `analyzeAll`.
-        if refined.translationKo.isEmpty, onDevice == nil {
+        // Grammar, in both modes, from matching the line rather than asking.
+        // The model stopped being asked for grammar notes — the field came back
+        // empty on most lines and an unused field still costs the output it is
+        // generated into — which left the collection screen with no supply at
+        // all. Matching restores it for nothing, and it is the same trade the
+        // rest of this file makes: the model for judgement, fixed data for
+        // facts. Only when nothing is there already, so a song analysed by an
+        // older build keeps the tailored notes it was given.
+        if refined.grammar.isEmpty {
+            let matched = GrammarPatterns.matches(in: refined.original)
+            if !matched.isEmpty {
+                refined = LineStudy(
+                    lineIndex: refined.lineIndex,
+                    original: refined.original,
+                    translationKo: refined.translationKo,
+                    words: refined.words,
+                    grammar: matched,
+                    engine: refined.engine
+                )
+            }
+        }
+
+        // Nothing better is coming for this line, so fill it now rather than
+        // leaving it blank. Where the model *is* being asked, this waits until
+        // it has had its passes — see `analyzeAll`.
+        if refined.translationKo.isEmpty, !usesModel {
             refined = await translated(refined)
         }
         // Kept even when it is not a settled answer, so the line shows its words
@@ -176,7 +227,15 @@ public final class Sensei {
     /// call failed — a network of a moment, a guardrail, a busy system — and the
     /// line deserves another attempt rather than a permanent blank.
     private func isFinal(_ study: LineStudy) -> Bool {
-        !study.translationKo.isEmpty || !modelIsAvailable
+        // Quick mode has already done everything it can for this line, whether
+        // or not that produced a translation — the system translator can be off,
+        // or have no language pack, and there is nothing else to try.
+        guard usesModel else { return true }
+        // A translation settles it, but only when something other than the
+        // dictionary produced the line. Without that second clause a song
+        // analysed in quick mode would look finished after switching to deep,
+        // and the model would never be asked about it.
+        return !study.translationKo.isEmpty && study.engine != .dictionary
     }
 
     // MARK: - Refinement

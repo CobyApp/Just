@@ -1208,3 +1208,135 @@ struct StemDeinflectionTests {
         #expect(dictionary.lookup(lemma: "ズギャ") == nil)
     }
 }
+
+// MARK: - Grammar patterns
+
+@Suite("문법 패턴 매칭")
+struct GrammarPatternTests {
+    @Test("줄에 있는 패턴을 찾는다")
+    func findsPatterns() {
+        let notes = GrammarPatterns.matches(in: "歩きながら考えてしまう")
+        let patterns = notes.map(\.pattern)
+        #expect(patterns.contains("〜ながら"))
+        #expect(patterns.contains("〜てしまう"))
+    }
+
+    @Test("줄에 없는 패턴은 찾지 않는다")
+    func skipsAbsentPatterns() {
+        let patterns = GrammarPatterns.matches(in: "君の名前").map(\.pattern)
+        #expect(patterns.isEmpty)
+    }
+
+    /// 「なきゃ」 is a lesson about obligation. Reporting 〜ない alongside it —
+    /// which it contains — would be telling the reader the opposite of what the
+    /// line means.
+    @Test("긴 패턴이 그 안에 든 짧은 패턴을 가린다")
+    func longerPatternWins() {
+        let patterns = GrammarPatterns.matches(in: "行かなきゃ").map(\.pattern)
+        #expect(patterns.contains("〜なければならない"))
+        #expect(!patterns.contains("〜ない"))
+    }
+
+    @Test("일본어가 없는 줄에는 문법이 없다")
+    func skipsNonJapanese() {
+        #expect(GrammarPatterns.matches(in: "I don't wanna say goodbye").isEmpty)
+    }
+
+    /// A short line with eight notes on it is not a lesson.
+    @Test("한 줄에 붙는 노트 수를 제한한다")
+    func capsNotes() {
+        let line = "行かなきゃならないけど、まだ君に会いたいから待ってるだけかもしれない"
+        #expect(GrammarPatterns.matches(in: line).count <= 3)
+    }
+
+    @Test("모든 패턴에 한국어 설명이 있다")
+    func everyPatternExplained() {
+        for pattern in GrammarPatterns.all {
+            #expect(!pattern.explanationKo.isEmpty, "\(pattern.display)에 설명이 없습니다")
+            #expect(!pattern.forms.isEmpty)
+        }
+    }
+}
+
+// MARK: - Analysis depth
+
+@MainActor
+@Suite("해석 방식 선택")
+struct AnalysisDepthTests {
+    private func sensei(depth: AnalysisDepth) -> Sensei {
+        Sensei(
+            dictionary: DictionarySensei(entries: [
+                .init(l: "夢", r: "ゆめ", k: "꿈", p: "명사", j: "N4")
+            ]),
+            modelIsAvailable: true,
+            depth: depth,
+            translate: { _ in "번역된 문장" }
+        )
+    }
+
+    private let lyrics = Lyrics(
+        lines: [LyricLine(id: 0, time: 0, text: "夢を見ている")],
+        isSynced: true,
+        source: "test"
+    )
+
+    /// The whole point of the fast mode: it does not wait for the model, and it
+    /// still fills the sentence.
+    @Test("빠른 모드는 모델을 기다리지 않고 문장을 채운다")
+    func quickFillsWithoutModel() async {
+        let sensei = sensei(depth: .quick)
+        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(study?.translationKo == "번역된 문장")
+        #expect(study?.words.contains { $0.dictionaryForm == "夢" } == true)
+    }
+
+    /// Without this, a song analysed quickly would stay quick forever: the
+    /// dictionary's answers carry a translation, and a translation used to be
+    /// enough to settle a line.
+    @Test("빠른 모드 결과는 정확 모드에서 다시 해석된다")
+    func quickResultsAreRedoneWhenDeep() async {
+        let sensei = sensei(depth: .quick)
+        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
+
+        sensei.depth = .deep
+        #expect(sensei.pendingLines(in: lyrics).count == 1)
+    }
+
+    /// The reverse is not symmetrical on purpose — being fast is no reason to
+    /// throw away the better answer already in hand.
+    @Test("정확 모드 결과는 빠른 모드로 바꿔도 남는다")
+    func deepResultsSurviveSwitchToQuick() {
+        let sensei = sensei(depth: .deep)
+        sensei.preload([0: LineStudy(
+            lineIndex: 0,
+            original: "夢を見ている",
+            translationKo: "꿈을 꾸고 있어",
+            words: [],
+            grammar: [],
+            engine: .onDevice
+        )])
+        sensei.depth = .quick
+        #expect(sensei.cached(0)?.translationKo == "꿈을 꾸고 있어")
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
+    }
+
+    @Test("빠른 모드에서도 문법이 채워진다")
+    func quickModeHasGrammar() async {
+        let sensei = sensei(depth: .quick)
+        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
+        #expect(study?.grammar.contains { $0.pattern == "〜ている" } == true)
+    }
+
+    /// Choosing a mode the device cannot run would leave the reader waiting on a
+    /// model that is never asked.
+    @Test("모델이 없는 기기는 정확 모드를 선택해도 빠른 모드로 동작한다")
+    func unavailableModelForcesQuick() {
+        let sensei = Sensei(
+            dictionary: DictionarySensei(entries: []),
+            modelIsAvailable: false,
+            depth: .deep
+        )
+        #expect(sensei.depth == .quick)
+    }
+}

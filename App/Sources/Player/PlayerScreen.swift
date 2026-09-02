@@ -64,6 +64,9 @@ struct PlayerScreen: View {
                     onCancel: { app.closePlayer() },
                     onSkip: (session?.canSkipWaiting ?? false)
                         ? { session?.skipWaiting() }
+                        : nil,
+                    onUseQuick: (session?.canUseQuickAnalysis ?? false)
+                        ? { session?.useQuickAnalysis() }
                         : nil
                 )
             }
