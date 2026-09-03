@@ -125,6 +125,9 @@ struct SettingsScreen: View {
                         set: {
                             plainTranslationOn = $0
                             PlainTranslator.shared.isEnabled = $0
+                            // Turning it back on after it gave up should try
+                            // again rather than stay quietly off.
+                            if $0 { PlainTranslator.shared.reconsider() }
                         }
                     ))
 
@@ -178,6 +181,11 @@ struct SettingsScreen: View {
                 // Downloads on first use and then answers; either way the
                 // status is re-read so the row stops offering what is done.
                 try? await session.prepareTranslation()
+                // The translator decided this device could not translate before
+                // the pack arrived. It has to be told that changed, or the
+                // download the reader just asked for does nothing until the
+                // app is launched again.
+                PlainTranslator.shared.reconsider()
                 packStatus = await PlainTranslator.shared.availability()
                 download = nil
             }

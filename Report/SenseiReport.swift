@@ -294,7 +294,7 @@ struct SenseiReportSuite {
         report += "\n\n"
         if !sensei.lastFailure.isEmpty {
             var counts: [String: Int] = [:]
-            for reason in sensei.lastFailure.values { counts[reason, default: 0] += 1 }
+            for reason in sensei.lastFailure.values { counts[reason.label, default: 0] += 1 }
             report += "## 모델이 답하지 않은 이유\n\n"
             for (reason, count) in counts.sorted(by: { $0.value > $1.value }) {
                 report += "- \(reason): \(count)\n"

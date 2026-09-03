@@ -184,10 +184,20 @@ struct LineStudySheet: View {
                 }
                 .buttonStyle(.justSecondary)
 
-                Text("Apple Intelligence가 앞뒤 줄까지 읽고 이 줄을 다시 해석합니다. 몇 초 걸립니다.")
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Ink.tertiary)
-                    .multilineTextAlignment(.center)
+                // What happened last time, when it did not work. Without this
+                // the button is tapped, a few seconds pass, and the card comes
+                // back exactly as it was — which reads as the app ignoring it.
+                if let failure = app.sensei.lastFailure[lineIndex] {
+                    Text(failure.readerExplanation)
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.secondary)
+                        .multilineTextAlignment(.center)
+                } else {
+                    Text("Apple Intelligence가 앞뒤 줄까지 읽고 이 줄을 다시 해석합니다. 몇 초 걸립니다.")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                        .multilineTextAlignment(.center)
+                }
             }
             .frame(maxWidth: .infinity)
         }

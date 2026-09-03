@@ -25,6 +25,20 @@ public final class PlainTranslator {
     /// language pack the first time, and someone may not want either.
     private static let enabledKey = "just.plainTranslation.enabled"
 
+    /// Forgets what was decided about this device.
+    ///
+    /// Both answers below are cached for the launch — whether the pack is
+    /// present, and whether the pair turned out unusable — because a song's
+    /// worth of lines should not each re-ask. That caching goes stale the
+    /// moment the reader downloads the pack in Settings: they would have done
+    /// the thing the app asked for and seen nothing change until the next
+    /// launch. So the screen that changes the answer says so.
+    public func reconsider() {
+        isUnavailable = false
+        isInstalled = false
+        session = nil
+    }
+
     public var isEnabled: Bool {
         get {
             // Absent means on. The alternative is a device that silently shows

@@ -46,7 +46,7 @@ public final class Sensei {
     /// a guardrail fired — but three separate investigations today ended with a
     /// throwaway probe rebuilt to ask the same question. Kept in memory, wiped
     /// with the song, read by the report.
-    public private(set) var lastFailure: [Int: String] = [:]
+    public private(set) var lastFailure: [Int: ModelFailure] = [:]
     private let dictionary: DictionarySensei
     /// Used to read the line the way the line reads, rather than the way the
     /// model guessed it.
@@ -218,6 +218,13 @@ public final class Sensei {
         guard !text.isEmpty else { return nil }
         guard !inFlight.contains(lineIndex) else { return entries[lineIndex] }
 
+        // The memo is dropped for this line. It exists to stop a background
+        // pass spending calls on an answer already known — but this is not a
+        // background pass, it is someone tapping a button, and an explicit
+        // request that silently does nothing is worse than a wasted call. If
+        // the guardrail fires again the memo is simply written back.
+        refusedByModel.remove(text)
+
         return await produce(
             text: text,
             lineIndex: lineIndex,
@@ -270,26 +277,26 @@ public final class Sensei {
                 switch error {
                 case .guardrailViolation:
                     refusedByModel.insert(text)
-                    lastFailure[lineIndex] = "가드레일"
+                    lastFailure[lineIndex] = .guardrail
                 case .refusal:
                     refusedByModel.insert(text)
-                    lastFailure[lineIndex] = "거부"
+                    lastFailure[lineIndex] = .refused
                 case .exceededContextWindowSize:
-                    lastFailure[lineIndex] = "문맥 초과"
+                    lastFailure[lineIndex] = .contextWindow
                 case .assetsUnavailable:
-                    lastFailure[lineIndex] = "모델 자산 없음"
+                    lastFailure[lineIndex] = .assetsMissing
                 case .rateLimited:
-                    lastFailure[lineIndex] = "속도 제한"
+                    lastFailure[lineIndex] = .rateLimited
                 case .concurrentRequests:
-                    lastFailure[lineIndex] = "동시 요청"
+                    lastFailure[lineIndex] = .concurrent
                 case .decodingFailure:
-                    lastFailure[lineIndex] = "응답 해석 실패"
+                    lastFailure[lineIndex] = .decoding
                 default:
-                    lastFailure[lineIndex] = "그 외 생성 오류"
+                    lastFailure[lineIndex] = .other
                 }
                 result = dictionary.analyze(line: text, lineIndex: lineIndex)
             } catch {
-                lastFailure[lineIndex] = "\(type(of: error))"
+                lastFailure[lineIndex] = .other
                 result = dictionary.analyze(line: text, lineIndex: lineIndex)
             }
         } else {
