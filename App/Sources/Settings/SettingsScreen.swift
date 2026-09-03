@@ -45,9 +45,35 @@ struct SettingsScreen: View {
     /// What the chosen mode will do, or why the choice is not on offer.
     private var depthFooter: String {
         guard app.sensei.usesOnDeviceModel else {
-            return "이 기기에서는 Apple Intelligence를 쓸 수 없어 빠른 해석으로만 동작합니다. \(AnalysisDepth.quick.detail)"
+            return "이 기기에서는 Apple Intelligence를 쓸 수 없어 빠른 해석으로만 동작합니다."
+                + " \(AnalysisDepth.quick.detail)\(translationCaveat)"
         }
-        return app.sensei.depth.detail
+        return app.sensei.depth.detail + translationCaveat
+    }
+
+    /// Said where the choice is made, because the two settings depend on each
+    /// other and sit in the same section without knowing it.
+    ///
+    /// Quick analysis gets its sentences from the system translator and nowhere
+    /// else. With the switch off or the pack missing it produces dictionary
+    /// meanings and no translation at all — while the text above promises to
+    /// 「곡 전체를 몇 초 안에 채웁니다」. Deep analysis is unaffected: the model
+    /// writes its own.
+    private var translationCaveat: String {
+        let usesTranslatorForSentences = !app.sensei.usesOnDeviceModel
+            || app.sensei.depth == .quick
+        guard usesTranslatorForSentences else { return "" }
+
+        if !plainTranslationOn {
+            return "\n\n지금은 「단순 번역으로 채우기」가 꺼져 있어 문장 번역이 나오지 않습니다."
+        }
+        if packStatus == .supported {
+            return "\n\n문장 번역을 보려면 아래에서 한국어 번역 파일을 받아 주세요."
+        }
+        if packStatus == .unsupported {
+            return "\n\n이 기기에서는 시스템 번역을 쓸 수 없어 문장 번역이 나오지 않습니다."
+        }
+        return ""
     }
 
     var body: some View {
