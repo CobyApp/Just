@@ -22,10 +22,17 @@ final class AppModel {
     /// Held here rather than in `RootView`'s own state so a screen can send the
     /// user somewhere else — an empty word list has nothing to offer except the
     /// song list, and it could not reach it from inside its own tab.
-    var tab: Tab = .today
+    var tab: Tab = .browse
 
+    /// The tab bar, in order.
+    ///
+    /// 「오늘」 used to lead and is gone. What it did is already elsewhere —
+    /// 「이어서 공부하기」 sits at the top of browse, the review queue sits at
+    /// the top of practice — so it was a screen you passed through on the way
+    /// to somewhere else. Songs are what the app is for, so songs are what it
+    /// opens on.
     enum Tab: Hashable {
-        case today, browse, words, practice
+        case browse, playlists, words, practice
     }
 
     /// The song the full-screen player is showing, if any.

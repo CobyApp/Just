@@ -176,11 +176,21 @@ public struct AppleMusicClient: Sendable {
         }
 
         var request = MusicCatalogSearchRequest(term: trimmed, types: [Song.self])
-        request.limit = limit
+        // Asked for more than will be shown, because most of what comes back is
+        // dropped. A search for 「lemon」 returns the whole catalog's worth of
+        // songs by that name; one of them is the one this app can teach from.
+        request.limit = min(limit * 4, 50)
 
         do {
             let response = try await request.response()
-            return response.songs.map(Self.track(from:))
+            let japanese = response.songs.filter {
+                JapaneseSong.isJapanese(
+                    title: $0.title,
+                    artist: $0.artistName,
+                    genres: $0.genreNames
+                )
+            }
+            return japanese.prefix(limit).map(Self.track(from:))
         } catch {
             throw Self.failure(from: error)
         }
