@@ -14,6 +14,8 @@ public enum JustTheme {
     public enum Kawaii {
         public static let ink = Color(red: 0.24, green: 0.14, blue: 0.28)
         public static let inkSoft = Color(red: 0.45, green: 0.35, blue: 0.48)
+        /// The pink the icon's heart is made of. Selected tabs, primary buttons.
+        public static let accent = Color(red: 1.0, green: 0.36, blue: 0.58)
 
         /// A group's own two-tone card.
         public static func gradient(hue: Double) -> LinearGradient {
@@ -262,7 +264,7 @@ public struct JustChip: View {
 public extension View {
     /// Section heading on the bright screens.
     func kawaiiSectionTitle() -> some View {
-        font(.just(20, weight: .bold, relativeTo: .title3))
+        font(.kawaii(20, relativeTo: .title3))
             .foregroundStyle(JustTheme.Kawaii.ink)
             .padding(.horizontal, JustTheme.Space.regular)
             .frame(maxWidth: .infinity, alignment: .leading)

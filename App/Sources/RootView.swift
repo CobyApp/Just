@@ -26,6 +26,8 @@ struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        // The selected tab in the app's own pink rather than system blue.
+        .tint(JustTheme.Kawaii.accent)
         // Sits above the tab bar rather than inside a tab, so it survives
         // switching tabs — which is the whole point of having it.
         .modifier(MiniPlayerAccessory(

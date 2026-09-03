@@ -40,7 +40,7 @@ struct MySongsScreen: View {
             VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("내 노래")
-                        .font(.just(34, weight: .heavy, relativeTo: .largeTitle))
+                        .font(.kawaii(34, weight: .heavy, relativeTo: .largeTitle))
                         .foregroundStyle(JustTheme.Kawaii.ink)
                     Spacer()
                     Text("\(songs.count)곡")

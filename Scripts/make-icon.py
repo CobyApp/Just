@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Draws the app icon.
 
-A heart with 「歌」 — song — inside it, and sparkles around it.
+A heart with the app's name — 「도르」 — inside it, and sparkles around it.
 
-The mark has to say two things at once: idols, and Japanese. A kanji alone said
-the second and not the first, which was right for a J-pop study app and is
-wrong for this one. A heart alone says the first and not the second, and there
-are a thousand pink heart icons. The kanji inside is what joins them.
+The app is called 도르 now: 아이돌 with the front taken off, a name a Korean
+reader gets in one look. So the icon says the name. 「歌」 was here before and
+said 「Japanese」; with a Korean name on a Korean-facing app, the language of the
+lyrics is not what the icon needs to announce — the heart and the sparkles say
+idol, and the wordmark says which app.
 
 A speech-bubble tail was tried and dropped: a heart already ends in a point, so
 a tail gave the silhouette two of them and it read as a rendering mistake at
@@ -27,7 +28,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "App" / "Resources" / "Assets.xcassets" / "AppIcon.appiconset" / "icon-1024.png"
 
 SIZE = 1024
-JAPANESE = "/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc"
+KOREAN = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+KOREAN_BOLD_INDEX = 6  # Apple SD Gothic Neo Bold
 
 # The group cards' own family: hot pink into a softer coral, on cream.
 TOP_LEFT = (255, 209, 232)
@@ -98,8 +100,8 @@ def main():
     heart = gradient(SIZE, HEART_TOP, HEART_BOTTOM)
     base.paste(heart, (0, 0), shape)
 
-    # 歌 inside it. Sized to the heart's waist rather than the canvas, or it
-    # spills over the curve where the two lobes meet.
+    # 「도르」 inside it. Two syllables are wider than one kanji, so the size
+    # comes down to fit the heart's waist rather than spill over the lobes.
     draw = ImageDraw.Draw(base)
 
     # Sparkles: one large, two small, placed where the heart leaves room.
@@ -107,14 +109,14 @@ def main():
     sparkle(draw, SIZE * 0.17, SIZE * 0.30, SIZE * 0.045, INK)
     sparkle(draw, SIZE * 0.86, SIZE * 0.66, SIZE * 0.035, INK)
 
-    font = ImageFont.truetype(JAPANESE, int(SIZE * 0.30))
-    box = draw.textbbox((0, 0), "歌", font=font)
+    font = ImageFont.truetype(KOREAN, int(SIZE * 0.22), index=KOREAN_BOLD_INDEX)
+    box = draw.textbbox((0, 0), "도르", font=font)
     draw.text(
         (
             (SIZE - (box[2] - box[0])) / 2 - box[0],
             SIZE * 0.47 - (box[3] - box[1]) / 2 - box[1],
         ),
-        "歌",
+        "도르",
         font=font,
         fill=INK,
     )

@@ -15,12 +15,30 @@ public extension Font {
     static func just(
         _ size: CGFloat,
         weight: UIFont.Weight = .regular,
-        relativeTo style: UIFont.TextStyle = .body
+        relativeTo style: UIFont.TextStyle = .body,
+        design: UIFontDescriptor.SystemDesign = .default
     ) -> Font {
-        Font(
-            UIFontMetrics(forTextStyle: style)
-                .scaledFont(for: .systemFont(ofSize: size, weight: weight))
-        )
+        var base = UIFont.systemFont(ofSize: size, weight: weight)
+        if design != .default,
+           let descriptor = base.fontDescriptor.withDesign(design) {
+            base = UIFont(descriptor: descriptor, size: size)
+        }
+        return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: base))
+    }
+
+    /// The bright screens' display face: the same system font, rounded.
+    ///
+    /// Rounded for the wordmark, group names and section titles — the places
+    /// that carry the app's personality. Lyrics, readings and translations stay
+    /// on the default design: that text is for reading Japanese, not for
+    /// looking cheerful, and the rounded face is not where its contrast was
+    /// tuned.
+    static func kawaii(
+        _ size: CGFloat,
+        weight: UIFont.Weight = .bold,
+        relativeTo style: UIFont.TextStyle = .title2
+    ) -> Font {
+        just(size, weight: weight, relativeTo: style, design: .rounded)
     }
 }
 

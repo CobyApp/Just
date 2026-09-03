@@ -69,9 +69,14 @@ struct GroupsScreen: View {
     /// white. Drawing it here also lets it look like the rest of this screen.
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("아이돌")
-                .font(.just(34, weight: .heavy, relativeTo: .largeTitle))
-                .foregroundStyle(JustTheme.Kawaii.ink)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("도르")
+                    .font(.kawaii(36, weight: .heavy, relativeTo: .largeTitle))
+                    .foregroundStyle(JustTheme.Kawaii.ink)
+                Text("좋아하는 아이돌로 일본어를")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
+            }
             Spacer(minLength: 0)
             Button { showsSettings = true } label: {
                 Image(systemName: "gearshape.fill")
@@ -161,7 +166,7 @@ private struct GroupCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(group.name)
-                    .font(.just(17, weight: .bold, relativeTo: .headline))
+                    .font(.kawaii(17, relativeTo: .headline))
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
