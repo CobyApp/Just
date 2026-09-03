@@ -60,14 +60,20 @@ public enum AnalysisDepthPreference {
 
     /// What the reader picked, whether or not this device can do it.
     ///
-    /// Deep by default where it is possible. Someone who installed an app for
-    /// studying lyrics wants the good reading of them; the fast mode is the one
-    /// you reach for on purpose.
+    /// Quick by default, deep on request. This was the other way round on the
+    /// reasoning that someone studying lyrics wants the good reading of them —
+    /// which is true, but not at the price of the first thing they see being a
+    /// progress bar. Quick fills a whole song in seconds; deep takes minutes,
+    /// and minutes are what a person notices.
+    ///
+    /// Asked for rather than assumed, in two places: the setting, and the
+    /// 「이 줄만 정확하게」 button on any line worth the wait. Wanting the model
+    /// on one line is far commoner than wanting it on all fifty.
     public static var chosen: AnalysisDepth {
         get {
             guard let raw = UserDefaults.standard.string(forKey: key),
                   let depth = AnalysisDepth(rawValue: raw)
-            else { return .deep }
+            else { return .quick }
             return depth
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }

@@ -23,9 +23,47 @@ public struct JapaneseToken: Hashable, Sendable {
         default:
             // Single hiragana characters are almost always grammatical glue
             // that NLTagger failed to classify.
-            return !(surface.count == 1 && surface.allSatisfy(\.isHiragana))
+            guard !(surface.count == 1 && surface.allSatisfy(\.isHiragana)) else { return false }
+            return !JapaneseToken.isFunctionWord(surface) && !JapaneseToken.isFunctionWord(lemma)
         }
     }
+
+    /// Words that are grammar rather than vocabulary.
+    ///
+    /// The `lexicalClass` switch above should have caught these, and does not:
+    /// NLTagger labels almost everything in lyrics `OtherWord`, so the Particle
+    /// case never fires. A list is the honest mechanism — the same trade the
+    /// rest of this module makes, judgement to the tagger and facts to fixed
+    /// data.
+    ///
+    /// Measured, not imagined: these were the most frequent things the coverage
+    /// report called 「모르는 것」 across fifteen songs — 「から」 thirty-two
+    /// times, 「じゃ」 twenty-four. Adding them to the dictionary would have been
+    /// the wrong fix, because then they become cards to memorise.
+    ///
+    /// Kana only, deliberately. A kanji word is a word worth learning even when
+    /// it is common, and a list of kana cannot swallow one by accident.
+    static func isFunctionWord(_ word: String) -> Bool {
+        functionWords.contains(word)
+    }
+
+    private static let functionWords: Set<String> = [
+        // 조사·접속
+        "から", "まで", "けど", "けれど", "けれども", "しか", "だけ", "など", "のに",
+        "ので", "ばかり", "ほど", "より", "って", "とか", "でも", "ても", "たら",
+        "なら", "ながら", "つつ",
+        // 지시·대명사
+        "これ", "それ", "あれ", "どれ", "この", "その", "あの", "どの",
+        "こんな", "そんな", "あんな", "どんな", "ここ", "そこ", "あそこ",
+        // 조동사·보조동사
+        "です", "ます", "ある", "いる", "する", "なる", "てる", "でる", "てく",
+        "しまう", "みる", "おく", "くる", "いく", "ゆく", "られ", "れる", "せる",
+        "たく", "だっ", "じゃ", "だろう", "でしょう", "よう", "そう", "みたい",
+        "らしい", "はず", "つもり", "わけ", "こそ",
+        // 감탄·간투사
+        "ほら", "ねえ", "さあ", "もう", "まだ", "もっと", "ずっと", "きっと",
+        "やっぱり", "ちょっと",
+    ]
 }
 
 /// Segments Japanese text and attaches readings and dictionary forms.

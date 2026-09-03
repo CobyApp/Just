@@ -1,5 +1,6 @@
 import Foundation
 import JustCore
+import JustLyrics
 import Testing
 
 @testable import JustSensei
@@ -440,62 +441,63 @@ struct SenseiReportSuite {
     func writeCoverageReport() async {
         let dictionary = DictionarySensei()
         let tokenizer = JapaneseTokenizer()
+        let client = LRCLIBClient()
 
-        // Consecutive lines from songs a learner would actually open.
-        let songs: [(String, [String])] = [
-            ("夜に駆ける", [
-                "沈むように溶けてゆくように",
-                "二人だけの空が広がる夜に",
-                "「さよなら」だけだった",
-                "その一言で全てが分かった",
-                "日が沈み出した空と君の姿",
-                "フェンス越しに重なっていた",
-                "もう嫌だって 疲れたよなんて",
-                "本当は僕も言いたいんだ",
-            ]),
-            ("Lemon", [
-                "夢ならばどれほどよかったでしょう",
-                "未だにあなたのことを夢にみる",
-                "忘れた物を取りに帰るように",
-                "古びた思い出の埃を払う",
-                "戻らない幸せがあることを",
-                "最後にあなたが教えてくれた",
-            ]),
-            ("マリーゴールド", [
-                "風が吹いて飛ばされそうな",
-                "軽い電話が鳴る",
-                "予報士が今日を教えてくれる",
-                "また晴れた空を眺めながら",
-            ]),
+        // Fetched rather than pasted in. Three hand-copied songs were enough to
+        // find that the dictionary was missing 日 and 物; finding what is left
+        // needs more lyrics than anyone wants to keep in a source file, and
+        // these are the songs a learner would actually open.
+        //
+        // Network in a measurement is fine — it is not a test of anything, and
+        // a run that cannot reach LRCLIB says so in its own numbers.
+        let songs: [(artist: String, title: String)] = [
+            ("YOASOBI", "夜に駆ける"), ("米津玄師", "Lemon"),
+            ("Official髭男dism", "Pretender"), ("あいみょん", "マリーゴールド"),
+            ("King Gnu", "白日"), ("Ado", "うっせぇわ"),
+            ("YOASOBI", "アイドル"), ("Vaundy", "怪獣の花唄"),
+            ("優里", "ドライフラワー"), ("back number", "水平線"),
+            ("米津玄師", "KICK BACK"), ("Mrs. GREEN APPLE", "青と夏"),
+            ("LiSA", "紅蓮華"), ("RADWIMPS", "前前前世"),
+            ("YOASOBI", "群青"),
         ]
 
         var known = 0
-        var unknown: [String] = []
+        var missing: [String: Int] = [:]
+        var reached = 0
 
-        for (_, lines) in songs {
-            for line in lines {
-                for token in tokenizer.studyCandidates(in: line) {
+        for song in songs {
+            guard let lyrics = try? await client.lyrics(artist: song.artist, title: song.title)
+            else { continue }
+            reached += 1
+            for line in lyrics.lines {
+                for token in tokenizer.studyCandidates(in: line.text) {
                     let hit = dictionary.entry(forSpelling: token.surface, reading: token.reading)
                         ?? dictionary.lookup(lemma: token.lemma, reading: token.reading)
                     if hit != nil {
                         known += 1
                     } else {
-                        unknown.append("\(token.surface)(\(token.lemma)/\(token.reading))")
+                        missing["\(token.lemma)(\(token.reading))", default: 0] += 1
                     }
                 }
             }
         }
 
-        let total = known + unknown.count
+        let total = known + missing.values.reduce(0, +)
         var report = "# 사전 커버리지\n\n"
         report += "| 항목 | 값 |\n|---|---|\n"
+        report += "| 받아온 곡 | \(reached)/\(songs.count) |\n"
         report += "| 후보 단어 | \(total) |\n"
         report += "| 사전이 아는 것 | \(known) |\n"
         if total > 0 {
             report += "| 비율 | \(Int(Double(known) / Double(total) * 100))% |\n"
         }
-        report += "\n## 모르는 것\n\n"
-        for miss in Array(Set(unknown)).sorted() { report += "- \(miss)\n" }
+
+        // Ordered by how often they come up, because that is the order worth
+        // adding them in.
+        report += "\n## 모르는 것 (빈도순)\n\n"
+        for (word, count) in missing.sorted(by: { ($0.value, $1.key) > ($1.value, $0.key) }).prefix(80) {
+            report += "- \(count)회 \(word)\n"
+        }
 
         print("=== COVERAGE BEGIN ===")
         print(report)

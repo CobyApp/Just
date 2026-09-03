@@ -21,6 +21,9 @@ public struct AppleMusicClient: Sendable {
         /// MusicKit refused to mint a developer token.
         case developerTokenUnavailable
         case notSignedIn
+        /// Apple Music refused the request and did not say which of the two
+        /// reasons it was.
+        case catalogRefused
         case transport(String)
 
         public var errorDescription: String? {
@@ -37,6 +40,15 @@ public struct AppleMusicClient: Sendable {
                 "Apple Music 개발자 토큰을 받지 못했습니다. App ID에 MusicKit 서비스가 켜져 있어야 합니다 — developer.apple.com > Identifiers에서 com.coby.just를 명시적 App ID로 만들고 MusicKit을 켠 뒤 다시 빌드해 주세요."
             case .notSignedIn:
                 "기기에 Apple Music 계정이 로그인되어 있지 않습니다. 설정 > Apple 계정에서 로그인해 주세요."
+            case .catalogRefused:
+                """
+                Apple Music이 요청을 거절했습니다. 두 가지 중 하나입니다.
+
+                1. 설정 > 개인정보 보호 및 보안 > 미디어 및 Apple Music에서 Just가 켜져 있는지
+                2. 설정 > Apple 계정에 Apple Music을 쓰는 계정으로 로그인되어 있는지
+
+                거절만으로는 둘 중 어느 쪽인지 알 수 없어 둘 다 적었습니다.
+                """
             case .transport(let message):
                 message
             }
@@ -100,6 +112,31 @@ public struct AppleMusicClient: Sendable {
                 return .notAuthorized
             default:
                 return .transport(error.localizedDescription)
+            }
+        }
+
+        // A failed catalog request carries a diagnosis and does not print it.
+        // 「MusicKit.MusicDataRequest.Error 1」 is what the reader saw, which
+        // names nothing they can act on — while the error itself holds the HTTP
+        // status, Apple's own title, and a sentence of detail.
+        if let request = error as? MusicDataRequest.Error {
+            switch request.status {
+            case 401, 403:
+                // Refused rather than broken — but the status does not say
+                // whether the app was never granted access to Media & Apple
+                // Music, or the device is not signed in to an account that can
+                // reach the catalog. Naming one would send half the readers to
+                // the wrong screen, so the message names both.
+                return .catalogRefused
+            case 404:
+                return .notFound
+            case 429:
+                return .transport("Apple Music 요청이 너무 잦습니다. 잠시 뒤에 다시 시도해 주세요.")
+            case 500...599:
+                return .transport("Apple Music 서버가 응답하지 않습니다 (\(request.status)). 잠시 뒤에 다시 시도해 주세요.")
+            default:
+                let detail = request.detailText.isEmpty ? request.title : request.detailText
+                return .transport("Apple Music 요청이 실패했습니다 (\(request.status)/\(request.code)). \(detail)")
             }
         }
 
