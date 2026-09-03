@@ -23,6 +23,8 @@ final class SongSession {
     /// stands between choosing a song and hearing it.
     enum Phase: Equatable {
         case loadingLyrics
+        /// Waiting for the reader to say quick or AI.
+        case choosingDepth
         case analyzing(done: Int, total: Int, remaining: TimeInterval?)
         case ready
     }
@@ -110,6 +112,61 @@ final class SongSession {
             await fetchLyrics()
         }
 
+        // Asked here, once the lyrics are in and before any work starts. Only
+        // where there is a choice to make — a device without the AI has one
+        // reading, and asking would offer something it cannot do.
+        if autoAnalysis, sensei.usesOnDeviceModel, AnalysisDepthPreference.asksEveryTime,
+           let lyrics, !sensei.pendingLines(in: lyrics).isEmpty {
+            // Only when there is something left to translate. A song already
+            // read through has nothing the answer could change, and being asked
+            // how to translate a finished song reads as the app forgetting.
+            //
+            // Waited for here rather than returned from. The first version
+            // returned at this point and let `choose` start the analysis on its
+            // own task — which meant `prepare()` came back while the phase was
+            // still the question, the caller's `phase == .ready` check failed,
+            // and playback was never started. The song opened, translated, and
+            // sat at 0:00. Suspending keeps the caller's sequence intact: it
+            // awaits `prepare()`, and when that returns the song is ready.
+            phase = .choosingDepth
+            await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    choiceContinuation = continuation
+                }
+            } onCancel: {
+                // 「중단」 tears the task down. The continuation must not be
+                // left hanging, so it is resumed and the cancellation check
+                // below does the rest.
+                Task { @MainActor [weak self] in self?.resumeChoice() }
+            }
+            guard !Task.isCancelled else { return }
+        }
+        await runAnalysis()
+    }
+
+    private var choiceContinuation: CheckedContinuation<Void, Never>?
+
+    private func resumeChoice() {
+        choiceContinuation?.resume()
+        choiceContinuation = nil
+    }
+
+    /// The reader answered the prompt.
+    ///
+    /// `remember` turns the prompt off and keeps this answer as the default;
+    /// otherwise the choice is for this song only and the next one asks again.
+    func choose(_ depth: AnalysisDepth, remember: Bool) {
+        guard phase == .choosingDepth else { return }
+        sensei.depth = depth
+        if remember {
+            AnalysisDepthPreference.chosen = depth
+            AnalysisDepthPreference.asksEveryTime = false
+        }
+        resumeChoice()
+    }
+
+    /// Everything after the lyrics: the analysis pass and the hand-over.
+    private func runAnalysis() async {
         // "안 함" and low-power mode keep their meaning: a setting made to save
         // energy must not turn into a ten-minute wait. Those songs open at once
         // and analyse the lines the reader taps, as before.

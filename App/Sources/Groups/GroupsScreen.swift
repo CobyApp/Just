@@ -98,7 +98,7 @@ struct GroupsScreen: View {
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: JustTheme.Space.snug) {
                     ForEach(songs.prefix(10)) { song in
-                        Button { app.open(song.track) } label: {
+                        Button { app.open(song.track, in: songs.prefix(10).map(\.track)) } label: {
                             VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                                 ArtworkTile(track: song.track, width: 148)
                                 if song.studyProgress > 0 {

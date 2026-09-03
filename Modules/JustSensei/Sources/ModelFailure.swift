@@ -43,13 +43,13 @@ public enum ModelFailure: Sendable, Equatable {
     public var readerExplanation: String {
         switch self {
         case .guardrail, .refused:
-            "이 줄은 Apple Intelligence가 해석을 거부했습니다. 가사 내용 때문일 수 있습니다."
+            "이 줄은 AI가 번역을 거절했습니다. 가사 내용 때문일 수 있습니다."
         case .rateLimited, .concurrent:
             "지금은 처리할 수 없었습니다. 잠시 뒤에 다시 눌러 보세요."
         case .assetsMissing:
-            "Apple Intelligence를 지금 쓸 수 없습니다."
+            "지금은 AI 번역을 쓸 수 없습니다."
         case .contextWindow, .decoding, .other:
-            "지금은 이 줄을 해석하지 못했습니다."
+            "지금은 이 줄을 번역하지 못했습니다."
         }
     }
 }

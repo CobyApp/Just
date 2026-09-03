@@ -37,7 +37,7 @@ public struct AppleMusicClient: Sendable {
             case .noPreview:
                 "이 곡은 미리듣기도 제공되지 않습니다. 전곡 재생에는 Apple Music 구독이 필요합니다."
             case .developerTokenUnavailable:
-                "Apple Music 개발자 토큰을 받지 못했습니다. App ID에 MusicKit 서비스가 켜져 있어야 합니다 — developer.apple.com > Identifiers에서 com.coby.just를 명시적 App ID로 만들고 MusicKit을 켠 뒤 다시 빌드해 주세요."
+                "Apple Music에 연결하지 못했습니다. 앱을 최신으로 다시 설치하거나 잠시 뒤 다시 시도해 주세요."
             case .notSignedIn:
                 "기기에 Apple Music 계정이 로그인되어 있지 않습니다. 설정 > Apple 계정에서 로그인해 주세요."
             case .catalogRefused:

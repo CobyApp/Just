@@ -190,8 +190,8 @@ final class AppModel {
     var engineLabel: String {
         guard sensei.usesOnDeviceModel else { return "사전 (오프라인)" }
         switch sensei.depth {
-        case .quick: return "빠른 해석 (사전 · 시스템 번역)"
-        case .deep: return "정밀 해석 (Apple Intelligence)"
+        case .quick: return "빠른 번역"
+        case .deep: return "AI 번역"
         }
     }
 
@@ -264,9 +264,27 @@ final class AppModel {
         tab = route.tab
     }
 
-    func open(_ track: Track) {
+    /// What the current song was opened from. Drives 이전곡/다음곡.
+    private(set) var queue: PlaybackQueue = .empty
+
+    /// Opens a song, remembering the list it came from.
+    ///
+    /// A song opened on its own — a deep link, a widget — is a queue of one,
+    /// and the step buttons are simply off.
+    func open(_ track: Track, in list: [Track] = []) {
+        queue = PlaybackQueue(list.isEmpty ? [track] : list)
         openTrack = track
     }
+
+    var nextTrack: Track? { (nowPlaying ?? openTrack).flatMap(queue.next(after:)) }
+    var previousTrack: Track? { (nowPlaying ?? openTrack).flatMap(queue.previous(before:)) }
+
+    /// Steps within the queue. Opens the player on the new song, because that
+    /// is where a song is prepared — its lyrics and translation — before it
+    /// plays; switching audio silently underneath the old lyrics would be
+    /// worse than showing the new screen.
+    func playNext() { if let track = nextTrack { openTrack = track } }
+    func playPrevious() { if let track = previousTrack { openTrack = track } }
 
     /// Called once preparation has finished and playback is about to start.
     ///

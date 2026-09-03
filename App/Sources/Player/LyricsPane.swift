@@ -57,6 +57,9 @@ struct LyricsPane: View {
     }
 
     private func lyricsList(_ lyrics: Lyrics) -> some View {
+        // Keyed to the song. The player swaps songs in place rather than
+        // re-presenting, so without this the scroll view kept the previous
+        // song's offset and the new lyrics opened halfway down.
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: JustTheme.Space.regular) {
@@ -97,6 +100,8 @@ struct LyricsPane: View {
                 guard phase == .interacting else { return }
                 session.followsPlayback = false
             }
+            .id(session.track.id)
+            .onChange(of: session.track.id) { _, _ in activeLine = nil }
             .onChange(of: activeLine) { _, index in
                 guard let index, session.followsPlayback else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
@@ -198,6 +203,12 @@ struct LyricsPane: View {
         // Only when the clock is the song's. A line's timestamp seeked into a
         // thirty-second preview lands wherever the clamp puts it — the clip's
         // end, for every line past the half-minute mark.
+        // Moving to another line ends a loop on the old one. Left alone, the
+        // loop dragged playback straight back to the line just left — the tap
+        // appeared to do nothing, and the reason was invisible.
+        if let looping = session.loopingLine, looping != line.id {
+            session.loopingLine = nil
+        }
         if player.position.followsLyrics, let target = session.seekTarget(for: line.id) {
             player.seek(to: target)
         }

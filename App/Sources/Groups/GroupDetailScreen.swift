@@ -58,7 +58,7 @@ struct GroupDetailScreen: View {
             ScrollView {
                 LazyVStack(spacing: JustTheme.Space.tight) {
                     ForEach(tracks) { track in
-                        Button { app.open(track) } label: { row(track) }
+                        Button { app.open(track, in: tracks) } label: { row(track) }
                             .buttonStyle(.plain)
                     }
                 }

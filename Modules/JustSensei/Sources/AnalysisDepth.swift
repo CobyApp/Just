@@ -33,17 +33,17 @@ public enum AnalysisDepth: String, CaseIterable, Identifiable, Sendable {
     public var detail: String {
         switch self {
         case .quick:
-            "사전과 문법 패턴, 시스템 번역으로 곡 전체를 몇 초 안에 채웁니다. 뜻과 문법은 정확하지만, 문장 해석은 직역에 가깝습니다."
+            "몇 초면 끝납니다. 단어 뜻과 문법은 정확하고, 문장은 직역에 가깝습니다."
         case .deep:
-            "Apple Intelligence가 앞뒤 줄까지 읽고 해석합니다. 훨씬 자연스럽지만 한 곡에 몇 분이 걸립니다."
+            "AI가 앞뒤 줄까지 읽고 자연스럽게 옮깁니다. 한 곡에 몇 분 걸립니다."
         }
     }
 
     /// What the mode is called where a line shows which engine answered it.
     public var badge: String {
         switch self {
-        case .quick: "빠른 해석"
-        case .deep: "정밀 해석"
+        case .quick: "빠른 번역"
+        case .deep: "AI 번역"
         }
     }
 }
@@ -81,5 +81,18 @@ public enum AnalysisDepthPreference {
 
     public static func resolved(modelIsAvailable: Bool) -> AnalysisDepth {
         modelIsAvailable ? chosen : .quick
+    }
+
+    private static let asksKey = "just.analysis.asksEveryTime"
+
+    /// Whether opening a song asks which reading to make.
+    ///
+    /// On by default. The choice used to live only in settings, where nobody
+    /// looks while a progress bar is filling; asking at the moment the wait
+    /// begins is asking when the answer matters. A reader who always wants the
+    /// same one turns it off from the prompt itself.
+    public static var asksEveryTime: Bool {
+        get { UserDefaults.standard.object(forKey: asksKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: asksKey) }
     }
 }

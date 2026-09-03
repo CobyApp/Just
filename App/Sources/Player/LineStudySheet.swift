@@ -180,7 +180,7 @@ struct LineStudySheet: View {
                 Button {
                     Task { await deepen() }
                 } label: {
-                    Label("이 줄만 정확하게", systemImage: "sparkles")
+                    Label("정확하게 다시 번역", systemImage: "sparkles")
                 }
                 .buttonStyle(.justSecondary)
 
@@ -193,7 +193,7 @@ struct LineStudySheet: View {
                         .foregroundStyle(JustTheme.Ink.secondary)
                         .multilineTextAlignment(.center)
                 } else {
-                    Text("Apple Intelligence가 앞뒤 줄까지 읽고 이 줄을 다시 해석합니다. 몇 초 걸립니다.")
+                    Text("AI가 앞뒤 줄까지 읽고 이 줄을 다시 번역합니다. 몇 초 걸립니다.")
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
                         .multilineTextAlignment(.center)

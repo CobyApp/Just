@@ -18,6 +18,7 @@ struct SettingsScreen: View {
     @Environment(\.openURL) private var openURL
 
     @State private var plainTranslationOn = PlainTranslator.shared.isEnabled
+    @State private var asksEveryTime = AnalysisDepthPreference.asksEveryTime
     @State private var packStatus: LanguageAvailability.Status?
     /// Non-nil while a download is being asked for.
     @State private var download: TranslationSession.Configuration?
@@ -26,26 +27,26 @@ struct SettingsScreen: View {
     /// both the model and the language pack.
     private var translationFooter: String {
         guard plainTranslationOn else {
-            return "모델이 답하지 못한 줄은 번역 없이 단어만 남습니다."
+            return "AI가 번역하지 못한 줄은 번역 없이 단어만 남습니다."
         }
         switch packStatus {
         case .installed:
-            return "Apple Intelligence가 답하지 못한 줄은 시스템 번역으로 채웁니다. 직역에 가깝고 문법 노트는 없습니다."
+            return "AI가 번역하지 못한 줄은 간단 번역으로 채웁니다. 직역에 가깝고 문법 설명은 없습니다."
         case .supported:
-            return "시스템 번역을 쓰려면 한국어 번역 파일을 한 번 받아야 합니다."
+            return "간단 번역을 쓰려면 한국어 번역 파일을 한 번 받아야 합니다."
         case .unsupported:
-            return "이 기기에서는 일본어→한국어 시스템 번역을 쓸 수 없습니다."
+            return "이 기기에서는 간단 번역을 쓸 수 없습니다."
         case nil:
-            return "시스템 번역을 쓸 수 있는지 확인하고 있습니다."
+            return "간단 번역을 쓸 수 있는지 확인하고 있습니다."
         @unknown default:
-            return "시스템 번역을 쓸 수 있는지 확인하고 있습니다."
+            return "간단 번역을 쓸 수 있는지 확인하고 있습니다."
         }
     }
 
     /// What the chosen mode will do, or why the choice is not on offer.
     private var depthFooter: String {
         guard app.sensei.usesOnDeviceModel else {
-            return "이 기기에서는 Apple Intelligence를 쓸 수 없어 빠른 해석으로만 동작합니다."
+            return "이 기기에서는 AI 번역을 쓸 수 없어 빠른 번역으로만 동작합니다."
                 + " \(AnalysisDepth.quick.detail)\(translationCaveat)"
         }
         return app.sensei.depth.detail + translationCaveat
@@ -65,13 +66,13 @@ struct SettingsScreen: View {
         guard usesTranslatorForSentences else { return "" }
 
         if !plainTranslationOn {
-            return "\n\n지금은 「단순 번역으로 채우기」가 꺼져 있어 문장 번역이 나오지 않습니다."
+            return "\n\n지금은 「간단 번역으로 채우기」가 꺼져 있어 문장 번역이 나오지 않습니다."
         }
         if packStatus == .supported {
             return "\n\n문장 번역을 보려면 아래에서 한국어 번역 파일을 받아 주세요."
         }
         if packStatus == .unsupported {
-            return "\n\n이 기기에서는 시스템 번역을 쓸 수 없어 문장 번역이 나오지 않습니다."
+            return "\n\n이 기기에서는 간단 번역을 쓸 수 없어 문장 번역이 나오지 않습니다."
         }
         return ""
     }
@@ -125,7 +126,7 @@ struct SettingsScreen: View {
                     // screen the reader will feel immediately: it is the
                     // difference between a song being ready in seconds and in
                     // minutes.
-                    Picker("해석 방식", selection: Binding(
+                    Picker("번역 방식", selection: Binding(
                         get: { app.sensei.depth },
                         set: {
                             app.sensei.depth = $0
@@ -138,6 +139,13 @@ struct SettingsScreen: View {
                     }
                     .disabled(!app.sensei.usesOnDeviceModel)
 
+                    if app.sensei.usesOnDeviceModel {
+                        Toggle("곡을 열 때마다 묻기", isOn: Binding(
+                            get: { asksEveryTime },
+                            set: { asksEveryTime = $0; AnalysisDepthPreference.asksEveryTime = $0 }
+                        ))
+                    }
+
                     Picker("자동 해석", selection: Binding(
                         get: { app.autoAnalysis },
                         set: { app.autoAnalysis = $0 }
@@ -146,7 +154,7 @@ struct SettingsScreen: View {
                             Text(policy.title).tag(policy)
                         }
                     }
-                    Toggle("단순 번역으로 채우기", isOn: Binding(
+                    Toggle("간단 번역으로 채우기", isOn: Binding(
                         get: { plainTranslationOn },
                         set: {
                             plainTranslationOn = $0
@@ -183,7 +191,7 @@ struct SettingsScreen: View {
 
                 Section {
                     DisclosureGroup("정보") {
-                        LabeledContent("해석 엔진", value: app.engineLabel)
+                        LabeledContent("번역 방식", value: app.engineLabel)
                         LabeledContent("음악 · 앨범", value: "Apple Music")
                         LabeledContent("가사", value: "LRCLIB")
                         LabeledContent("재생", value: app.playbackLabel)

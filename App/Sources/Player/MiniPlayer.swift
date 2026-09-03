@@ -37,6 +37,15 @@ struct MiniPlayer: View {
 
                 Spacer(minLength: JustTheme.Space.tight)
 
+                Button { app.playPrevious() } label: {
+                    Image(systemName: "backward.end.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(JustTheme.Ink.primary)
+                }
+                .buttonStyle(.justIcon)
+                .disabled(app.previousTrack == nil)
+                .accessibilityLabel("이전 곡")
+
                 Button {
                     app.player.togglePlayback()
                 } label: {
@@ -50,16 +59,17 @@ struct MiniPlayer: View {
                 .buttonStyle(.justIcon)
                 .accessibilityLabel(app.player.isPlaying ? "일시정지" : "재생")
 
-                Button {
-                    app.stopPlayback()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        // Quieter than play: ending a song is not the main act.
-                        .foregroundStyle(JustTheme.Ink.secondary)
+                // Step buttons in place of ✕. Stopping is rare and lives in the
+                // player's menu now; moving to the next song of the group is the
+                // thing a mini player is actually for.
+                Button { app.playNext() } label: {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(JustTheme.Ink.primary)
                 }
                 .buttonStyle(.justIcon)
-                .accessibilityLabel("재생 종료")
+                .disabled(app.nextTrack == nil)
+                .accessibilityLabel("다음 곡")
             }
             // No surface of its own. `tabViewBottomAccessory` supplies the glass,
             // the shape and the outer insets; drawing a second rounded rectangle

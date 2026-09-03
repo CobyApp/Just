@@ -66,7 +66,8 @@ struct PlayerScreen: View {
                         : nil,
                     onUseQuick: (session?.canUseQuickAnalysis ?? false)
                         ? { session?.useQuickAnalysis() }
-                        : nil
+                        : nil,
+                    onChoose: { depth, remember in session?.choose(depth, remember: remember) }
                 )
             }
         }
@@ -221,6 +222,12 @@ struct PlayerScreen: View {
                     }
                 }
 
+                Button(role: .destructive) {
+                    app.stopPlayback()
+                } label: {
+                    Label("재생 종료", systemImage: "stop.fill")
+                }
+
                 if let song = session.song, !song.occurrences.isEmpty {
                     Button { showsWords = true } label: {
                         Label("이 곡의 단어", systemImage: "character.book.closed")
@@ -354,16 +361,24 @@ private struct TransportControls: View {
             .foregroundStyle(JustTheme.Ink.tertiary)
 
             HStack(spacing: JustTheme.Space.section) {
+                // 56pt targets on every control, not only the play button. The
+                // skip buttons were a 20pt glyph with nothing around it, and a
+                // finger aimed at one landed on the slider or nothing.
                 Button { player.skip(by: -5) } label: {
-                    Image(systemName: "gobackward.5").font(.system(size: 20))
+                    Image(systemName: "gobackward.5").font(.system(size: 24))
+                        .frame(width: 56, height: 56)
+                        .contentShape(.rect)
                 }
                 Button { player.togglePlayback() } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 30))
-                        .frame(width: 56, height: 56)
+                        .font(.system(size: 32))
+                        .frame(width: 72, height: 72)
+                        .contentShape(.rect)
                 }
                 Button { player.skip(by: 5) } label: {
-                    Image(systemName: "goforward.5").font(.system(size: 20))
+                    Image(systemName: "goforward.5").font(.system(size: 24))
+                        .frame(width: 56, height: 56)
+                        .contentShape(.rect)
                 }
             }
             .foregroundStyle(JustTheme.Ink.primary)

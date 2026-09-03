@@ -545,3 +545,31 @@ struct IdolGroupTests {
         }
     }
 }
+
+
+@Suite("재생 순서")
+struct PlaybackQueueTests {
+    private func track(_ id: String) -> Track {
+        Track(id: id, title: id, artist: "a", album: nil, artworkURL: nil, duration: 0)
+    }
+
+    @Test("다음 곡과 이전 곡을 돌려준다")
+    func stepsBothWays() {
+        let queue = PlaybackQueue([track("a"), track("b"), track("c")])
+        #expect(queue.next(after: track("a"))?.id == "b")
+        #expect(queue.previous(before: track("c"))?.id == "b")
+    }
+
+    @Test("끝에서는 멈춘다 — 감싸 돌지 않는다")
+    func stopsAtTheEnds() {
+        let queue = PlaybackQueue([track("a"), track("b")])
+        #expect(queue.next(after: track("b")) == nil)
+        #expect(queue.previous(before: track("a")) == nil)
+    }
+
+    @Test("목록에 없는 곡이면 어디로도 가지 않는다")
+    func unknownTrackGoesNowhere() {
+        let queue = PlaybackQueue([track("a")])
+        #expect(queue.next(after: track("zzz")) == nil)
+    }
+}

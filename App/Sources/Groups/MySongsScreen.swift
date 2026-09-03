@@ -51,7 +51,7 @@ struct MySongsScreen: View {
 
                 LazyVStack(spacing: JustTheme.Space.tight) {
                     ForEach(songs) { song in
-                        Button { app.open(song.track) } label: { row(song) }
+                        Button { app.open(song.track, in: songs.map(\.track)) } label: { row(song) }
                             .buttonStyle(.plain)
                             .contextMenu {
                                 Button("목록에서 빼기", systemImage: "trash", role: .destructive) {

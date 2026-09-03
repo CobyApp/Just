@@ -1,5 +1,6 @@
 import JustCore
 import JustDesign
+import JustSensei
 import SwiftUI
 
 /// What the user looks at between choosing a song and hearing it.
@@ -19,6 +20,10 @@ struct PreparingView: View {
     /// fast one during the lyric fetch would promise a speed-up of a step that
     /// is not the slow part.
     let onUseQuick: (() -> Void)?
+    /// Answers the 「빠르게 / AI로」 question. nil except while it is asked.
+    let onChoose: ((AnalysisDepth, Bool) -> Void)?
+
+    @State private var rememberChoice = false
 
     var body: some View {
         VStack(spacing: JustTheme.Space.loose) {
@@ -42,12 +47,19 @@ struct PreparingView: View {
                     .lineLimit(1)
             }
 
-            progress
+            if phase == .choosingDepth, let onChoose {
+                choice(onChoose)
+            } else {
+                progress
+            }
 
             Spacer(minLength: 0)
 
             VStack(spacing: JustTheme.Space.snug) {
-                if let onSkip {
+                if phase == .choosingDepth {
+                    // The question is the whole screen; the buttons below would
+                    // only compete with it.
+                } else if let onSkip {
                     Button("지금 듣기", action: onSkip)
                         .buttonStyle(.justPrimary)
                     Text("남은 줄은 들으면서 이어서 해석합니다")
@@ -58,9 +70,9 @@ struct PreparingView: View {
                 // actually felt. A mode switch that lives only in settings is a
                 // switch nobody finds while they are waiting for it.
                 if let onUseQuick {
-                    Button("빠른 해석으로 끝내기", action: onUseQuick)
+                    Button("빠른 번역으로 바꾸기", action: onUseQuick)
                         .buttonStyle(.justSecondary)
-                    Text("남은 줄을 사전과 시스템 번역으로 바로 채웁니다. 이후 곡도 빠른 해석으로 열립니다.")
+                    Text("남은 줄을 몇 초 안에 채웁니다. 다음 곡도 빠른 번역으로 열립니다.")
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.tertiary)
                         .multilineTextAlignment(.center)
@@ -77,9 +89,73 @@ struct PreparingView: View {
         .frame(maxWidth: 420)
     }
 
+    /// Which reading to make, asked in the reader's words.
+    ///
+    /// Two cards, not a picker: the difference is a decision about the next
+    /// few minutes, and it deserves the sentence under each option that a
+    /// picker row has no room for.
+    private func choice(_ onChoose: @escaping (AnalysisDepth, Bool) -> Void) -> some View {
+        VStack(spacing: JustTheme.Space.snug) {
+            Text("어떻게 번역할까요?")
+                .font(JustTheme.Font.title)
+                .foregroundStyle(JustTheme.Ink.primary)
+
+            choiceCard(
+                title: "빠르게",
+                detail: AnalysisDepth.quick.detail,
+                symbol: "hare.fill"
+            ) { onChoose(.quick, rememberChoice) }
+
+            choiceCard(
+                title: "AI로 정확하게",
+                detail: AnalysisDepth.deep.detail,
+                symbol: "sparkles"
+            ) { onChoose(.deep, rememberChoice) }
+
+            Toggle("다음에도 이걸로 열기", isOn: $rememberChoice)
+                .font(JustTheme.Font.caption)
+                .foregroundStyle(JustTheme.Ink.secondary)
+                .tint(JustTheme.Kawaii.accent)
+                .padding(.top, JustTheme.Space.tight)
+        }
+    }
+
+    private func choiceCard(
+        title: String, detail: String, symbol: String, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: JustTheme.Space.snug) {
+                Image(systemName: symbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .frame(width: 36)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(JustTheme.Font.body.weight(.bold))
+                    // The whole sentence. This is the one place the reader is
+                    // told what the two choices mean, and an ellipsis after
+                    // 「정확하…」 told them nothing.
+                    Text(detail)
+                        .font(JustTheme.Font.caption)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(JustTheme.Ink.primary)
+            .padding(JustTheme.Space.regular)
+            .frame(maxWidth: .infinity)
+            .background(JustTheme.Surface.raised, in: .rect(cornerRadius: 18))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
     @ViewBuilder
     private var progress: some View {
         switch phase {
+        case .choosingDepth:
+            // The question replaces the bar; see `choice`.
+            EmptyView()
         case .loadingLyrics:
             VStack(spacing: JustTheme.Space.tight) {
                 ProgressView()
