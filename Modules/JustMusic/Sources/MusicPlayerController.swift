@@ -110,7 +110,22 @@ public final class MusicPlayerController {
             guard generation == loadGeneration else { return }
 
             if canPlayFullTracks {
-                try await startCatalogPlayback(song, autoplay: autoplay, generation: generation)
+                do {
+                    try await startCatalogPlayback(song, autoplay: autoplay, generation: generation)
+                } catch {
+                    guard generation == loadGeneration else { return }
+                    // The subscription check said this account could stream and
+                    // the player disagreed. Deciding before trying is what left
+                    // the reader with 「이 곡을 재생할 수 없습니다」 on a device
+                    // that could have played the preview all along — the
+                    // fallback was right there and never reached.
+                    //
+                    // Corrected rather than merely worked around: the flag is
+                    // what the transport and the lyrics use to describe
+                    // themselves, and it was wrong.
+                    canPlayFullTracks = false
+                    try startPreviewPlayback(song, autoplay: autoplay)
+                }
             } else {
                 // Without a subscription the catalog will not stream, but the
                 // 30-second preview is open to anyone — and a study app is
