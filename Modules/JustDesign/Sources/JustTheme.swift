@@ -4,6 +4,30 @@ import SwiftUI
 /// comes from the current artwork, and generous type. Everything colourful on
 /// screen is the album art — the chrome stays out of the way.
 public enum JustTheme {
+    /// The bright half of the app.
+    ///
+    /// Lists and group cards are cheerful; the player and the lyrics stay dark.
+    /// Reading is what this app is mostly doing, and dark is where the furigana
+    /// and the translation contrast was tuned — an idol app is still a reading
+    /// app once a song is open.
+    public enum Kawaii {
+        public static let ink = Color(red: 0.24, green: 0.14, blue: 0.28)
+        public static let inkSoft = Color(red: 0.45, green: 0.35, blue: 0.48)
+
+        /// A group's own two-tone card.
+        public static func gradient(hue: Double) -> LinearGradient {
+            LinearGradient(
+                colors: [
+                    Color(hue: hue, saturation: 0.55, brightness: 0.98),
+                    Color(hue: (hue + 0.08).truncatingRemainder(dividingBy: 1),
+                          saturation: 0.72, brightness: 0.86),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
     public enum Ink {
         public static let primary = Color.white
         public static let secondary = Color.white.opacity(0.62)
@@ -13,6 +37,15 @@ public enum JustTheme {
 
     public enum Surface {
         public static let base = Color(red: 0.04, green: 0.04, blue: 0.05)
+        /// The bright ground for lists and group cards.
+        public static let kawaii = LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.94, blue: 0.97),
+                Color(red: 0.94, green: 0.95, blue: 1.0),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
         public static let raised = Color.white.opacity(0.06)
         public static let sunken = Color.black.opacity(0.28)
     }
@@ -200,5 +233,16 @@ public struct JustChip: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(tint.opacity(0.14), in: .rect(cornerRadius: JustTheme.Radius.chip))
+    }
+}
+
+
+public extension View {
+    /// Section heading on the bright screens.
+    func kawaiiSectionTitle() -> some View {
+        font(.just(20, weight: .bold, relativeTo: .title3))
+            .foregroundStyle(JustTheme.Kawaii.ink)
+            .padding(.horizontal, JustTheme.Space.regular)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

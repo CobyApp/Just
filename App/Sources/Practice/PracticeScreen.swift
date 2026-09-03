@@ -43,8 +43,8 @@ struct PracticeScreen: View {
                 icon: "square.dashed",
                 title: "아직 연습할 단어가 없습니다",
                 message: "가사에서 줄을 눌러 단어를 담으면 그 단어와 가사로 문제를 만듭니다.",
-                actionTitle: "곡 보러 가기",
-                action: { app.tab = .browse }
+                actionTitle: "그룹 보러 가기",
+                action: { app.tab = .groups }
             )
         } else {
             ScrollView {

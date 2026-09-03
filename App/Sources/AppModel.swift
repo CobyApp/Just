@@ -22,7 +22,7 @@ final class AppModel {
     /// Held here rather than in `RootView`'s own state so a screen can send the
     /// user somewhere else — an empty word list has nothing to offer except the
     /// song list, and it could not reach it from inside its own tab.
-    var tab: Tab = .browse
+    var tab: Tab = .groups
 
     /// The tab bar, in order.
     ///
@@ -32,7 +32,7 @@ final class AppModel {
     /// to somewhere else. Songs are what the app is for, so songs are what it
     /// opens on.
     enum Tab: Hashable {
-        case browse, playlists, words, practice
+        case groups, words, practice
     }
 
     /// The song the full-screen player is showing, if any.
@@ -156,7 +156,9 @@ final class AppModel {
         }
         catalogStatus = .checking
         do {
-            _ = try await music.search("YOASOBI", limit: 1)
+            // Asked with a group from the roster, which is now the only kind
+            // of catalog request the app makes.
+            _ = try await music.songs(forArtist: IdolGroup.all[0].id, limit: 1)
             catalogStatus = .ok
         } catch {
             catalogStatus = .failed(error.localizedDescription)

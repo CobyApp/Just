@@ -36,11 +36,11 @@ public struct ArtworkTile: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(JustTheme.Font.body.weight(.medium))
-                    .foregroundStyle(JustTheme.Ink.primary)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 Text(subtitle)
                     .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Ink.secondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             .frame(width: width, alignment: .leading)

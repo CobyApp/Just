@@ -74,8 +74,8 @@ struct LibraryScreen: View {
             icon: "character.book.closed",
             title: "아직 저장한 단어가 없습니다",
             message: "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.",
-            actionTitle: "곡 보러 가기",
-            action: { app.tab = .browse }
+            actionTitle: "그룹 보러 가기",
+            action: { app.tab = .groups }
         )
     }
 

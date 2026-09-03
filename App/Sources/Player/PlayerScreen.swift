@@ -13,7 +13,6 @@ struct PlayerScreen: View {
 
     @State private var session: SongSession?
     @State private var artwork = ArtworkLoader()
-    @State private var showsAlbum = false
     @State private var showsWords = false
     @State private var showsSyncOffset = false
     @State private var savedBanner: String?
@@ -99,7 +98,6 @@ struct PlayerScreen: View {
             await app.player.load(track, autoplay: app.player.trackID != track.id)
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
-        .sheet(isPresented: $showsAlbum) { AlbumSheet(track: track) }
         .sheet(isPresented: $showsSyncOffset) {
             if let session {
                 SyncOffsetSheet(session: session, player: app.player)
@@ -298,25 +296,12 @@ struct PlayerScreen: View {
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .lineLimit(1)
                 if let album = track.album, album != track.title {
-                    Button { showsAlbum = true } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "square.stack")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text(album).lineLimit(1)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .semibold))
-                        }
+                    // Was a button into an album sheet. The group screen lists
+                    // the songs now, so this is just the album's name.
+                    Text(album)
                         .font(JustTheme.Font.caption)
-                        .foregroundStyle(JustTheme.Ink.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(JustTheme.Surface.raised, in: .capsule)
-                        .overlay {
-                            Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 2)
+                        .foregroundStyle(JustTheme.Ink.tertiary)
+                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity)

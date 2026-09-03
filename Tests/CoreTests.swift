@@ -507,37 +507,41 @@ struct WaitBudgetTests {
     }
 }
 
-@Suite("일본 곡만 남기기")
-struct JapaneseSongFilterTests {
-    @Test("장르가 일본 계열이면 남긴다")
-    func keepsJapaneseGenres() {
-        // The reliable signal. Script is not: 「Lemon」, 「Pretender」,
-        // 「KICK BACK」 are Japanese songs with Latin titles, and YOASOBI,
-        // King Gnu, Vaundy, Ado, RADWIMPS are Japanese acts with Latin names.
-        #expect(JapaneseSong.isJapanese(title: "Lemon", artist: "Kenshi Yonezu", genres: ["J-Pop"]))
-        #expect(JapaneseSong.isJapanese(title: "KICK BACK", artist: "Kenshi Yonezu", genres: ["Anime"]))
-        #expect(JapaneseSong.isJapanese(title: "紅蓮華", artist: "LiSA", genres: ["J-Rock"]))
-        #expect(JapaneseSong.isJapanese(title: "x", artist: "y", genres: ["Japanese Pop"]))
-        #expect(JapaneseSong.isJapanese(title: "x", artist: "y", genres: ["J-ポップ"]))
+@Suite("아이돌 그룹 명단")
+struct IdolGroupTests {
+    @Test("일곱 그룹이 모두 있다")
+    func hasEveryGroup() {
+        #expect(IdolGroup.all.count == 7)
+        let names = Set(IdolGroup.all.map(\.name))
+        #expect(names == [
+            "FRUITS ZIPPER", "CANDY TUNE", "SWEET STEADY", "CUTIE STREET",
+            "MORE STAR", "iLiFE!", "=LOVE",
+        ])
     }
 
-    @Test("제목이나 아티스트에 일본 글자가 있으면 남긴다")
-    func keepsJapaneseScript() {
-        // Genres are not always filled in, so script is the second chance
-        // rather than the only test.
-        #expect(JapaneseSong.isJapanese(title: "夜に駆ける", artist: "YOASOBI", genres: []))
-        #expect(JapaneseSong.isJapanese(title: "Pretender", artist: "Official髭男dism", genres: []))
+    @Test("아티스트 ID가 서로 다르다")
+    func idsAreDistinct() {
+        // A duplicated id would quietly give two groups the same songs.
+        #expect(Set(IdolGroup.all.map(\.id)).count == IdolGroup.all.count)
     }
 
-    @Test("일본과 무관한 곡은 뺀다")
-    func dropsTheRest() {
-        #expect(!JapaneseSong.isJapanese(title: "Shape of You", artist: "Ed Sheeran", genres: ["Pop"]))
-        #expect(!JapaneseSong.isJapanese(title: "Dynamite", artist: "BTS", genres: ["K-Pop"]))
-        #expect(!JapaneseSong.isJapanese(title: "APT.", artist: "ROSÉ", genres: ["K-Pop", "Pop"]))
+    @Test("ID로 그룹을 찾는다")
+    func findsByID() {
+        #expect(IdolGroup.group(id: "1617607581")?.name == "FRUITS ZIPPER")
+        #expect(IdolGroup.group(id: "없는id") == nil)
     }
 
-    @Test("한국어 제목을 일본어로 착각하지 않는다")
-    func doesNotMistakeKorean() {
-        #expect(!JapaneseSong.isJapanese(title: "밤편지", artist: "아이유", genres: ["K-Pop"]))
+    @Test("KAWAII LAB.에 다섯 그룹이 있다")
+    func kawaiiLabRoster() {
+        #expect(IdolGroup.groups(in: .kawaiiLab).count == 5)
+        #expect(IdolGroup.groups(in: .kawaiiLab).map(\.name).contains("MORE STAR"))
+    }
+
+    @Test("모든 그룹에 한국어 표기와 색이 있다")
+    func everyGroupIsPresentable() {
+        for group in IdolGroup.all {
+            #expect(!group.readingKo.isEmpty)
+            #expect((0...1).contains(group.hue))
+        }
     }
 }

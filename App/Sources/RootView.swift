@@ -12,14 +12,8 @@ struct RootView: View {
         @Bindable var app = app
 
         TabView(selection: $app.tab) {
-            Tab("둘러보기", systemImage: "music.note.list", value: AppModel.Tab.browse) {
-                SearchScreen()
-            }
-            // Second, not buried behind a search. Someone's own playlists are
-            // the songs they already care about, which makes them the shortest
-            // path to a song worth studying.
-            Tab("내 플레이리스트", systemImage: "music.note.house", value: AppModel.Tab.playlists) {
-                NavigationStack { PlaylistScreen() }
+            Tab("아이돌", systemImage: "sparkles", value: AppModel.Tab.groups) {
+                GroupsScreen()
             }
             Tab("단어장", systemImage: "character.book.closed", value: AppModel.Tab.words) {
                 LibraryScreen()

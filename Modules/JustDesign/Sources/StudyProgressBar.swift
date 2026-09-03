@@ -26,9 +26,9 @@ public struct StudyProgressBar: View {
         ProgressView(value: progress) {
             Text("해석 \(Int((progress * 100).rounded()))%")
                 .font(JustTheme.Font.caption)
-                .foregroundStyle(JustTheme.Ink.tertiary)
+                .foregroundStyle(.secondary)
         }
-        .tint(JustTheme.Ink.secondary)
+        .tint(.primary)
         .frame(width: width)
     }
 }

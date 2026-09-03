@@ -168,29 +168,33 @@ public struct AppleMusicClient: Sendable {
 
     // MARK: - Search
 
-    public func search(_ term: String, limit: Int = 25) async throws -> [JustCore.Track] {
-        let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
+    /// Every song this app knows for one group.
+    ///
+    /// The roster is the app's whole catalogue, so this is what search used to
+    /// be. Asked by artist id rather than by name: a name lookup hands the
+    /// group's entire catalogue to whoever matches better that day, and the
+    /// failure looks like the group having no songs.
+    ///
+    /// Top songs rather than every release. A group with six years of singles
+    /// has more B-sides than anyone will study, and the ones worth opening are
+    /// the ones people know.
+    public func songs(forArtist artistID: String, limit: Int = 40) async throws -> [JustCore.Track] {
         guard MusicAuthorization.currentStatus == .authorized else {
             throw Failure.notAuthorized
         }
 
-        var request = MusicCatalogSearchRequest(term: trimmed, types: [Song.self])
-        // Asked for more than will be shown, because most of what comes back is
-        // dropped. A search for 「lemon」 returns the whole catalog's worth of
-        // songs by that name; one of them is the one this app can teach from.
-        request.limit = min(limit * 4, 50)
+        var request = MusicCatalogResourceRequest<Artist>(
+            matching: \.id,
+            equalTo: MusicItemID(artistID)
+        )
+        request.properties = [.topSongs]
 
         do {
-            let response = try await request.response()
-            let japanese = response.songs.filter {
-                JapaneseSong.isJapanese(
-                    title: $0.title,
-                    artist: $0.artistName,
-                    genres: $0.genreNames
-                )
+            guard let artist = try await request.response().items.first else {
+                throw Failure.notFound
             }
-            return japanese.prefix(limit).map(Self.track(from:))
+            let songs = artist.topSongs ?? []
+            return songs.prefix(limit).map(Self.track(from:))
         } catch {
             throw Self.failure(from: error)
         }
