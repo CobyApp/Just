@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The design system is deliberately small: one ink scale, one accent that
 /// comes from the current artwork, and generous type. Everything colourful on
@@ -18,9 +19,9 @@ public enum JustTheme {
         public static func gradient(hue: Double) -> LinearGradient {
             LinearGradient(
                 colors: [
-                    Color(hue: hue, saturation: 0.55, brightness: 0.98),
-                    Color(hue: (hue + 0.08).truncatingRemainder(dividingBy: 1),
-                          saturation: 0.72, brightness: 0.86),
+                    Color(hue: hue, saturation: 0.42, brightness: 1.0),
+                    Color(hue: (hue + 0.07).truncatingRemainder(dividingBy: 1),
+                          saturation: 0.58, brightness: 0.92),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -28,15 +29,36 @@ public enum JustTheme {
         }
     }
 
+    /// Text colours that follow the colour scheme.
+    ///
+    /// The app has two grounds now — bright lists and a dark player — and the
+    /// same components sit on both. Fixed white ink was right when everything
+    /// was dark; on the bright screens it vanished. Resolving per scheme means
+    /// a screen goes bright with one `.environment(\.colorScheme, .light)` and
+    /// every label on it follows, instead of dozens of colour edits per screen.
     public enum Ink {
-        public static let primary = Color.white
-        public static let secondary = Color.white.opacity(0.62)
-        public static let tertiary = Color.white.opacity(0.38)
-        public static let hairline = Color.white.opacity(0.12)
+        public static let primary = adaptive(
+            dark: .white, light: Color(red: 0.24, green: 0.14, blue: 0.28))
+        public static let secondary = adaptive(
+            dark: .white.opacity(0.62), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.68))
+        public static let tertiary = adaptive(
+            dark: .white.opacity(0.38), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.45))
+        public static let hairline = adaptive(
+            dark: .white.opacity(0.12), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.10))
+    }
+
+    /// One colour for each scheme, resolved where the view is drawn.
+    static func adaptive(dark: Color, light: Color) -> Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
     }
 
     public enum Surface {
-        public static let base = Color(red: 0.04, green: 0.04, blue: 0.05)
+        /// Near-black under the player; cream-pink under the lists.
+        public static let base = adaptive(
+            dark: Color(red: 0.04, green: 0.04, blue: 0.05),
+            light: Color(red: 0.99, green: 0.95, blue: 0.97))
         /// The bright ground for lists and group cards.
         public static let kawaii = LinearGradient(
             colors: [
@@ -46,8 +68,8 @@ public enum JustTheme {
             startPoint: .top,
             endPoint: .bottom
         )
-        public static let raised = Color.white.opacity(0.06)
-        public static let sunken = Color.black.opacity(0.28)
+        public static let raised = adaptive(dark: .white.opacity(0.06), light: .white.opacity(0.78))
+        public static let sunken = adaptive(dark: .black.opacity(0.28), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.06))
     }
 
     /// The one saturated element in an otherwise monochrome app. Used for

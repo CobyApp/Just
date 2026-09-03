@@ -56,6 +56,8 @@ struct LibraryScreen: View {
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
+        // A list screen, so bright. The player it opens stays dark.
+        .environment(\.colorScheme, .light)
         // Recomputed on appear rather than observed: the counts change only
         // when the user grades or saves something, both of which leave and
         // return to this screen.

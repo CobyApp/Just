@@ -49,6 +49,8 @@ struct GroupsScreen: View {
             // The app is pinned to dark in its Info.plist, which the navigation
             // bar obeys — so on a bright screen the title and the toolbar
             // button were white on white. The bar is told otherwise.
+            // Bright list screen; the shared tiles read their ink from this.
+            .environment(\.colorScheme, .light)
             .navigationDestination(for: IdolGroup.self) { GroupDetailScreen(group: $0) }
         }
     }

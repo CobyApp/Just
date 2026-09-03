@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 """Draws the app icon.
 
-One character: 歌, "song". The earlier version stacked its furigana above it,
-which was a neat summary of what the app does and too much for an icon — at
-40pt the reading was texture, not information, and the kanji was already
-carrying recognition on its own. An app called Just should not need two marks.
+A heart with 「歌」 — song — inside it, and sparkles around it.
+
+The mark has to say two things at once: idols, and Japanese. A kanji alone said
+the second and not the first, which was right for a J-pop study app and is
+wrong for this one. A heart alone says the first and not the second, and there
+are a thousand pink heart icons. The kanji inside is what joins them.
+
+A speech-bubble tail was tried and dropped: a heart already ends in a point, so
+a tail gave the silhouette two of them and it read as a rendering mistake at
+small sizes. The sparkles say 「idol」 without touching the outline, and they
+are the same mark the app's own tab bar uses.
+
+Bright, because the app opens bright. The dark half is the lyrics screen, and an
+icon should look like the screen you see first.
 
 Usage:  python3 Scripts/make-icon.py
 """
+import math
 import pathlib
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "App" / "Resources" / "Assets.xcassets" / "AppIcon.appiconset" / "icon-1024.png"
@@ -18,93 +29,99 @@ OUTPUT = ROOT / "App" / "Resources" / "Assets.xcassets" / "AppIcon.appiconset" /
 SIZE = 1024
 JAPANESE = "/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc"
 
-# Same family as the player's mesh background: deep indigo drifting to plum.
-TOP_LEFT = (20, 20, 32)
-BOTTOM_RIGHT = (52, 34, 68)
-GLOW = (104, 78, 150)
+# The group cards' own family: hot pink into a softer coral, on cream.
+TOP_LEFT = (255, 209, 232)
+BOTTOM_RIGHT = (255, 233, 214)
+HEART_TOP = (255, 92, 147)
+HEART_BOTTOM = (255, 138, 106)
+INK = (255, 255, 255)
 
 
-def background():
-    """Diagonal gradient with a soft glow behind the glyph."""
-    base = Image.new("RGB", (SIZE, SIZE))
-    pixels = base.load()
-    for y in range(SIZE):
-        for x in range(SIZE):
-            # Diagonal position, normalised.
-            t = (x + y) / (2 * SIZE - 2)
+def gradient(size, top_left, bottom_right):
+    """Diagonal two-colour ramp."""
+    image = Image.new("RGB", (size, size))
+    pixels = image.load()
+    for y in range(size):
+        for x in range(size):
+            t = (x + y) / (2 * (size - 1))
             pixels[x, y] = tuple(
-                round(TOP_LEFT[i] + (BOTTOM_RIGHT[i] - TOP_LEFT[i]) * t)
-                for i in range(3)
+                round(a + (b - a) * t) for a, b in zip(top_left, bottom_right)
             )
+    return image
 
-    glow = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
-    draw = ImageDraw.Draw(glow)
-    centre = SIZE * 0.54
-    radius = SIZE * 0.48
-    # Concentric discs approximate a radial falloff without a blur pass.
-    steps = 60
-    for step in range(steps, 0, -1):
-        fraction = step / steps
-        r = radius * fraction
-        intensity = (1 - fraction) ** 2
-        draw.ellipse(
-            [centre - r, centre - r, centre + r, centre + r],
-            fill=tuple(round(c * intensity) for c in GLOW),
+
+def heart_mask(size, scale=0.62, drop=0.46):
+    """A heart, drawn from its own equation rather than two circles.
+
+    Two circles and a triangle leaves corners where they meet; the parametric
+    curve is smooth all the way round, which matters at 40pt where a kink reads
+    as a rendering error.
+    """
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    points = []
+    for step in range(721):
+        t = math.radians(step / 2)
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        points.append(
+            (
+                size / 2 + x * size * scale / 32,
+                size * drop - y * size * scale / 32,
+            )
         )
-    return Image.blend(base, Image.blend(base, glow, 0.0), 0.0) if False else _screen(base, glow)
+    draw.polygon(points, fill=255)
+    return mask
 
 
-def _screen(base, glow):
-    """Screen blend: lightens without washing the gradient out."""
-    out = base.copy()
-    b = base.load()
-    g = glow.load()
-    o = out.load()
-    for y in range(SIZE):
-        for x in range(SIZE):
-            br, bg, bb = b[x, y]
-            gr, gg, gb = g[x, y]
-            o[x, y] = (
-                255 - (255 - br) * (255 - gr) // 255,
-                255 - (255 - bg) * (255 - gg) // 255,
-                255 - (255 - bb) * (255 - gb) // 255,
-            )
-    return out
-
-
-def centred(draw, text, font, centre_x, baseline_y, fill):
-    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
-    draw.text(
-        (centre_x - (left + right) / 2, baseline_y - (top + bottom) / 2),
-        text,
-        font=font,
+def sparkle(draw, cx, cy, r, fill):
+    """A four-point star, the idol mark."""
+    pinch = r * 0.28
+    draw.polygon(
+        [
+            (cx, cy - r), (cx + pinch, cy - pinch), (cx + r, cy), (cx + pinch, cy + pinch),
+            (cx, cy + r), (cx - pinch, cy + pinch), (cx - r, cy), (cx - pinch, cy - pinch),
+        ],
         fill=fill,
     )
 
 
 def main():
-    image = background()
-    draw = ImageDraw.Draw(image)
+    base = gradient(SIZE, TOP_LEFT, BOTTOM_RIGHT)
 
-    # Sized to sit inside the ~80% safe area an iOS mask leaves; a glyph that
-    # reaches the edge looks cramped once the corners round off.
-    kanji = ImageFont.truetype(JAPANESE, 470)
-    centred(draw, "歌", kanji, SIZE / 2, SIZE / 2, (255, 255, 255))
+    shape = heart_mask(SIZE, scale=0.60, drop=0.50)
+
+    # A soft shadow under the heart, so it sits on the cream rather than in it.
+    shadow = shape.filter(ImageFilter.GaussianBlur(SIZE * 0.03))
+    base.paste(Image.new("RGB", (SIZE, SIZE), (214, 150, 178)), (0, int(SIZE * 0.012)), shadow)
+
+    heart = gradient(SIZE, HEART_TOP, HEART_BOTTOM)
+    base.paste(heart, (0, 0), shape)
+
+    # 歌 inside it. Sized to the heart's waist rather than the canvas, or it
+    # spills over the curve where the two lobes meet.
+    draw = ImageDraw.Draw(base)
+
+    # Sparkles: one large, two small, placed where the heart leaves room.
+    sparkle(draw, SIZE * 0.80, SIZE * 0.20, SIZE * 0.075, INK)
+    sparkle(draw, SIZE * 0.17, SIZE * 0.30, SIZE * 0.045, INK)
+    sparkle(draw, SIZE * 0.86, SIZE * 0.66, SIZE * 0.035, INK)
+
+    font = ImageFont.truetype(JAPANESE, int(SIZE * 0.30))
+    box = draw.textbbox((0, 0), "歌", font=font)
+    draw.text(
+        (
+            (SIZE - (box[2] - box[0])) / 2 - box[0],
+            SIZE * 0.47 - (box[3] - box[1]) / 2 - box[1],
+        ),
+        "歌",
+        font=font,
+        fill=INK,
+    )
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    image.save(OUTPUT)
+    base.save(OUTPUT)
     print(f"{OUTPUT.relative_to(ROOT)} ({OUTPUT.stat().st_size // 1024} KB)")
-
-    # A contact sheet for eyeballing small-size legibility. Written outside the
-    # asset catalog so Xcode never treats it as a shipped image.
-    sheet = Image.new("RGB", (520, 200), (150, 150, 155))
-    x = 20
-    for size in (180, 120, 60, 40):
-        sheet.paste(image.resize((size, size), Image.LANCZOS), (x, (200 - size) // 2))
-        x += size + 20
-    sheet_path = ROOT / "Scripts" / "icon-sizes.png"
-    sheet.save(sheet_path)
-    print(f"{sheet_path.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

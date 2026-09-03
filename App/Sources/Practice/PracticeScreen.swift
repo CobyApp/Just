@@ -34,6 +34,8 @@ struct PracticeScreen: View {
                 struggling = store.strugglingEntries().count
             }
         }
+        // A list screen, so bright. The player it opens stays dark.
+        .environment(\.colorScheme, .light)
     }
 
     @ViewBuilder
