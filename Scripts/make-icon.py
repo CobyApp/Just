@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Draws the app icon.
 
-A heart with the app's name — 「도르」 — inside it, and sparkles around it.
+A heart and sparkles. Nothing written on it.
 
-The app is called 도르 now: 아이돌 with the front taken off, a name a Korean
-reader gets in one look. So the icon says the name. 「歌」 was here before and
-said 「Japanese」; with a Korean name on a Korean-facing app, the language of the
-lyrics is not what the icon needs to announce — the heart and the sparkles say
-idol, and the wordmark says which app.
+「歌」 was here first and said 「Japanese」, then the app's name 「도르」 said which
+app. Both came off: the name is already under the icon on every home screen, so
+a wordmark inside it says the same thing twice, and letters inside a heart fight
+the heart's own shape at small sizes. The heart says idol, the sparkles say
+stage, and the name is left to the label where iOS puts it anyway.
 
 A speech-bubble tail was tried and dropped: a heart already ends in a point, so
 a tail gave the silhouette two of them and it read as a rendering mistake at
@@ -100,26 +100,11 @@ def main():
     heart = gradient(SIZE, HEART_TOP, HEART_BOTTOM)
     base.paste(heart, (0, 0), shape)
 
-    # 「도르」 inside it. Two syllables are wider than one kanji, so the size
-    # comes down to fit the heart's waist rather than spill over the lobes.
-    draw = ImageDraw.Draw(base)
-
     # Sparkles: one large, two small, placed where the heart leaves room.
+    draw = ImageDraw.Draw(base)
     sparkle(draw, SIZE * 0.80, SIZE * 0.20, SIZE * 0.075, INK)
     sparkle(draw, SIZE * 0.17, SIZE * 0.30, SIZE * 0.045, INK)
     sparkle(draw, SIZE * 0.86, SIZE * 0.66, SIZE * 0.035, INK)
-
-    font = ImageFont.truetype(KOREAN, int(SIZE * 0.22), index=KOREAN_BOLD_INDEX)
-    box = draw.textbbox((0, 0), "도르", font=font)
-    draw.text(
-        (
-            (SIZE - (box[2] - box[0])) / 2 - box[0],
-            SIZE * 0.47 - (box[3] - box[1]) / 2 - box[1],
-        ),
-        "도르",
-        font=font,
-        fill=INK,
-    )
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     base.save(OUTPUT)
