@@ -32,7 +32,7 @@ final class AppModel {
     /// to somewhere else. Songs are what the app is for, so songs are what it
     /// opens on.
     enum Tab: Hashable {
-        case groups, words, practice
+        case groups, mySongs, words, practice
     }
 
     /// The song the full-screen player is showing, if any.

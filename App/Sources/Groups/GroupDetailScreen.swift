@@ -6,6 +6,7 @@ import SwiftUI
 /// One group's songs.
 struct GroupDetailScreen: View {
     let group: IdolGroup
+    let store: GroupArtworkStore
 
     @Environment(AppModel.self) private var app
     @State private var tracks: [Track] = []
@@ -91,10 +92,17 @@ struct GroupDetailScreen: View {
     }
 
     private func load() async {
+        // Already fetched for the card, usually — the same request carried the
+        // songs, so opening a group the grid has shown costs nothing.
+        if let cached = store.songs(for: group) {
+            tracks = cached
+            isLoading = false
+            return
+        }
         isLoading = true
         failure = nil
         do {
-            tracks = try await AppleMusicClient().songs(forArtist: group.id)
+            tracks = try await store.reload(group).songs
         } catch {
             failure = error.localizedDescription
         }

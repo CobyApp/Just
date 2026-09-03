@@ -178,6 +178,42 @@ public struct AppleMusicClient: Sendable {
     /// Top songs rather than every release. A group with six years of singles
     /// has more B-sides than anyone will study, and the ones worth opening are
     /// the ones people know.
+    /// What one group looks like and sings — its picture and its songs, from a
+    /// single artist request.
+    public struct ArtistPage: Sendable {
+        public let artworkURL: URL?
+        public let songs: [JustCore.Track]
+    }
+
+    /// The artist's own artwork, for the group card.
+    ///
+    /// Comes with the songs because it is the same request: the card and the
+    /// detail screen want different halves of one `Artist`, and asking twice
+    /// would fetch it twice.
+    public func artistPage(id artistID: String, limit: Int = 40) async throws -> ArtistPage {
+        guard MusicAuthorization.currentStatus == .authorized else {
+            throw Failure.notAuthorized
+        }
+        var request = MusicCatalogResourceRequest<Artist>(
+            matching: \.id,
+            equalTo: MusicItemID(artistID)
+        )
+        request.properties = [.topSongs]
+        do {
+            guard let artist = try await request.response().items.first else {
+                throw Failure.notFound
+            }
+            return ArtistPage(
+                // 800pt: the card is half the screen wide on iPad and the image
+                // is cropped to a wide aspect, so it needs more than the tiles.
+                artworkURL: artist.artwork?.url(width: 800, height: 800),
+                songs: (artist.topSongs ?? []).prefix(limit).map(Self.track(from:))
+            )
+        } catch {
+            throw Self.failure(from: error)
+        }
+    }
+
     public func songs(forArtist artistID: String, limit: Int = 40) async throws -> [JustCore.Track] {
         guard MusicAuthorization.currentStatus == .authorized else {
             throw Failure.notAuthorized

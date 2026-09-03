@@ -13,6 +13,7 @@ struct GroupsScreen: View {
     @Query(sort: \StudySong.lastOpenedAt, order: .reverse) private var songs: [StudySong]
 
     @State private var showsSettings = false
+    @State private var artworkStore = GroupArtworkStore()
 
     private let columns = [
         GridItem(.flexible(), spacing: JustTheme.Space.snug),
@@ -51,7 +52,13 @@ struct GroupsScreen: View {
             // button were white on white. The bar is told otherwise.
             // Bright list screen; the shared tiles read their ink from this.
             .environment(\.colorScheme, .light)
-            .navigationDestination(for: IdolGroup.self) { GroupDetailScreen(group: $0) }
+            .navigationDestination(for: IdolGroup.self) {
+                GroupDetailScreen(group: $0, store: artworkStore)
+            }
+            .task(id: app.isAuthorized) {
+                guard app.isAuthorized else { return }
+                await artworkStore.loadAll()
+            }
         }
     }
 
@@ -110,7 +117,9 @@ struct GroupsScreen: View {
             Text(label.rawValue).kawaiiSectionTitle()
             LazyVGrid(columns: columns, spacing: JustTheme.Space.snug) {
                 ForEach(IdolGroup.groups(in: label)) { group in
-                    NavigationLink(value: group) { GroupCard(group: group) }
+                    NavigationLink(value: group) {
+                        GroupCard(group: group, artworkURL: artworkStore.artworkURL(for: group))
+                    }
                         .buttonStyle(.plain)
                 }
             }
@@ -120,28 +129,60 @@ struct GroupsScreen: View {
 }
 
 /// One group, as a card you want to tap.
+///
+/// The group's own picture, with its colour laid over the bottom so the name
+/// stays legible whatever the photo is doing there. Until the picture arrives
+/// — or if it never does — the gradient alone is the card, so nothing flickers
+/// and a group Apple Music has no image for still looks like a group.
 private struct GroupCard: View {
     let group: IdolGroup
+    let artworkURL: URL?
+
+    @State private var artwork = ArtworkLoader()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(group.name)
-                .font(.just(17, weight: .bold, relativeTo: .headline))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-            Text(group.readingKo)
-                .font(JustTheme.Font.caption)
-                .foregroundStyle(.white.opacity(0.85))
+        ZStack(alignment: .bottomLeading) {
+            JustTheme.Kawaii.gradient(hue: group.hue)
+
+            if let image = artwork.image {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
+            }
+
+            // Colour over the lower half only. A full tint would hide the
+            // photo; no tint would hide the name.
+            LinearGradient(
+                colors: [.clear, Color(hue: group.hue, saturation: 0.6, brightness: 0.55).opacity(0.85)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.just(17, weight: .bold, relativeTo: .headline))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                Text(group.readingKo)
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(JustTheme.Space.snug)
         }
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .bottomLeading)
-        .padding(JustTheme.Space.snug)
-        .background(JustTheme.Kawaii.gradient(hue: group.hue), in: .rect(cornerRadius: 22))
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1.0, contentMode: .fit)
+        .clipShape(.rect(cornerRadius: 22))
+        .shadow(color: Color(hue: group.hue, saturation: 0.5, brightness: 0.7).opacity(0.25), radius: 10, y: 6)
         .overlay(alignment: .topTrailing) {
             Image(systemName: "sparkles")
                 .font(.system(size: 15))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.white.opacity(0.9))
+                .shadow(radius: 3)
                 .padding(JustTheme.Space.snug)
         }
+        .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
+        .task(id: artworkURL) { await artwork.load(artworkURL) }
     }
 }

@@ -15,6 +15,9 @@ struct RootView: View {
             Tab("아이돌", systemImage: "sparkles", value: AppModel.Tab.groups) {
                 GroupsScreen()
             }
+            Tab("내 노래", systemImage: "music.note.list", value: AppModel.Tab.mySongs) {
+                MySongsScreen()
+            }
             Tab("단어장", systemImage: "character.book.closed", value: AppModel.Tab.words) {
                 LibraryScreen()
             }
