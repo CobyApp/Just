@@ -91,7 +91,7 @@ let project = Project(
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSAppleMusicUsageDescription":
-                    "곡을 검색하고 재생해 가사로 일본어를 공부하기 위해 Apple Music에 접근합니다.",
+                    "좋아하는 아이돌 그룹의 곡을 불러오고 재생해 가사로 일본어를 공부하기 위해 Apple Music을 씁니다.",
                 // Keeps playback going while the screen locks during a song.
                 "UIBackgroundModes": ["audio"],
                 "UILaunchScreen": ["UIColorName": ""],

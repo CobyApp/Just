@@ -130,6 +130,24 @@ final class AppModel {
     ///
     /// Needed because the user can change the permission in Settings while the
     /// app is suspended, and nothing tells the app when they do.
+    /// Reads the permission, and asks for it the first time.
+    ///
+    /// Reading alone was not enough: iOS shows the Apple Music prompt only when
+    /// `MusicAuthorization.request()` is called, so an app that merely checks
+    /// the status never gets asked — the reader had to find a button to make
+    /// the system ask them. Every screen here needs the catalog, so the first
+    /// launch asks.
+    ///
+    /// Asking when it is already decided is harmless: iOS answers from the
+    /// existing choice without showing anything.
+    func prepareAccess() async {
+        if AppleMusicClient.access == .notDetermined {
+            await requestAccess()
+            return
+        }
+        await refreshAccess()
+    }
+
     func refreshAccess() async {
         access = AppleMusicClient.access
         if access == .authorized {

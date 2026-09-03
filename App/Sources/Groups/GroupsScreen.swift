@@ -26,6 +26,17 @@ struct GroupsScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
+                        // Access has to be asked for somewhere, and this is the
+                        // only screen that reaches Apple Music now. It used to
+                        // live on the search screen; removing that took the
+                        // permission prompt with it, and the app had no way to
+                        // ask at all — which looks exactly like a group having
+                        // no songs.
+                        if !app.isAuthorized {
+                            AppleMusicGate()
+                                .environment(\.colorScheme, .light)
+                                .padding(.top, JustTheme.Space.loose)
+                        }
                         if !songs.isEmpty { continueShelf }
                         ForEach(IdolGroup.Label.allCases, id: \.self) { label in
                             groupSection(label)
