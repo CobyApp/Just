@@ -169,7 +169,10 @@ struct LyricsPane: View {
     /// are still fully usable: tap a line for its words and translation.
     @ViewBuilder
     private var previewNotice: some View {
-        if !player.position.followsLyrics, session.lyrics?.isSynced == true {
+        // Only when there is a clip to speak of. A song with no preview at all
+        // already says so above the lyrics; a second notice about a 30-second
+        // clip that does not exist contradicted it.
+        if !player.position.followsLyrics, player.duration > 0, session.lyrics?.isSynced == true {
             Label(
                 "미리듣기 30초 구간이라 가사가 따라가지 않습니다. 줄을 눌러 뜻을 볼 수 있습니다.",
                 systemImage: "info.circle"
