@@ -23,7 +23,7 @@ struct GroupsScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                JustTheme.Surface.kawaii.ignoresSafeArea()
+                JustBrandBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
@@ -69,21 +69,15 @@ struct GroupsScreen: View {
     /// white. Drawing it here also lets it look like the rest of this screen.
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("도르")
-                    .font(.kawaii(36, weight: .heavy, relativeTo: .largeTitle))
-                    .foregroundStyle(JustTheme.Kawaii.ink)
-                Text("좋아하는 아이돌로 일본어를")
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
-            }
+            JustScreenHeader("우타링", subtitle: "최애의 노래가 오늘의 일본어", showsMark: true)
             Spacer(minLength: 0)
             Button { showsSettings = true } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(JustTheme.Kawaii.ink)
                     .frame(width: 40, height: 40)
-                    .background(.white.opacity(0.8), in: .circle)
+                    .background(.white.opacity(0.88), in: .circle)
+                    .shadow(color: JustTheme.Kawaii.accent.opacity(0.12), radius: 8, y: 3)
             }
             .accessibilityLabel("설정")
         }
@@ -178,7 +172,7 @@ private struct GroupCard: View {
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1.0, contentMode: .fit)
-        .clipShape(.rect(cornerRadius: 22))
+        .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
         .shadow(color: Color(hue: group.hue, saturation: 0.5, brightness: 0.7).opacity(0.25), radius: 10, y: 6)
         .overlay(alignment: .topTrailing) {
             Image(systemName: "sparkles")

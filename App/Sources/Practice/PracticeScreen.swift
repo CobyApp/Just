@@ -21,10 +21,11 @@ struct PracticeScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                JustTheme.Surface.base.ignoresSafeArea()
+                JustBrandBackground()
                 content
             }
-            .navigationTitle("연습")
+            .navigationTitle("퀴즈")
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
             .navigationDestination(for: QuizRoute.self) {
                 QuizScreen(kind: $0.kind, scope: $0.scope)
@@ -51,6 +52,8 @@ struct PracticeScreen: View {
         } else {
             ScrollView {
                 VStack(spacing: JustTheme.Space.snug) {
+                    JustScreenHeader("퀴즈", subtitle: "좋아하는 가사로 가볍게 한 판")
+                        .padding(.bottom, JustTheme.Space.tight)
                     reviewRow
                     struggleRow
                     quizRow(nil)
@@ -145,8 +148,12 @@ private struct PracticeRow: View {
         HStack(spacing: JustTheme.Space.snug) {
             Image(systemName: symbol)
                 .font(.system(size: 20))
-                .foregroundStyle(isProminent ? JustTheme.Accent.end : JustTheme.Ink.primary)
-                .frame(width: 32)
+                .foregroundStyle(isProminent ? .white : JustTheme.Kawaii.accent)
+                .frame(width: 42, height: 42)
+                .background(
+                    isProminent ? AnyShapeStyle(JustTheme.Accent.gradient) : AnyShapeStyle(JustTheme.Kawaii.accent.opacity(0.10)),
+                    in: .circle
+                )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -163,10 +170,10 @@ private struct PracticeRow: View {
             if let badge {
                 Text(badge)
                     .font(JustTheme.Font.caption.weight(.bold).monospacedDigit())
-                    .foregroundStyle(JustTheme.Surface.base)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(JustTheme.Ink.primary, in: .capsule)
+                    .background(JustTheme.Kawaii.accent, in: .capsule)
             }
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
@@ -174,6 +181,11 @@ private struct PracticeRow: View {
         }
         .padding(JustTheme.Space.snug)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
+        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                .strokeBorder(.white.opacity(0.72), lineWidth: 0.8)
+        }
+        .shadow(color: JustTheme.Kawaii.accent.opacity(isProminent ? 0.14 : 0.06), radius: 12, y: 5)
     }
 }

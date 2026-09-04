@@ -15,7 +15,7 @@ struct GroupDetailScreen: View {
 
     var body: some View {
         ZStack {
-            JustTheme.Surface.kawaii.ignoresSafeArea()
+            JustBrandBackground()
             content
         }
         // The app is pinned to dark in its Info.plist, which the navigation
@@ -87,7 +87,11 @@ struct GroupDetailScreen: View {
                 .foregroundStyle(JustTheme.Kawaii.inkSoft)
         }
         .padding(JustTheme.Space.snug)
-        .background(.white.opacity(0.75), in: .rect(cornerRadius: 18))
+        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                .strokeBorder(.white.opacity(0.7), lineWidth: 0.8)
+        }
         .contentShape(.rect)
     }
 

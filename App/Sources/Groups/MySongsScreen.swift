@@ -17,7 +17,7 @@ struct MySongsScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                JustTheme.Surface.kawaii.ignoresSafeArea()
+                JustBrandBackground()
                 if songs.isEmpty {
                     JustEmptyState(
                         icon: "music.note.list",
@@ -39,9 +39,7 @@ struct MySongsScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("내 노래")
-                        .font(.kawaii(34, weight: .heavy, relativeTo: .largeTitle))
-                        .foregroundStyle(JustTheme.Kawaii.ink)
+                    JustScreenHeader("내 노래", subtitle: "다시 듣고 싶은 가사 공부")
                     Spacer()
                     Text("\(songs.count)곡")
                         .font(JustTheme.Font.caption.monospacedDigit())
@@ -92,7 +90,12 @@ struct MySongsScreen: View {
                 .foregroundStyle(JustTheme.Kawaii.inkSoft)
         }
         .padding(JustTheme.Space.snug)
-        .background(.white.opacity(0.75), in: .rect(cornerRadius: 18))
+        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                .strokeBorder(.white.opacity(0.7), lineWidth: 0.8)
+        }
+        .shadow(color: JustTheme.Kawaii.lavender.opacity(0.08), radius: 12, y: 5)
         .contentShape(.rect)
     }
 

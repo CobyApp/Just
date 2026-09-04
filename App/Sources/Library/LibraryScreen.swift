@@ -41,7 +41,7 @@ struct LibraryScreen: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                JustTheme.Surface.base.ignoresSafeArea()
+                JustBrandBackground()
                 // The search field and the sort control are only attached once
                 // there is something to search and sort. Offering them over an
                 // empty list asks the reader to rule out two things that could
@@ -53,6 +53,7 @@ struct LibraryScreen: View {
                 }
             }
             .navigationTitle("단어장")
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
@@ -157,7 +158,7 @@ struct LibraryScreen: View {
             HStack(spacing: JustTheme.Space.snug) {
                 Image(systemName: stats.dueCount > 0 ? "sparkles" : "checkmark.circle")
                     .font(.system(size: 20))
-                    .foregroundStyle(JustTheme.Ink.primary)
+                    .foregroundStyle(stats.dueCount > 0 ? JustTheme.Kawaii.accent : JustTheme.Kawaii.lavender)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stats.dueCount > 0 ? "복습 시작" : "오늘 복습 끝")
                         .font(JustTheme.Font.body.weight(.semibold))
@@ -176,7 +177,11 @@ struct LibraryScreen: View {
                     .foregroundStyle(JustTheme.Ink.secondary)
             }
             .padding(JustTheme.Space.snug)
-            .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
+            .background(.white.opacity(0.88), in: .rect(cornerRadius: JustTheme.Radius.card))
+            .overlay {
+                RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                    .strokeBorder(JustTheme.Kawaii.accent.opacity(0.10), lineWidth: 0.8)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -202,11 +207,11 @@ struct LibraryScreen: View {
         } label: {
             Text(label)
                 .font(JustTheme.Font.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? JustTheme.Surface.base : JustTheme.Ink.primary)
+                .foregroundStyle(isSelected ? .white : JustTheme.Ink.primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
-                    isSelected ? JustTheme.Ink.primary : JustTheme.Surface.raised,
+                    isSelected ? JustTheme.Kawaii.accent : JustTheme.Surface.raised,
                     in: .capsule
                 )
                 .overlay {

@@ -36,8 +36,11 @@ struct JustApp: App {
         WindowGroup {
             RootView()
                 .environment(app)
-                .tint(JustTheme.Ink.primary)
-                .preferredColorScheme(.dark)
+                .tint(JustTheme.Kawaii.accent)
+                // Bright by default so status/navigation chrome stays legible
+                // on the pastel top-level screens. The lyric player opts back
+                // into dark explicitly for long-form reading.
+                .preferredColorScheme(.light)
         }
         .modelContainer(container)
     }

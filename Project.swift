@@ -83,7 +83,7 @@ let project = Project(
             bundleId: bundlePrefix,
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "도르",
+                "CFBundleDisplayName": "우타링",
                 // Driven by the build settings, not literals. Tuist's default
                 // hardcodes these, which would silently discard the build
                 // number fastlane passes as CURRENT_PROJECT_VERSION and make
@@ -150,7 +150,7 @@ let project = Project(
             bundleId: "\(bundlePrefix).widget",
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "도르",
+                "CFBundleDisplayName": "우타링",
                 // Same reason as the app target, and additionally: an extension
                 // whose version differs from its container is rejected at
                 // upload. Tuist's default hardcodes 1.0/1, so without these the

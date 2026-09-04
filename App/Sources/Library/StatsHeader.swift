@@ -17,7 +17,8 @@ struct StatsHeader: View {
             if !stats.levelBreakdown.isEmpty { levelChart }
         }
         .padding(.vertical, JustTheme.Space.snug)
-        .background(JustTheme.Surface.raised, in: .rect(cornerRadius: JustTheme.Radius.card))
+        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .shadow(color: JustTheme.Kawaii.lavender.opacity(0.08), radius: 12, y: 5)
     }
 
     private var metrics: some View {

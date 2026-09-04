@@ -129,9 +129,10 @@ struct PlayerScreen: View {
                     .task {
                         try? await Task.sleep(for: .seconds(2))
                         withAnimation { self.savedBanner = nil }
-                    }
+                }
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header

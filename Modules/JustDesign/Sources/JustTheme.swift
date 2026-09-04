@@ -12,10 +12,13 @@ public enum JustTheme {
     /// and the translation contrast was tuned — an idol app is still a reading
     /// app once a song is open.
     public enum Kawaii {
-        public static let ink = Color(red: 0.24, green: 0.14, blue: 0.28)
-        public static let inkSoft = Color(red: 0.45, green: 0.35, blue: 0.48)
+        public static let ink = Color(red: 0.22, green: 0.12, blue: 0.27)
+        public static let inkSoft = Color(red: 0.47, green: 0.35, blue: 0.50)
         /// The pink the icon's heart is made of. Selected tabs, primary buttons.
-        public static let accent = Color(red: 1.0, green: 0.36, blue: 0.58)
+        public static let accent = Color(red: 1.0, green: 0.37, blue: 0.56)
+        public static let coral = Color(red: 1.0, green: 0.48, blue: 0.44)
+        public static let lavender = Color(red: 0.55, green: 0.47, blue: 0.97)
+        public static let cream = Color(red: 1.0, green: 0.98, blue: 0.96)
 
         /// A group's own two-tone card.
         public static func gradient(hue: Double) -> LinearGradient {
@@ -65,20 +68,21 @@ public enum JustTheme {
         public static let kawaii = LinearGradient(
             colors: [
                 Color(red: 1.0, green: 0.94, blue: 0.97),
-                Color(red: 0.94, green: 0.95, blue: 1.0),
+                Color(red: 0.97, green: 0.94, blue: 1.0),
+                Color(red: 1.0, green: 0.98, blue: 0.94),
             ],
             startPoint: .top,
             endPoint: .bottom
         )
-        public static let raised = adaptive(dark: .white.opacity(0.06), light: .white.opacity(0.78))
+        public static let raised = adaptive(dark: .white.opacity(0.07), light: .white.opacity(0.84))
         public static let sunken = adaptive(dark: .black.opacity(0.28), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.06))
     }
 
     /// The one saturated element in an otherwise monochrome app. Used for
     /// progress and achievement, where a number alone reads as flat.
     public enum Accent {
-        public static let start = Color(red: 0.55, green: 0.42, blue: 0.98)
-        public static let end = Color(red: 0.96, green: 0.44, blue: 0.72)
+        public static let start = Kawaii.lavender
+        public static let end = Kawaii.accent
 
         public static var gradient: LinearGradient {
             LinearGradient(
@@ -97,9 +101,9 @@ public enum JustTheme {
     }
 
     public enum Radius {
-        public static let card: CGFloat = 20
-        public static let chip: CGFloat = 10
-        public static let artwork: CGFloat = 14
+        public static let card: CGFloat = 24
+        public static let chip: CGFloat = 12
+        public static let artwork: CGFloat = 16
     }
 
     public enum Space {
@@ -121,8 +125,8 @@ public enum JustTheme {
         public static var lyric: SwiftUI.Font { .just(21, relativeTo: .title3) }
         public static var ruby: SwiftUI.Font { .just(10, weight: .medium, relativeTo: .caption2) }
         public static var translation: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
-        public static var title: SwiftUI.Font { .just(22, weight: .bold, relativeTo: .title2) }
-        public static var sectionTitle: SwiftUI.Font { .just(13, weight: .semibold, relativeTo: .caption1) }
+        public static var title: SwiftUI.Font { .kawaii(22, weight: .bold, relativeTo: .title2) }
+        public static var sectionTitle: SwiftUI.Font { .kawaii(13, weight: .bold, relativeTo: .caption1) }
         public static var body: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
         public static var caption: SwiftUI.Font { .just(12, weight: .medium, relativeTo: .caption1) }
         public static var japanese: SwiftUI.Font { .just(19, weight: .medium, relativeTo: .body) }
@@ -138,6 +142,7 @@ public extension View {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
             }
+            .shadow(color: JustTheme.Kawaii.accent.opacity(0.08), radius: 14, y: 6)
     }
 
     func justSectionHeader() -> some View {
@@ -159,15 +164,93 @@ public struct JustPrimaryButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(JustTheme.Font.body.weight(.semibold))
-            .foregroundStyle(JustTheme.Surface.base)
+            .foregroundStyle(.white)
             .padding(.vertical, 12)
             .padding(.horizontal, 22)
-            .background(
-                JustTheme.Ink.primary.opacity(configuration.isPressed ? 0.72 : 1),
-                in: .capsule
-            )
+            .background(JustTheme.Accent.gradient.opacity(configuration.isPressed ? 0.72 : 1), in: .capsule)
+            .shadow(color: JustTheme.Kawaii.accent.opacity(0.22), radius: 9, y: 4)
             .contentShape(.capsule)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+/// The shared bright backdrop. The soft colour pools echo concert lights but
+/// stay away from text, so list screens feel branded without becoming noisy.
+public struct JustBrandBackground: View {
+    public init() {}
+
+    public var body: some View {
+        ZStack {
+            JustTheme.Surface.kawaii
+            Circle()
+                .fill(JustTheme.Kawaii.accent.opacity(0.12))
+                .frame(width: 240, height: 240)
+                .blur(radius: 18)
+                .offset(x: 150, y: -280)
+            Circle()
+                .fill(JustTheme.Kawaii.lavender.opacity(0.10))
+                .frame(width: 280, height: 280)
+                .blur(radius: 24)
+                .offset(x: -170, y: 260)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// A compact brand mark for in-app headers and widgets. The app icon uses the
+/// same heart, note and sparkle silhouette.
+public struct UtaringMark: View {
+    private let size: CGFloat
+
+    public init(size: CGFloat = 44) { self.size = size }
+
+    public var body: some View {
+        ZStack {
+            Circle()
+                .fill(JustTheme.Accent.gradient)
+            Image(systemName: "heart.fill")
+                .font(.system(size: size * 0.58, weight: .bold))
+                .foregroundStyle(.white)
+            Image(systemName: "music.note")
+                .font(.system(size: size * 0.25, weight: .black))
+                .foregroundStyle(JustTheme.Kawaii.accent)
+                .offset(y: -1)
+            Image(systemName: "sparkle")
+                .font(.system(size: size * 0.19, weight: .bold))
+                .foregroundStyle(.white)
+                .offset(x: size * 0.34, y: -size * 0.32)
+        }
+        .frame(width: size, height: size)
+        .shadow(color: JustTheme.Kawaii.accent.opacity(0.28), radius: size * 0.18, y: size * 0.08)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Consistent title treatment for the bright top-level screens.
+public struct JustScreenHeader: View {
+    private let title: String
+    private let subtitle: String
+    private let showsMark: Bool
+
+    public init(_ title: String, subtitle: String, showsMark: Bool = false) {
+        self.title = title
+        self.subtitle = subtitle
+        self.showsMark = showsMark
+    }
+
+    public var body: some View {
+        HStack(spacing: JustTheme.Space.snug) {
+            if showsMark { UtaringMark(size: 46) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.kawaii(34, weight: .heavy, relativeTo: .largeTitle))
+                    .foregroundStyle(JustTheme.Kawaii.ink)
+                Text(subtitle)
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

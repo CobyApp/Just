@@ -12,16 +12,16 @@ struct RootView: View {
         @Bindable var app = app
 
         TabView(selection: $app.tab) {
-            Tab("아이돌", systemImage: "sparkles", value: AppModel.Tab.groups) {
+            Tab("아이돌", systemImage: "heart.text.sparkles", value: AppModel.Tab.groups) {
                 GroupsScreen()
             }
             Tab("내 노래", systemImage: "music.note.list", value: AppModel.Tab.mySongs) {
                 MySongsScreen()
             }
-            Tab("단어장", systemImage: "character.book.closed", value: AppModel.Tab.words) {
+            Tab("단어", systemImage: "character.book.closed.fill", value: AppModel.Tab.words) {
                 LibraryScreen()
             }
-            Tab("연습", systemImage: "square.dashed", value: AppModel.Tab.practice) {
+            Tab("퀴즈", systemImage: "sparkles.rectangle.stack.fill", value: AppModel.Tab.practice) {
                 PracticeScreen()
             }
         }

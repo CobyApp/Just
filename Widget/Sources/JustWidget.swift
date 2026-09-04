@@ -105,9 +105,13 @@ struct JustWidgetView: View {
     }
 
     private var header: some View {
-        Text(entry.snapshot.dueCount > 0 ? "복습 \(entry.snapshot.dueCount)개" : "복습 완료")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(entry.snapshot.dueCount > 0 ? .primary : .secondary)
+        HStack(spacing: 6) {
+            Image(systemName: "heart.fill")
+                .foregroundStyle(Color(red: 1.0, green: 0.37, blue: 0.56))
+            Text(entry.snapshot.dueCount > 0 ? "복습 \(entry.snapshot.dueCount)개" : "오늘도 반짝 완료")
+                .foregroundStyle(entry.snapshot.dueCount > 0 ? .primary : .secondary)
+        }
+        .font(.system(.caption, design: .rounded, weight: .bold))
     }
 }
 
@@ -115,12 +119,22 @@ struct JustWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
             JustWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.95, blue: 0.97),
+                            Color(red: 0.96, green: 0.94, blue: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    for: .widget
+                )
                 // Tapping the widget lands on the cards, not on wherever the
                 // app happened to be left.
                 .widgetURL(URL(string: entry.snapshot.dueCount > 0 ? "just://review" : "just://words"))
         }
-        .configurationDisplayName("Just")
+        .configurationDisplayName("우타링")
         .description("복습할 단어 수와 오늘 볼 단어를 보여줍니다.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
