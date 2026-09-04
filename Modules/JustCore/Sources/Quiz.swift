@@ -97,7 +97,9 @@ public struct QuizQuestion: Identifiable, Sendable {
     }
 
     /// The placeholder a cloze prompt leaves behind.
-    public static let blank = "＿＿＿"
+    /// Word joiners between the marks: a blank that wrapped onto its own
+    /// line read as a second blank. It stays with the words around it.
+    public static let blank = "＿\u{2060}＿\u{2060}＿"
 }
 
 public enum QuizOutcome: Sendable {

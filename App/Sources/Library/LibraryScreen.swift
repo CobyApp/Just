@@ -10,6 +10,7 @@ struct LibraryScreen: View {
     @Query(sort: \VocabEntry.createdAt, order: .reverse) private var words: [VocabEntry]
 
     @State private var levelFilter: JLPTLevel?
+    @State private var showsGrammar = false
     @State private var search = ""
     @State private var order: WordOrder = .added
 
@@ -140,6 +141,7 @@ struct LibraryScreen: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
         }
+        .navigationDestination(isPresented: $showsGrammar) { GrammarScreen() }
         .navigationDestination(for: GrammarRoute.self) { _ in GrammarScreen() }
     }
 
@@ -209,7 +211,12 @@ struct LibraryScreen: View {
 
     private var toolsRow: some View {
         HStack(spacing: JustTheme.Space.tight) {
-            NavigationLink(value: GrammarRoute()) {
+            // A Button, not a NavigationLink: inside a List a link is drawn
+            // as a list row with a chevron and its button style is ignored,
+            // which left this half plain beside a capsule.
+            Button {
+                showsGrammar = true
+            } label: {
                 Label("모은 문법", systemImage: "text.book.closed")
                     .frame(maxWidth: .infinity)
             }
@@ -393,7 +400,12 @@ struct VocabDetailView: View {
                     if let review = entry.review {
                         VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                             Text("복습").justSectionHeader()
-                            LabeledContent("다음 복습", value: review.due.formatted(.relative(presentation: .named)))
+                            // A card past its date is due now, not 「34분 전」 — the past tense
+                            // read as a review that had already happened.
+                            LabeledContent(
+                                "다음 복습",
+                                value: review.due <= .now ? "지금" : review.due.formatted(.relative(presentation: .named))
+                            )
                             LabeledContent("복습 횟수", value: "\(review.reps)회")
                             if review.lapses > 0 {
                                 LabeledContent("잊은 횟수", value: "\(review.lapses)회")

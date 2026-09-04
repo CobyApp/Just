@@ -28,26 +28,28 @@ struct GrammarScreen: View {
                     message: "노래를 열고 궁금한 가사 줄을 누르세요. 분석된 문법과 표현이 여기에 자동으로 모입니다."
                 )
             } else {
-                List {
-                    JustActionHint(
-                        "가사에서 발견한 문법을 모아 둔 곳입니다. 여러 곡에 나온 표현은 곡 수로 표시해요.",
-                        symbol: "text.book.closed.fill"
-                    )
+                // A plain stack, not a List: list rows brought their own
+                // insets on top of the card's, and the cards sat forty points
+                // apart.
+                ScrollView {
+                    LazyVStack(spacing: JustTheme.Space.snug) {
+                        JustActionHint(
+                            "가사에서 발견한 문법을 모아 둔 곳입니다. 여러 곡에 나온 표현은 곡 수로 표시해요.",
+                            symbol: "text.book.closed.fill"
+                        )
                         .dismissibleGuide("grammar.hint")
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
 
-                    ForEach(notes) { note in
-                        row(note)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                        ForEach(notes) { note in
+                            row(note)
+                        }
                     }
+                    .padding(JustTheme.Space.regular)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .scrollIndicators(.hidden)
             }
         }
-        .navigationTitle("문법")
+        // Named as the button that opens it names it.
+        .navigationTitle("모은 문법")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task {
@@ -90,6 +92,5 @@ struct GrammarScreen: View {
             .padding(.top, 2)
         }
         .justCard()
-        .padding(.vertical, 3)
     }
 }

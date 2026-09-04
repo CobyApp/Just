@@ -182,7 +182,9 @@ struct ReviewScreen: View {
         switch grade {
         case .again: JustTheme.Feedback.error
         case .hard: JustTheme.Feedback.warning
-        case .good: JustTheme.Kawaii.accent
+        // Not the accent pink: beside 「몰랐어요」 in error red, two pinks
+        // read as one grade. Lavender is the app's neutral-positive.
+        case .good: JustTheme.Kawaii.lavender
         case .easy: JustTheme.Feedback.success
         }
     }
@@ -193,6 +195,8 @@ struct ReviewScreen: View {
             // Only once the day's cards are done. Never between the card and
             // the grade buttons, where it would sit under a tapping finger.
             AdBanner(unitID: AdBanner.testUnitID)
+                // Inset like the card above it, not a strip across the screen.
+                .padding(.horizontal, JustTheme.Space.regular)
         }
     }
 
