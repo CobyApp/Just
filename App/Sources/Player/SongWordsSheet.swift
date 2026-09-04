@@ -48,6 +48,7 @@ struct SongWordsSheet: View {
                                 "이 노래에서 저장한 단어만 모아 봅니다. 전체 단어는 하단 ‘단어장’ 탭에서 확인하세요.",
                                 symbol: "character.book.closed.fill"
                             )
+                                .dismissibleGuide("songwords.hint")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             DifficultyBar(difficulty: difficulty)

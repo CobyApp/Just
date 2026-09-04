@@ -33,6 +33,7 @@ struct GrammarScreen: View {
                         "가사에서 발견한 문법을 모아 둔 곳입니다. 여러 곡에 나온 표현은 곡 수로 표시해요.",
                         symbol: "text.book.closed.fill"
                     )
+                        .dismissibleGuide("grammar.hint")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 

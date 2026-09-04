@@ -59,6 +59,7 @@ struct GroupDetailScreen: View {
                 VStack(spacing: JustTheme.Space.snug) {
                     groupHeader
                     JustActionHint("노래를 누르면 재생과 함께 가사 공부가 시작됩니다.", symbol: "play.circle.fill")
+                        .dismissibleGuide("group.tap")
 
                     LazyVStack(spacing: JustTheme.Space.tight) {
                         ForEach(Array(tracks.enumerated()), id: \.element.id) { offset, track in

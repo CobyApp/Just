@@ -37,7 +37,7 @@ public struct ArtworkTile: View {
                 Text(title)
                     .font(JustTheme.Font.body.weight(.medium))
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
+                    .lineLimit(2, reservesSpace: true)
                 Text(subtitle)
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(.secondary)

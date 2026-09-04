@@ -122,7 +122,7 @@ struct SettingsScreen: View {
                         )
                     }
                     if app.reminder.isDenied {
-                        Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > Just에서 켜 주세요.")
+                        Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > 우타링에서 켜 주세요.")
                             .font(JustTheme.Font.caption)
                             .foregroundStyle(JustTheme.Feedback.warning)
                     }
@@ -197,6 +197,15 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    Button("닫은 안내 다시 보기") { GuideDismissals.shared.restoreAll() }
+                        .disabled(GuideDismissals.shared.dismissed.isEmpty)
+                } header: {
+                    Text("안내")
+                } footer: {
+                    Text("화면마다 있는 안내 카드는 ✕로 닫을 수 있습니다. 닫은 안내는 여기서 되살립니다.")
+                }
+
+                Section {
                     DisclosureGroup("정보") {
                         LabeledContent("번역 방식", value: app.engineLabel)
                         LabeledContent("음악 · 앨범", value: "Apple Music")
@@ -234,7 +243,8 @@ struct SettingsScreen: View {
             }
             .task { packStatus = await PlainTranslator.shared.availability() }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            // The bar keeps its material: with it hidden, rows scrolled up
+            // under the 「닫기」 button and their values disappeared behind it.
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }

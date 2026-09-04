@@ -54,15 +54,25 @@ struct RootView: View {
 ///
 /// The accessory slot is reserved as soon as the modifier is applied, so
 /// returning an empty view inside it left an empty capsule floating above the
-/// tab bar. The modifier itself has to be conditional. Tab selection lives in
-/// `AppModel` rather than inside the `TabView`, so rebuilding the subtree when a
-/// song starts does not move the user to another tab — and a screen can send
-/// them to one deliberately.
+/// tab bar. `isEnabled` is how the slot is declined instead. The earlier fix —
+/// an `if let` around the whole modifier — gave SwiftUI two different view
+/// trees, and swapping between them rebuilt the `TabView`: every tab's
+/// `NavigationStack` lost its path, so collapsing the player dropped the reader
+/// from a group's song list back to the home grid.
 private struct MiniPlayerAccessory: ViewModifier {
     let track: Track?
 
     func body(content: Content) -> some View {
-        if let track {
+        if #available(iOS 26.1, *) {
+            content.tabViewBottomAccessory(isEnabled: track != nil) {
+                if let track {
+                    MiniPlayer(track: track)
+                }
+            }
+        } else if let track {
+            // iOS 26.0 has no `isEnabled`; this branch still rebuilds the tab
+            // tree. The home tab keeps its navigation path in `AppModel` so
+            // the rebuild at least does not lose the reader's place.
             content.tabViewBottomAccessory {
                 MiniPlayer(track: track)
             }

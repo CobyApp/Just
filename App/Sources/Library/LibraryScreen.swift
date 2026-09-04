@@ -204,6 +204,7 @@ struct LibraryScreen: View {
                 JustGuideStep("clock.arrow.circlepath", title: "복습 시작", detail: "오늘 외울 단어만 일정에 맞춰 카드로 보여드려요."),
             ]
         )
+            .dismissibleGuide("library.howto")
     }
 
     private var toolsRow: some View {
@@ -387,6 +388,7 @@ struct VocabDetailView: View {
                         "스피커로 발음을 듣고, 아래 가사 카드를 누르면 해당 노래를 다시 열 수 있어요.",
                         symbol: "speaker.wave.2.fill"
                     )
+                        .dismissibleGuide("library.detail")
 
                     if let review = entry.review {
                         VStack(alignment: .leading, spacing: JustTheme.Space.tight) {

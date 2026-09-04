@@ -295,6 +295,13 @@ final class AppModel {
         nowPlaying = track
     }
 
+    /// Where the home tab is — the group whose songs are open, if any.
+    ///
+    /// Held here rather than as the screen's own `@State` because the view tree
+    /// above it can be rebuilt (see `MiniPlayerAccessory`), and a rebuilt
+    /// `NavigationStack` with its own state starts over at the grid.
+    var groupsPath = NavigationPath()
+
     /// Hides the full-screen player, leaving playback alone.
     func closePlayer() {
         openTrack = nil

@@ -183,6 +183,7 @@ let project = Project(
                 .target(name: "JustLyrics"),
                 .target(name: "JustSensei"),
                             .target(name: "JustMusic"),
+                            .target(name: "JustDesign"),
             ],
             settings: .settings(base: baseSettings)
         ),

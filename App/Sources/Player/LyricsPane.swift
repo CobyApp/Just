@@ -73,6 +73,7 @@ struct LyricsPane: View {
                         "궁금한 가사 줄을 누르면 번역·읽기·단어·문법을 볼 수 있어요.",
                         symbol: "hand.tap.fill"
                     )
+                        .dismissibleGuide("lyrics.tap")
                     ForEach(lyrics.lines) { line in
                         LyricRow(
                             line: line,

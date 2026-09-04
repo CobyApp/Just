@@ -83,6 +83,7 @@ struct PracticeScreen: View {
                 JustGuideStep("checkmark.circle.fill", title: "퀴즈", detail: "원할 때 자유롭게 풀어요. 정답 결과도 다음 복습 일정에 반영됩니다."),
             ]
         )
+            .dismissibleGuide("practice.difference")
     }
 
     /// Every mode this device can actually run.

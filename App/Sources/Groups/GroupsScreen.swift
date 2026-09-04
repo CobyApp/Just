@@ -15,13 +15,15 @@ struct GroupsScreen: View {
     @State private var showsSettings = false
     @State private var artworkStore = GroupArtworkStore()
 
+    /// As many columns as fit at card size. Two fixed columns gave an iPhone
+    /// the right cards and an iPad two cards the size of a hand.
     private let columns = [
-        GridItem(.flexible(), spacing: JustTheme.Space.snug),
-        GridItem(.flexible(), spacing: JustTheme.Space.snug),
+        GridItem(.adaptive(minimum: 160, maximum: 230), spacing: JustTheme.Space.snug),
     ]
 
     var body: some View {
-        NavigationStack {
+        @Bindable var app = app
+        NavigationStack(path: $app.groupsPath) {
             ZStack {
                 JustBrandBackground()
                 ScrollView {
@@ -102,6 +104,7 @@ struct GroupsScreen: View {
                 JustGuideStep("plus.circle.fill", title: "3. 단어장에 담기", detail: "+ 버튼으로 담으면 단어장과 연습 문제가 자동으로 만들어져요."),
             ]
         )
+            .dismissibleGuide("home.start")
         .padding(.horizontal, JustTheme.Space.regular)
     }
 

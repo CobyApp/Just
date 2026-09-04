@@ -318,6 +318,7 @@ public struct JustFeatureGuide: View {
     private let title: String
     private let detail: String?
     private let steps: [JustGuideStep]
+    @Environment(\.guideIsDismissible) private var isDismissible
 
     public init(_ title: String, detail: String? = nil, steps: [JustGuideStep]) {
         self.title = title
@@ -335,6 +336,8 @@ public struct JustFeatureGuide: View {
                     .font(JustTheme.Font.body.weight(.bold))
                     .foregroundStyle(JustTheme.Ink.primary)
             }
+            // Room for the ✕ that `dismissibleGuide` lays over the corner.
+            .padding(.trailing, isDismissible ? 30 : 0)
 
             if let detail {
                 Text(detail)
@@ -372,6 +375,7 @@ public struct JustFeatureGuide: View {
 public struct JustActionHint: View {
     private let symbol: String
     private let text: String
+    @Environment(\.guideIsDismissible) private var isDismissible
 
     public init(_ text: String, symbol: String = "hand.tap.fill") {
         self.symbol = symbol
@@ -383,7 +387,9 @@ public struct JustActionHint: View {
             .font(JustTheme.Font.caption.weight(.semibold))
             .foregroundStyle(JustTheme.Ink.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, JustTheme.Space.snug)
+            .padding(.leading, JustTheme.Space.snug)
+            // Room for the ✕ that `dismissibleGuide` lays over the corner.
+            .padding(.trailing, isDismissible ? 40 : JustTheme.Space.snug)
             .padding(.vertical, JustTheme.Space.tight)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(JustTheme.Feedback.info.opacity(0.08), in: .rect(cornerRadius: JustTheme.Radius.chip))

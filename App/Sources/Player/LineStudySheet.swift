@@ -26,6 +26,7 @@ struct LineStudySheet: View {
                         "단어 카드의 +를 누르면 단어장에 저장됩니다. 저장한 단어로 퀴즈와 복습이 만들어져요.",
                         symbol: "plus.circle.fill"
                     )
+                        .dismissibleGuide("linestudy.hint")
 
                     if app.sensei.isAnalyzing(lineIndex) {
                         HStack(spacing: JustTheme.Space.tight) {

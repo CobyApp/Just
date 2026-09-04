@@ -48,6 +48,7 @@ struct MySongsScreen: View {
                 .padding(.horizontal, JustTheme.Space.regular)
 
                 JustActionHint("최근에 열었던 곡과 공부 진도가 자동으로 저장됩니다. 곡을 누르면 이어서 공부해요.", symbol: "clock.arrow.circlepath")
+                    .dismissibleGuide("mysongs.saved")
                     .padding(.horizontal, JustTheme.Space.regular)
 
                 LazyVStack(spacing: JustTheme.Space.tight) {

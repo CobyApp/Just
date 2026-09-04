@@ -49,6 +49,7 @@ struct ReviewScreen: View {
                     : "먼저 단어의 읽기와 뜻을 떠올린 뒤 ‘뜻 확인하기’를 누르세요.",
                 symbol: isRevealed ? "calendar.badge.clock" : "brain.head.profile"
             )
+                .dismissibleGuide("review.hint")
 
             VStack(spacing: JustTheme.Space.regular) {
                 // The prompt is the word alone; the reading is part of the

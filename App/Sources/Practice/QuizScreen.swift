@@ -65,23 +65,35 @@ struct QuizScreen: View {
 
     private func card(_ question: QuizQuestion) -> some View {
         VStack(spacing: JustTheme.Space.loose) {
-            ScrollView {
-                VStack(spacing: JustTheme.Space.loose) {
-                    JustProgressHeader(current: index + 1, total: questions.count)
-                    JustActionHint(instruction(for: question), symbol: instructionSymbol(for: question.kind))
-                    prompt(question).justCard()
-                    if question.kind.isTyped {
-                        typedField
-                    } else {
-                        choices(question)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: JustTheme.Space.loose) {
+                        JustProgressHeader(current: index + 1, total: questions.count)
+                        JustActionHint(instruction(for: question), symbol: instructionSymbol(for: question.kind))
+                        prompt(question).justCard()
+                        if question.kind.isTyped {
+                            typedField
+                        } else {
+                            choices(question)
+                        }
+                        if let outcome {
+                            feedback(question, outcome)
+                                .id("feedback")
+                        }
                     }
-                    if let outcome {
-                        feedback(question, outcome)
+                    .padding(JustTheme.Space.regular)
+                }
+                .scrollIndicators(.hidden)
+                // The verdict lands below the answer, which on a phone is under
+                // the action bar. Brought into view, so grading is never a card
+                // the reader has to know to scroll for.
+                .onChange(of: outcome != nil) { _, graded in
+                    guard graded else { return }
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo("feedback", anchor: .bottom)
                     }
                 }
-                .padding(JustTheme.Space.regular)
             }
-            .scrollIndicators(.hidden)
 
             actionBar(question)
                 .padding(JustTheme.Space.regular)

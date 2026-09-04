@@ -55,11 +55,15 @@ struct PreparingView: View {
 
             Spacer(minLength: 0)
 
+            if phase == .choosingDepth {
+                // The question is the whole screen; the buttons below would
+                // only compete with it. 「중단」 alone, and not in the card — a
+                // card around one capsule drew a box with a pill inside it.
+                Button("중단", action: onCancel)
+                    .buttonStyle(.justSecondary)
+            } else {
             VStack(spacing: JustTheme.Space.snug) {
-                if phase == .choosingDepth {
-                    // The question is the whole screen; the buttons below would
-                    // only compete with it.
-                } else if let onSkip {
+                if let onSkip {
                     Button("지금 듣기", action: onSkip)
                         .buttonStyle(.justPrimary)
                     Text("남은 줄은 들으면서 이어서 해석합니다")
@@ -81,6 +85,7 @@ struct PreparingView: View {
                     .buttonStyle(.justSecondary)
             }
             .justCard()
+            }
 
             // Under the controls, so it never sits between the reader and the
             // button they are looking for.
