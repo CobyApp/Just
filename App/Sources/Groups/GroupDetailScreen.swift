@@ -56,12 +56,23 @@ struct GroupDetailScreen: View {
             )
         } else {
             ScrollView {
-                LazyVStack(spacing: JustTheme.Space.tight) {
+                VStack(spacing: JustTheme.Space.snug) {
                     groupHeader
-                    ForEach(tracks) { track in
-                        Button { app.open(track, in: tracks) } label: { row(track) }
+                    JustActionHint("노래를 누르면 재생과 함께 가사 공부가 시작됩니다.", symbol: "play.circle.fill")
+
+                    LazyVStack(spacing: JustTheme.Space.tight) {
+                        ForEach(Array(tracks.enumerated()), id: \.element.id) { offset, track in
+                            Button { app.open(track, in: tracks) } label: {
+                                SongRow(track: track, index: offset + 1)
+                            }
                             .buttonStyle(.plain)
+                        }
                     }
+
+                    // After the last row, where the list has ended and nothing
+                    // is being read. Never between rows.
+                    AdBanner(unitID: AdBanner.testUnitID)
+                        .padding(.top, JustTheme.Space.regular)
                 }
                 .padding(JustTheme.Space.regular)
             }
@@ -69,48 +80,23 @@ struct GroupDetailScreen: View {
         }
     }
 
+    /// The group's own picture, already fetched for its card.
     private var groupHeader: some View {
         HStack(spacing: JustTheme.Space.snug) {
-            JustIconBadge("music.mic", tint: Color(hue: group.hue, saturation: 0.66, brightness: 0.82), size: 54)
+            RowArtwork(url: store.artworkURL(for: group), seed: group.id, size: 72)
             VStack(alignment: .leading, spacing: 3) {
                 Text(group.name)
                     .font(.kawaii(24, weight: .bold, relativeTo: .title2))
                     .foregroundStyle(JustTheme.Kawaii.ink)
-                Text("\(group.readingKo) · 노래 \(tracks.count)곡")
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Text("\(group.readingKo) · \(group.label.rawValue) · 노래 \(tracks.count)곡")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Kawaii.inkSoft)
             }
             Spacer(minLength: 0)
         }
         .justCard()
-        .padding(.bottom, JustTheme.Space.tight)
-    }
-
-    private func row(_ track: Track) -> some View {
-        HStack(spacing: JustTheme.Space.snug) {
-            ArtworkTile(track: track, width: 56)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title)
-                    .font(JustTheme.Font.body.weight(.semibold))
-                    .foregroundStyle(JustTheme.Kawaii.ink)
-                    .lineLimit(2)
-                Text(track.artist)
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(JustTheme.Kawaii.inkSoft)
-        }
-        .padding(JustTheme.Space.snug)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
-        .contentShape(.rect)
     }
 
     private func load() async {

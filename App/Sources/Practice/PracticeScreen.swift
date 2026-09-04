@@ -47,16 +47,25 @@ struct PracticeScreen: View {
                 icon: "square.dashed",
                 title: "아직 연습할 단어가 없습니다",
                 message: "가사에서 줄을 눌러 단어를 담으면 그 단어와 가사로 문제를 만듭니다.",
-                actionTitle: "그룹 보러 가기",
+                actionTitle: "노래에서 단어 담기",
                 action: { app.tab = .groups }
             )
         } else {
             ScrollView {
                 VStack(spacing: JustTheme.Space.snug) {
-                    JustScreenHeader("퀴즈", subtitle: "좋아하는 가사로 가볍게 한 판")
+                    JustScreenHeader("연습", subtitle: "오늘 복습하거나 원하는 퀴즈 풀기")
                         .padding(.bottom, JustTheme.Space.tight)
+                    practiceGuide
+                    Text("오늘의 추천")
+                        .justSectionHeader()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, JustTheme.Space.tight)
                     reviewRow
                     struggleRow
+                    Text("원하는 방식으로 연습")
+                        .justSectionHeader()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, JustTheme.Space.tight)
                     quizRow(nil)
                     ForEach(Self.offeredKinds, id: \.self) { quizRow($0) }
                 }
@@ -64,6 +73,16 @@ struct PracticeScreen: View {
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    private var practiceGuide: some View {
+        JustFeatureGuide(
+            "퀴즈와 복습은 무엇이 다른가요?",
+            steps: [
+                JustGuideStep("clock.arrow.circlepath", title: "복습 카드", detail: "앱이 오늘 외울 단어를 골라요. 뜻을 떠올린 뒤 기억난 정도를 선택하세요."),
+                JustGuideStep("checkmark.circle.fill", title: "퀴즈", detail: "원할 때 자유롭게 풀어요. 정답 결과도 다음 복습 일정에 반영됩니다."),
+            ]
+        )
     }
 
     /// Every mode this device can actually run.
@@ -86,7 +105,7 @@ struct PracticeScreen: View {
         if struggling > 0 {
             NavigationLink(value: QuizRoute(kind: nil, scope: .struggling)) {
                 PracticeRow(
-                    symbol: "exclamationmark.arrow.trianglehead.2.clockwise.rotate.90",
+                    symbol: "exclamationmark.arrow.circlepath",
                     title: "어려운 단어 집중",
                     detail: "틀린 적 있는 \(struggling)개만 골라서 냅니다",
                     badge: nil,
@@ -100,7 +119,7 @@ struct PracticeScreen: View {
     private var reviewRow: some View {
         NavigationLink(value: ReviewRoute()) {
             PracticeRow(
-                symbol: "rectangle.on.rectangle.angled",
+                symbol: "clock.arrow.circlepath",
                 title: "복습 카드",
                 detail: stats.dueCount > 0
                     ? "일정에 올라온 \(stats.dueCount)개를 가사 예문과 함께"

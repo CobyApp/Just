@@ -41,6 +41,12 @@ struct LyricsPane: View {
                 .presentationBackground(.ultraThinMaterial)
         }
         .onChange(of: player.currentTime) { _, _ in
+            // Only once the player is on *this* song. Between choosing a new
+            // song and its load finishing, the clock still reads the previous
+            // song's position — and the new lyrics lit up a line minutes in,
+            // scrolled there, then jumped back to the top when the time reset.
+            // That jump was the awkward focus on every song change.
+            guard player.trackID == session.track.id else { return }
             let position = player.position
             if let rewind = session.loopRewindTarget(at: position) {
                 player.seek(to: rewind)
@@ -63,6 +69,10 @@ struct LyricsPane: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: JustTheme.Space.regular) {
+                    JustActionHint(
+                        "궁금한 가사 줄을 누르면 번역·읽기·단어·문법을 볼 수 있어요.",
+                        symbol: "hand.tap.fill"
+                    )
                     ForEach(lyrics.lines) { line in
                         LyricRow(
                             line: line,
@@ -102,10 +112,17 @@ struct LyricsPane: View {
             }
             .id(session.track.id)
             .onChange(of: session.track.id) { _, _ in activeLine = nil }
-            .onChange(of: activeLine) { _, index in
+            .onChange(of: activeLine) { previous, index in
                 guard let index, session.followsPlayback else { return }
-                withAnimation(.easeInOut(duration: 0.35)) {
+                // The first line of a song is placed, not travelled to. An
+                // animated scroll from the top to the first highlight read as
+                // the list lurching before the song had begun.
+                if previous == nil {
                     proxy.scrollTo(index, anchor: .center)
+                } else {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        proxy.scrollTo(index, anchor: .center)
+                    }
                 }
             }
         }

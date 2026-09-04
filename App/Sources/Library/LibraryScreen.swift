@@ -78,7 +78,7 @@ struct LibraryScreen: View {
             icon: "character.book.closed",
             title: "아직 저장한 단어가 없습니다",
             message: "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.",
-            actionTitle: "그룹 보러 가기",
+            actionTitle: "노래에서 단어 담기",
             action: { app.tab = .groups }
         )
     }
@@ -89,6 +89,14 @@ struct LibraryScreen: View {
                 Section {
                     JustScreenHeader("단어장", subtitle: "노래에서 만난 일본어")
                         .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 18, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    libraryGuide
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    toolsRow
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                     StatsHeader(stats: stats)
@@ -122,20 +130,6 @@ struct LibraryScreen: View {
         .navigationDestination(for: GrammarRoute.self) { _ in GrammarScreen() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: GrammarRoute()) {
-                    Image(systemName: "text.book.closed")
-                }
-                .accessibilityLabel("문법 모아보기")
-            }
-            if !words.isEmpty, let file = exportFile {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: file) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .accessibilityLabel("단어 내보내기")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Picker("정렬", selection: $order) {
                         ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
@@ -157,12 +151,41 @@ struct LibraryScreen: View {
         }
     }
 
+    private var libraryGuide: some View {
+        JustFeatureGuide(
+            "단어장은 이렇게 사용해요",
+            detail: "저장한 단어는 원래 가사와 함께 남고, 퀴즈와 복습에 자동으로 사용됩니다.",
+            steps: [
+                JustGuideStep("hand.tap.fill", title: "단어 눌러 자세히 보기", detail: "읽기, 뜻, 나온 가사와 다음 복습일을 확인하세요."),
+                JustGuideStep("clock.arrow.circlepath", title: "복습 시작", detail: "오늘 외울 단어만 일정에 맞춰 카드로 보여드려요."),
+            ]
+        )
+    }
+
+    private var toolsRow: some View {
+        HStack(spacing: JustTheme.Space.tight) {
+            NavigationLink(value: GrammarRoute()) {
+                Label("모은 문법", systemImage: "text.book.closed")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.justSecondary)
+
+            if let file = exportFile {
+                ShareLink(item: file) {
+                    Label("내보내기", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.justSecondary)
+            }
+        }
+    }
+
     /// Review is an action, not a place — so it reads as one call to action
     /// with the number on it, rather than a tab that is usually empty.
     private var reviewCard: some View {
         NavigationLink(value: ReviewRoute()) {
             HStack(spacing: JustTheme.Space.snug) {
-                Image(systemName: stats.dueCount > 0 ? "sparkles" : "checkmark.circle")
+                Image(systemName: stats.dueCount > 0 ? "clock.arrow.circlepath" : "checkmark.circle")
                     .font(.system(size: 20))
                     .foregroundStyle(stats.dueCount > 0 ? JustTheme.Kawaii.accent : JustTheme.Kawaii.lavender)
                 VStack(alignment: .leading, spacing: 2) {
@@ -245,7 +268,8 @@ struct VocabRow: View {
                 Text(entry.meaningKo)
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: JustTheme.Space.tight)
@@ -307,6 +331,11 @@ struct VocabDetailView: View {
                         }
                     }
 
+                    JustActionHint(
+                        "스피커로 발음을 듣고, 아래 가사 카드를 누르면 해당 노래를 다시 열 수 있어요.",
+                        symbol: "speaker.wave.2.fill"
+                    )
+
                     if let review = entry.review {
                         VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                             Text("복습").justSectionHeader()
@@ -354,9 +383,17 @@ struct OccurrenceCard: View {
             }
             if let song = occurrence.song {
                 Button(action: play) {
-                    Label("\(song.artist) — \(song.title)", systemImage: "play.circle")
-                        .font(JustTheme.Font.caption)
-                        .foregroundStyle(JustTheme.Ink.tertiary)
+                    HStack {
+                        Label("곡에서 다시 듣기", systemImage: "play.circle.fill")
+                            .font(JustTheme.Font.caption.weight(.semibold))
+                            .foregroundStyle(JustTheme.Kawaii.accent)
+                        Spacer(minLength: JustTheme.Space.tight)
+                        Text("\(song.title) · \(song.artist)")
+                            .font(JustTheme.Font.caption)
+                            .foregroundStyle(JustTheme.Ink.tertiary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .buttonStyle(.plain)
             }

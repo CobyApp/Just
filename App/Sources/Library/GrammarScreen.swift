@@ -22,16 +22,25 @@ struct GrammarScreen: View {
                 .scrollContentBackground(.hidden)
                 .allowsHitTesting(false)
             } else if notes.isEmpty {
-                ContentUnavailableView {
-                    Label("아직 모인 문법이 없습니다", systemImage: "text.book.closed")
-                } description: {
-                    Text("가사를 해석하면 그 줄에 쓰인 문법이 함께 정리되어 여기에 모입니다.")
-                }
+                JustEmptyState(
+                    icon: "text.book.closed",
+                    title: "아직 모인 문법이 없습니다",
+                    message: "노래를 열고 궁금한 가사 줄을 누르세요. 분석된 문법과 표현이 여기에 자동으로 모입니다."
+                )
             } else {
-                List(notes) { note in
-                    row(note)
+                List {
+                    JustActionHint(
+                        "가사에서 발견한 문법을 모아 둔 곳입니다. 여러 곡에 나온 표현은 곡 수로 표시해요.",
+                        symbol: "text.book.closed.fill"
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                    ForEach(notes) { note in
+                        row(note)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)

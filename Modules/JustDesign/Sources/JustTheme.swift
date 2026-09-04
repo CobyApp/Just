@@ -34,6 +34,16 @@ public enum JustTheme {
         }
     }
 
+    /// Functional colours have one job each. Pink remains the only action
+    /// colour; these appear only as feedback, so a coloured control always
+    /// means the same thing throughout the app.
+    public enum Feedback {
+        public static let success = Color(red: 0.18, green: 0.62, blue: 0.43)
+        public static let warning = Color(red: 0.90, green: 0.52, blue: 0.16)
+        public static let error = Color(red: 0.86, green: 0.28, blue: 0.36)
+        public static let info = Kawaii.lavender
+    }
+
     /// Text colours that follow the colour scheme.
     ///
     /// The app has two grounds now — bright lists and a dark player — and the
@@ -285,6 +295,98 @@ public struct JustProgressHeader: View {
             ProgressView(value: Double(current), total: Double(total))
                 .tint(JustTheme.Kawaii.accent)
         }
+    }
+}
+
+/// A short, always-visible explanation of a feature. Each step pairs a
+/// familiar symbol with a verb so the symbol never has to be guessed.
+public struct JustGuideStep: Identifiable {
+    public let id: String
+    public let symbol: String
+    public let title: String
+    public let detail: String
+
+    public init(_ symbol: String, title: String, detail: String) {
+        self.id = "\(symbol)-\(title)"
+        self.symbol = symbol
+        self.title = title
+        self.detail = detail
+    }
+}
+
+public struct JustFeatureGuide: View {
+    private let title: String
+    private let detail: String?
+    private let steps: [JustGuideStep]
+
+    public init(_ title: String, detail: String? = nil, steps: [JustGuideStep]) {
+        self.title = title
+        self.detail = detail
+        self.steps = steps
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
+            HStack(spacing: JustTheme.Space.tight) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(JustTheme.Feedback.info)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(JustTheme.Font.body.weight(.bold))
+                    .foregroundStyle(JustTheme.Ink.primary)
+            }
+
+            if let detail {
+                Text(detail)
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(steps) { step in
+                HStack(alignment: .top, spacing: JustTheme.Space.tight) {
+                    JustIconBadge(step.symbol, tint: JustTheme.Feedback.info, size: 34)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(step.title)
+                            .font(JustTheme.Font.caption.weight(.bold))
+                            .foregroundStyle(JustTheme.Ink.primary)
+                        Text(step.detail)
+                            .font(JustTheme.Font.caption)
+                            .foregroundStyle(JustTheme.Ink.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(JustTheme.Space.regular)
+        .background(JustTheme.Feedback.info.opacity(0.07), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                .strokeBorder(JustTheme.Feedback.info.opacity(0.16), lineWidth: 1)
+        }
+    }
+}
+
+/// One-line instruction used inside an active task such as lyrics or review.
+public struct JustActionHint: View {
+    private let symbol: String
+    private let text: String
+
+    public init(_ text: String, symbol: String = "hand.tap.fill") {
+        self.symbol = symbol
+        self.text = text
+    }
+
+    public var body: some View {
+        Label(text, systemImage: symbol)
+            .font(JustTheme.Font.caption.weight(.semibold))
+            .foregroundStyle(JustTheme.Ink.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, JustTheme.Space.snug)
+            .padding(.vertical, JustTheme.Space.tight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(JustTheme.Feedback.info.opacity(0.08), in: .rect(cornerRadius: JustTheme.Radius.chip))
     }
 }
 

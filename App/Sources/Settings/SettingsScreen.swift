@@ -91,7 +91,7 @@ struct SettingsScreen: View {
                     Section {
                         Text(problem.message)
                             .font(JustTheme.Font.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(JustTheme.Feedback.warning)
                         Button(problem.actionTitle) { problem.act(openURL: openURL, app: app) }
                     } header: {
                         Label("Apple Music 연결 문제", systemImage: "exclamationmark.triangle")
@@ -124,7 +124,7 @@ struct SettingsScreen: View {
                     if app.reminder.isDenied {
                         Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > Just에서 켜 주세요.")
                             .font(JustTheme.Font.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(JustTheme.Feedback.warning)
                     }
                 }
 

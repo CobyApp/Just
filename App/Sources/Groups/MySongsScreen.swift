@@ -47,6 +47,9 @@ struct MySongsScreen: View {
                 }
                 .padding(.horizontal, JustTheme.Space.regular)
 
+                JustActionHint("최근에 열었던 곡과 공부 진도가 자동으로 저장됩니다. 곡을 누르면 이어서 공부해요.", symbol: "clock.arrow.circlepath")
+                    .padding(.horizontal, JustTheme.Space.regular)
+
                 LazyVStack(spacing: JustTheme.Space.tight) {
                     ForEach(songs) { song in
                         Button { app.open(song.track, in: songs.map(\.track)) } label: { row(song) }
@@ -59,6 +62,9 @@ struct MySongsScreen: View {
                     }
                 }
                 .padding(.horizontal, JustTheme.Space.regular)
+
+                AdBanner(unitID: AdBanner.testUnitID)
+                    .padding(.top, JustTheme.Space.regular)
             }
             .padding(.vertical, JustTheme.Space.regular)
         }
@@ -66,36 +72,7 @@ struct MySongsScreen: View {
     }
 
     private func row(_ song: StudySong) -> some View {
-        HStack(spacing: JustTheme.Space.snug) {
-            // The art alone. `ArtworkTile` is a card with captions under it;
-            // squeezed into a row it kept its caption space and cropped the
-            // picture to a band.
-            RowArtwork(url: song.track.artworkURL, seed: song.videoID)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(song.title)
-                    .font(JustTheme.Font.body.weight(.semibold))
-                    .foregroundStyle(JustTheme.Kawaii.ink)
-                    .lineLimit(1)
-                Text(song.artist)
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
-                    .lineLimit(1)
-                if song.studyProgress > 0 {
-                    StudyProgressBar(progress: song.studyProgress, width: 140)
-                }
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "play.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(JustTheme.Kawaii.inkSoft)
-        }
-        .padding(JustTheme.Space.snug)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
-        .contentShape(.rect)
+        SongRow(track: song.track, progress: song.studyProgress, action: "이어서")
     }
 
     /// Taking a song out of the list takes its record with it — the lyrics,
@@ -103,19 +80,5 @@ struct MySongsScreen: View {
     /// not the song's.
     private func remove(_ song: StudySong) {
         context.delete(song)
-    }
-}
-
-/// A square thumbnail for a list row.
-private struct RowArtwork: View {
-    let url: URL?
-    let seed: String
-    @State private var artwork = ArtworkLoader()
-
-    var body: some View {
-        ArtworkView(image: artwork.image, seed: seed)
-            .frame(width: 56, height: 56)
-            .clipShape(.rect(cornerRadius: 10))
-            .task(id: url) { await artwork.load(url) }
     }
 }

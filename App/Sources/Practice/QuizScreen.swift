@@ -68,6 +68,7 @@ struct QuizScreen: View {
             ScrollView {
                 VStack(spacing: JustTheme.Space.loose) {
                     JustProgressHeader(current: index + 1, total: questions.count)
+                    JustActionHint(instruction(for: question), symbol: instructionSymbol(for: question.kind))
                     prompt(question).justCard()
                     if question.kind.isTyped {
                         typedField
@@ -115,6 +116,28 @@ struct QuizScreen: View {
             }
         }
         .padding(.top, JustTheme.Space.loose)
+    }
+
+    private func instruction(for question: QuizQuestion) -> String {
+        switch question.kind {
+        case .cloze:
+            "가사의 빈칸에 들어갈 일본어 단어를 입력하세요. 로마자로 써도 됩니다."
+        case .recall:
+            "보이는 한국어 뜻에 맞는 일본어 단어를 입력하세요. 로마자로 써도 됩니다."
+        case .choice:
+            "일본어 단어와 맞는 한국어 뜻 하나를 눌러 선택하세요."
+        case .dictation:
+            "재생되는 가사를 듣고 빈칸의 일본어 단어를 입력하세요. 다시 듣기도 가능합니다."
+        }
+    }
+
+    private func instructionSymbol(for kind: QuizKind) -> String {
+        switch kind {
+        case .cloze: "rectangle.and.pencil.and.ellipsis"
+        case .recall: "pencil.line"
+        case .choice: "hand.tap.fill"
+        case .dictation: "ear.fill"
+        }
     }
 
     /// For cloze and dictation the meaning is withheld until the answer is in —
@@ -198,9 +221,9 @@ struct QuizScreen: View {
 
     private var underlineColor: Color {
         switch outcome {
-        case .correct: .green
-        case .close: .orange
-        case .wrong: .red
+        case .correct: JustTheme.Feedback.success
+        case .close: JustTheme.Feedback.warning
+        case .wrong: JustTheme.Feedback.error
         case nil: JustTheme.Ink.hairline
         }
     }
@@ -218,7 +241,8 @@ struct QuizScreen: View {
                             .multilineTextAlignment(.leading)
                         Spacer()
                         if outcome != nil, option == question.meaning {
-                            Image(systemName: "checkmark").foregroundStyle(.green)
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(JustTheme.Feedback.success)
                         }
                     }
                     .padding(JustTheme.Space.snug)
@@ -240,8 +264,8 @@ struct QuizScreen: View {
 
     private func optionBackground(_ option: String, question: QuizQuestion) -> Color {
         guard outcome != nil else { return JustTheme.Surface.raised }
-        if option == question.meaning { return .green.opacity(0.22) }
-        if option == input { return .red.opacity(0.22) }
+        if option == question.meaning { return JustTheme.Feedback.success.opacity(0.16) }
+        if option == input { return JustTheme.Feedback.error.opacity(0.14) }
         return JustTheme.Surface.raised
     }
 
@@ -283,25 +307,29 @@ struct QuizScreen: View {
 
     private func color(for outcome: QuizOutcome) -> Color {
         switch outcome {
-        case .correct: .green
-        case .close: .orange
-        case .wrong: .red
+        case .correct: JustTheme.Feedback.success
+        case .close: JustTheme.Feedback.warning
+        case .wrong: JustTheme.Feedback.error
         }
     }
 
     private func actionBar(_ question: QuizQuestion) -> some View {
         Group {
             if outcome == nil {
-                Button(question.kind.isTyped ? "확인" : "모르겠어요") {
+                Button {
                     if !question.kind.isTyped { input = "" }
                     submit()
+                } label: {
+                    Text(question.kind.isTyped ? "답 확인하기" : "모르겠어요 · 정답 보기")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.justPrimary)
-                .frame(maxWidth: .infinity)
             } else {
-                Button(index + 1 < questions.count ? "다음" : "결과 보기") { advance() }
+                Button { advance() } label: {
+                    Text(index + 1 < questions.count ? "다음 문제" : "결과 보기")
+                        .frame(maxWidth: .infinity)
+                }
                     .buttonStyle(.justPrimary)
-                    .frame(maxWidth: .infinity)
             }
         }
     }

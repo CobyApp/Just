@@ -27,6 +27,7 @@ struct GroupsScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
+                        learningGuide
                         // Access has to be asked for somewhere, and this is the
                         // only screen that reaches Apple Music now. It used to
                         // live on the search screen; removing that took the
@@ -42,6 +43,10 @@ struct GroupsScreen: View {
                         ForEach(IdolGroup.Label.allCases, id: \.self) { label in
                             groupSection(label)
                         }
+                        // Below the last group. The grid is what this screen is
+                        // for; the ad waits until it is over.
+                        AdBanner(unitID: AdBanner.testUnitID)
+                            .padding(.horizontal, JustTheme.Space.regular)
                     }
                     .padding(.vertical, JustTheme.Space.regular)
                 }
@@ -81,6 +86,19 @@ struct GroupsScreen: View {
             }
             .accessibilityLabel("설정")
         }
+        .padding(.horizontal, JustTheme.Space.regular)
+    }
+
+    private var learningGuide: some View {
+        JustFeatureGuide(
+            "처음이라면 이렇게 시작하세요",
+            detail: "노래를 듣다가 궁금한 가사만 눌러도 공부가 시작됩니다.",
+            steps: [
+                JustGuideStep("music.mic", title: "1. 그룹과 노래 고르기", detail: "좋아하는 그룹을 누르고 공부할 곡을 선택하세요."),
+                JustGuideStep("text.quote", title: "2. 가사 한 줄 누르기", detail: "뜻·읽기·문법과 그 줄에 나온 단어를 보여드려요."),
+                JustGuideStep("plus.circle.fill", title: "3. 단어장에 담기", detail: "+ 버튼으로 담으면 단어장과 연습 문제가 자동으로 만들어져요."),
+            ]
+        )
         .padding(.horizontal, JustTheme.Space.regular)
     }
 
@@ -174,13 +192,6 @@ private struct GroupCard: View {
         .aspectRatio(1.0, contentMode: .fit)
         .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
         .shadow(color: Color(hue: group.hue, saturation: 0.5, brightness: 0.7).opacity(0.25), radius: 10, y: 6)
-        .overlay(alignment: .topTrailing) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 15))
-                .foregroundStyle(.white.opacity(0.9))
-                .shadow(radius: 3)
-                .padding(JustTheme.Space.snug)
-        }
         .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
         .task(id: artworkURL) { await artwork.load(artworkURL) }
     }

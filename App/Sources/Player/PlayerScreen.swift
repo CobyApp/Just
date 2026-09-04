@@ -183,7 +183,7 @@ struct PlayerScreen: View {
                 Button {
                     session.analyzeAll()
                 } label: {
-                    Label("남은 줄 분석", systemImage: "sparkles")
+                    Label("남은 가사 번역하기", systemImage: "sparkles")
                 }
                 .disabled(session.lyrics == nil || session.isBulkAnalyzing)
 
@@ -231,7 +231,7 @@ struct PlayerScreen: View {
 
                 if let song = session.song, !song.occurrences.isEmpty {
                     Button { showsWords = true } label: {
-                        Label("이 곡의 단어", systemImage: "character.book.closed")
+                        Label("이 곡에서 담은 단어", systemImage: "character.book.closed")
                     }
                 }
             } label: {
@@ -390,7 +390,7 @@ private struct TransportControls: View {
             if case .failed(let message) = player.status {
                 Text(message)
                     .font(JustTheme.Font.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(JustTheme.Feedback.warning)
                     .multilineTextAlignment(.center)
                     // A truncated error tells the user nothing; let it wrap.
                     .fixedSize(horizontal: false, vertical: true)

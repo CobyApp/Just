@@ -43,6 +43,13 @@ struct ReviewScreen: View {
         VStack(spacing: JustTheme.Space.loose) {
             JustProgressHeader(current: index + 1, total: queue.count)
 
+            JustActionHint(
+                isRevealed
+                    ? "지금 얼마나 잘 기억났는지 고르면 다음 복습일이 자동으로 정해집니다."
+                    : "먼저 단어의 읽기와 뜻을 떠올린 뒤 ‘뜻 확인하기’를 누르세요.",
+                symbol: isRevealed ? "calendar.badge.clock" : "brain.head.profile"
+            )
+
             VStack(spacing: JustTheme.Space.regular) {
                 // The prompt is the word alone; the reading is part of the
                 // answer, so it stays hidden until reveal.
@@ -104,7 +111,7 @@ struct ReviewScreen: View {
                 Button {
                     withAnimation(.snappy) { isRevealed = true }
                 } label: {
-                    Text("뜻 보기").frame(maxWidth: .infinity)
+                    Text("뜻 확인하기").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.justPrimary)
                 .controlSize(.large)
@@ -119,23 +126,63 @@ struct ReviewScreen: View {
 
     private func gradeButtons(_ entry: VocabEntry) -> some View {
         let previews = entry.review.map { scheduler.previewIntervals(for: $0) } ?? [:]
-        return HStack(spacing: JustTheme.Space.tight) {
+        return LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            spacing: JustTheme.Space.tight
+        ) {
             ForEach(ReviewGrade.allCases, id: \.self) { grade in
                 Button {
                     submit(grade, for: entry)
                 } label: {
-                    VStack(spacing: 2) {
-                        Text(grade.label).font(JustTheme.Font.body.weight(.medium))
-                        Text(Self.intervalLabel(previews[grade] ?? 0))
+                    HStack(spacing: JustTheme.Space.tight) {
+                        Image(systemName: Self.gradeSymbol(grade))
+                            .foregroundStyle(Self.gradeColor(grade))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Self.gradeLabel(grade))
+                                .font(JustTheme.Font.caption.weight(.bold))
+                            Text("다음: \(Self.intervalLabel(previews[grade] ?? 0))")
                             .font(JustTheme.Font.caption)
                             .foregroundStyle(JustTheme.Ink.tertiary)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, JustTheme.Space.snug)
+                    .padding(.horizontal, JustTheme.Space.tight)
+                    .background(Self.gradeColor(grade).opacity(0.08), in: .rect(cornerRadius: JustTheme.Radius.chip))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: JustTheme.Radius.chip)
+                            .strokeBorder(Self.gradeColor(grade).opacity(0.18), lineWidth: 1)
+                    }
                 }
-                .buttonStyle(.glass)
-                .tint(grade == .again ? .orange : JustTheme.Ink.primary)
+                .buttonStyle(.plain)
             }
+        }
+    }
+
+    private static func gradeLabel(_ grade: ReviewGrade) -> String {
+        switch grade {
+        case .again: "몰랐어요"
+        case .hard: "헷갈렸어요"
+        case .good: "기억났어요"
+        case .easy: "바로 알았어요"
+        }
+    }
+
+    private static func gradeSymbol(_ grade: ReviewGrade) -> String {
+        switch grade {
+        case .again: "arrow.counterclockwise"
+        case .hard: "tortoise.fill"
+        case .good: "checkmark"
+        case .easy: "bolt.fill"
+        }
+    }
+
+    private static func gradeColor(_ grade: ReviewGrade) -> Color {
+        switch grade {
+        case .again: JustTheme.Feedback.error
+        case .hard: JustTheme.Feedback.warning
+        case .good: JustTheme.Kawaii.accent
+        case .easy: JustTheme.Feedback.success
         }
     }
 

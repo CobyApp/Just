@@ -22,6 +22,11 @@ struct LineStudySheet: View {
                 VStack(alignment: .leading, spacing: JustTheme.Space.loose) {
                     original
 
+                    JustActionHint(
+                        "단어 카드의 +를 누르면 단어장에 저장됩니다. 저장한 단어로 퀴즈와 복습이 만들어져요.",
+                        symbol: "plus.circle.fill"
+                    )
+
                     if app.sensei.isAnalyzing(lineIndex) {
                         HStack(spacing: JustTheme.Space.tight) {
                             ProgressView().controlSize(.small)
@@ -294,7 +299,7 @@ struct WordCard: View {
                 JustChip(word.jlpt.label, tint: word.jlpt.tint)
                 JustChip(word.partOfSpeech.rawValue)
                 if word.isInflected {
-                    JustChip("가사: \(word.surface)", tint: .orange)
+                    JustChip("가사: \(word.surface)", tint: JustTheme.Feedback.warning)
                 }
             }
 
