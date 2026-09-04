@@ -33,7 +33,7 @@ struct QuizScreen: View {
 
     var body: some View {
         ZStack {
-            JustTheme.Surface.base.ignoresSafeArea()
+            JustBrandBackground()
 
             if let question {
                 card(question)
@@ -49,15 +49,7 @@ struct QuizScreen: View {
         }
         .navigationTitle(scope == .struggling ? "어려운 단어" : (kind?.title ?? "랜덤 믹스"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if question != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(index + 1) / \(questions.count)")
-                        .font(JustTheme.Font.caption.monospacedDigit())
-                        .foregroundStyle(JustTheme.Ink.tertiary)
-                }
-            }
-        }
+        .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear(perform: start)
         // Asked out loud as soon as it is on screen: a listening question that
         // waits to be tapped reads as a broken one. Keyed on the question so
@@ -75,7 +67,8 @@ struct QuizScreen: View {
         VStack(spacing: JustTheme.Space.loose) {
             ScrollView {
                 VStack(spacing: JustTheme.Space.loose) {
-                    prompt(question)
+                    JustProgressHeader(current: index + 1, total: questions.count)
+                    prompt(question).justCard()
                     if question.kind.isTyped {
                         typedField
                     } else {
@@ -232,8 +225,12 @@ struct QuizScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         optionBackground(option, question: question),
-                        in: .rect(cornerRadius: JustTheme.Radius.chip)
+                        in: .rect(cornerRadius: JustTheme.Radius.card)
                     )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                            .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+                    }
                 }
                 .buttonStyle(.plain)
                 .disabled(outcome != nil)
@@ -313,6 +310,7 @@ struct QuizScreen: View {
 
     private var summary: some View {
         VStack(spacing: JustTheme.Space.regular) {
+            JustIconBadge(correctCount == questions.count ? "checkmark" : "flag.checkered", size: 64)
             Text("\(correctCount) / \(questions.count)")
                 .font(.just(44, weight: .bold, relativeTo: .largeTitle).monospacedDigit())
                 .foregroundStyle(JustTheme.Ink.primary)
@@ -327,6 +325,8 @@ struct QuizScreen: View {
             AdBanner(unitID: AdBanner.testUnitID)
                 .padding(.top, JustTheme.Space.loose)
         }
+        .justCard()
+        .padding(JustTheme.Space.regular)
     }
 
     // MARK: - Flow

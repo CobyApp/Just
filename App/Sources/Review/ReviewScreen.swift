@@ -23,7 +23,7 @@ struct ReviewScreen: View {
 
     var body: some View {
         ZStack {
-            JustTheme.Surface.base.ignoresSafeArea()
+            JustBrandBackground()
 
             if let current {
                 card(current)
@@ -33,15 +33,7 @@ struct ReviewScreen: View {
         }
         .navigationTitle("복습")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if !queue.isEmpty, current != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(index + 1) / \(queue.count)")
-                        .font(JustTheme.Font.caption.monospacedDigit())
-                        .foregroundStyle(JustTheme.Ink.tertiary)
-                }
-            }
-        }
+        .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear(perform: reload)
     }
 
@@ -49,7 +41,7 @@ struct ReviewScreen: View {
 
     private func card(_ entry: VocabEntry) -> some View {
         VStack(spacing: JustTheme.Space.loose) {
-            Spacer()
+            JustProgressHeader(current: index + 1, total: queue.count)
 
             VStack(spacing: JustTheme.Space.regular) {
                 // The prompt is the word alone; the reading is part of the
@@ -80,6 +72,8 @@ struct ReviewScreen: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: 220)
+            .justCard()
 
             if isRevealed, let occurrence = entry.occurrences.first {
                 VStack(alignment: .leading, spacing: 6) {
@@ -102,7 +96,7 @@ struct ReviewScreen: View {
                 .transition(.opacity)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
             if isRevealed {
                 gradeButtons(entry)
@@ -155,21 +149,24 @@ struct ReviewScreen: View {
     }
 
     private var finishedState: some View {
-        ContentUnavailableView {
-            Label(
-                completed > 0 ? "오늘 복습 끝" : "복습할 단어가 없습니다",
-                systemImage: completed > 0 ? "checkmark.circle" : "sparkles"
-            )
-        } description: {
+        VStack(spacing: JustTheme.Space.regular) {
+            JustIconBadge(completed > 0 ? "checkmark" : "clock", size: 64)
+            Text(completed > 0 ? "오늘 복습 끝" : "복습할 단어가 없습니다")
+                .font(JustTheme.Font.title)
+                .foregroundStyle(JustTheme.Ink.primary)
             Text(
                 completed > 0
                     ? "\(completed)개를 복습했습니다. 다음 카드는 일정에 맞춰 다시 올라옵니다."
                     : "가사에서 단어를 담으면 여기에서 복습할 수 있습니다."
             )
-        } actions: {
+            .font(JustTheme.Font.body)
+            .foregroundStyle(JustTheme.Ink.secondary)
+            .multilineTextAlignment(.center)
             Button("다시 확인") { reload() }
                 .buttonStyle(.justSecondary)
         }
+        .justCard()
+        .padding(JustTheme.Space.regular)
     }
 
     // MARK: - Actions

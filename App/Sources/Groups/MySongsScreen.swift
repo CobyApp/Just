@@ -90,12 +90,11 @@ struct MySongsScreen: View {
                 .foregroundStyle(JustTheme.Kawaii.inkSoft)
         }
         .padding(JustTheme.Space.snug)
-        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
         .overlay {
             RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(.white.opacity(0.7), lineWidth: 0.8)
+                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
         }
-        .shadow(color: JustTheme.Kawaii.lavender.opacity(0.08), radius: 12, y: 5)
         .contentShape(.rect)
     }
 

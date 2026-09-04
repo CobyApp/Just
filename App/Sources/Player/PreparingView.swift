@@ -80,6 +80,7 @@ struct PreparingView: View {
                 Button("중단", action: onCancel)
                     .buttonStyle(.justSecondary)
             }
+            .justCard()
 
             // Under the controls, so it never sits between the reader and the
             // button they are looking for.
@@ -144,7 +145,11 @@ struct PreparingView: View {
             .foregroundStyle(JustTheme.Ink.primary)
             .padding(JustTheme.Space.regular)
             .frame(maxWidth: .infinity)
-            .background(JustTheme.Surface.raised, in: .rect(cornerRadius: 18))
+            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
+            .overlay {
+                RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                    .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+            }
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -167,7 +172,7 @@ struct PreparingView: View {
         case .analyzing(let done, let total, let remaining):
             VStack(spacing: JustTheme.Space.tight) {
                 ProgressView(value: Double(done), total: Double(max(total, 1)))
-                    .tint(JustTheme.Ink.primary)
+                    .tint(JustTheme.Kawaii.accent)
 
                 HStack {
                     Text("해석 중")

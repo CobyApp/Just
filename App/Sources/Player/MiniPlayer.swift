@@ -89,7 +89,7 @@ struct MiniPlayer: View {
                     let fraction = app.player.duration > 0
                         ? app.player.currentTime / app.player.duration
                         : 0
-                    JustTheme.Ink.primary.opacity(0.5)
+                    JustTheme.Kawaii.accent
                         .frame(width: geometry.size.width * fraction, height: 1.5)
                 }
                 .frame(height: 1.5)

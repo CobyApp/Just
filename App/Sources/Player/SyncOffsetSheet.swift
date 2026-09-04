@@ -136,6 +136,11 @@ struct SyncOffsetSheet: View {
                             }
                         }
                         .padding(.vertical, JustTheme.Space.tight)
+                        .padding(.horizontal, JustTheme.Space.snug)
+                        .background(
+                            line.id == guess ? JustTheme.Kawaii.accent.opacity(0.12) : JustTheme.Surface.raised,
+                            in: .rect(cornerRadius: JustTheme.Radius.chip)
+                        )
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)

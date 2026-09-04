@@ -79,7 +79,14 @@ struct SettingsScreen: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            ZStack {
+                JustBrandBackground()
+                Form {
+                Section {
+                    JustScreenHeader("설정", subtitle: "나에게 맞는 공부 리듬")
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 12, trailing: 0))
+                }
                 if let problem = app.connectionProblem {
                     Section {
                         Text(problem.message)
@@ -209,8 +216,10 @@ struct SettingsScreen: View {
                     // a privacy note that is quietly wrong is worse than none.
                     Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.")
                 }
+                }
+                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("설정")
+            .navigationTitle("")
             .translationTask(download) { session in
                 // Downloads on first use and then answers; either way the
                 // status is re-read so the row stops offering what is done.
@@ -225,6 +234,7 @@ struct SettingsScreen: View {
             }
             .task { packStatus = await PlainTranslator.shared.availability() }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }

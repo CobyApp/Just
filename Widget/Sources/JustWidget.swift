@@ -106,9 +106,9 @@ struct JustWidgetView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            Image(systemName: "heart.fill")
+            Image(systemName: "music.note")
                 .foregroundStyle(Color(red: 1.0, green: 0.37, blue: 0.56))
-            Text(entry.snapshot.dueCount > 0 ? "복습 \(entry.snapshot.dueCount)개" : "오늘도 반짝 완료")
+            Text(entry.snapshot.dueCount > 0 ? "복습 \(entry.snapshot.dueCount)개" : "오늘 복습 완료")
                 .foregroundStyle(entry.snapshot.dueCount > 0 ? .primary : .secondary)
         }
         .font(.system(.caption, design: .rounded, weight: .bold))
@@ -119,17 +119,7 @@ struct JustWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
             JustWidgetView(entry: entry)
-                .containerBackground(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.95, blue: 0.97),
-                            Color(red: 0.96, green: 0.94, blue: 1.0),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    for: .widget
-                )
+                .containerBackground(Color(red: 1.0, green: 0.98, blue: 0.96), for: .widget)
                 // Tapping the widget lands on the cards, not on wherever the
                 // app happened to be left.
                 .widgetURL(URL(string: entry.snapshot.dueCount > 0 ? "just://review" : "just://words"))

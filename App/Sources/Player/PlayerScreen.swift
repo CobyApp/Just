@@ -344,7 +344,7 @@ private struct TransportControls: View {
                     scrubbing = nil
                 }
             )
-            .tint(JustTheme.Ink.primary)
+            .tint(JustTheme.Kawaii.accent)
 
             HStack {
                 Text((scrubbing ?? player.currentTime).clockString)
@@ -373,7 +373,9 @@ private struct TransportControls: View {
                 Button { player.togglePlayback() } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 32))
+                        .foregroundStyle(.white)
                         .frame(width: 72, height: 72)
+                        .background(JustTheme.Kawaii.accent, in: .circle)
                         .contentShape(.rect)
                 }
                 Button { player.skip(by: 5) } label: {
@@ -419,7 +421,7 @@ private struct CompactTransport: View {
                 value: min(player.currentTime, max(player.duration, 1)),
                 total: max(player.duration, 1)
             )
-            .tint(JustTheme.Ink.primary)
+            .tint(JustTheme.Kawaii.accent)
 
             Text(player.currentTime.clockString)
                 .font(JustTheme.Font.caption.monospacedDigit())

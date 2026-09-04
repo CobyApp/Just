@@ -24,7 +24,8 @@ struct PracticeScreen: View {
                 JustBrandBackground()
                 content
             }
-            .navigationTitle("퀴즈")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
             .navigationDestination(for: QuizRoute.self) {
@@ -150,10 +151,7 @@ private struct PracticeRow: View {
                 .font(.system(size: 20))
                 .foregroundStyle(isProminent ? .white : JustTheme.Kawaii.accent)
                 .frame(width: 42, height: 42)
-                .background(
-                    isProminent ? AnyShapeStyle(JustTheme.Accent.gradient) : AnyShapeStyle(JustTheme.Kawaii.accent.opacity(0.10)),
-                    in: .circle
-                )
+                .background(isProminent ? JustTheme.Kawaii.accent : JustTheme.Kawaii.accent.opacity(0.10), in: .rect(cornerRadius: 14))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -181,11 +179,10 @@ private struct PracticeRow: View {
         }
         .padding(JustTheme.Space.snug)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
         .overlay {
             RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(.white.opacity(0.72), lineWidth: 0.8)
+                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
         }
-        .shadow(color: JustTheme.Kawaii.accent.opacity(isProminent ? 0.14 : 0.06), radius: 12, y: 5)
     }
 }

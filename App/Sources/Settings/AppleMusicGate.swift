@@ -13,11 +13,17 @@ struct AppleMusicGate: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: symbol)
-        } description: {
-            Text(message)
-        } actions: {
+        VStack(spacing: JustTheme.Space.regular) {
+            JustIconBadge(symbol, size: 58)
+            VStack(spacing: 6) {
+                Text(title)
+                    .font(JustTheme.Font.title)
+                    .foregroundStyle(JustTheme.Ink.primary)
+                Text(message)
+                    .font(JustTheme.Font.body)
+                    .foregroundStyle(JustTheme.Ink.secondary)
+                    .multilineTextAlignment(.center)
+            }
             VStack(spacing: JustTheme.Space.snug) {
                 switch app.access {
                 case .notDetermined:
@@ -40,6 +46,9 @@ struct AppleMusicGate: View {
                 }
             }
         }
+        .frame(maxWidth: 380)
+        .justCard()
+        .padding(.horizontal, JustTheme.Space.regular)
     }
 
     private var title: String {

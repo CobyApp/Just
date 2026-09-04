@@ -35,6 +35,7 @@ struct LineStudySheet: View {
                 }
                 .padding(JustTheme.Space.regular)
             }
+            .background(JustBrandBackground())
             .scrollIndicators(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -68,6 +69,7 @@ struct LineStudySheet: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
         .task(id: lineIndex) {
             savedWords = []
             await session.analyze(lineIndex: lineIndex)
@@ -267,14 +269,13 @@ struct WordCard: View {
                 Button(action: toggle) {
                     Image(systemName: isSaved ? "checkmark" : "plus")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(isSaved ? JustTheme.Surface.base : JustTheme.Ink.primary)
-                        // Green fill already says saved; only the target was small.
+                        .foregroundStyle(isSaved ? .white : JustTheme.Ink.primary)
                         .frame(
                             width: JustIconButtonStyle.minimumTapTarget,
                             height: JustIconButtonStyle.minimumTapTarget
                         )
                         .background(
-                            isSaved ? Color.green : JustTheme.Surface.raised,
+                            isSaved ? JustTheme.Kawaii.accent : JustTheme.Surface.raised,
                             in: .circle
                         )
                         .overlay {

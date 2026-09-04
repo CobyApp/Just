@@ -76,8 +76,8 @@ struct GroupsScreen: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(JustTheme.Kawaii.ink)
                     .frame(width: 40, height: 40)
-                    .background(.white.opacity(0.88), in: .circle)
-                    .shadow(color: JustTheme.Kawaii.accent.opacity(0.12), radius: 8, y: 3)
+                    .background(JustTheme.Surface.panel, in: .circle)
+                    .overlay { Circle().strokeBorder(JustTheme.Surface.border, lineWidth: 1) }
             }
             .accessibilityLabel("설정")
         }
@@ -88,7 +88,7 @@ struct GroupsScreen: View {
 
     private var continueShelf: some View {
         VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
-            Text("이어서 공부하기").kawaiiSectionTitle()
+            Text("이어서 듣기").kawaiiSectionTitle()
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: JustTheme.Space.snug) {
                     ForEach(songs.prefix(10)) { song in

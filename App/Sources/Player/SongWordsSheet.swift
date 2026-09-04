@@ -33,7 +33,7 @@ struct SongWordsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                JustTheme.Surface.base.ignoresSafeArea()
+                JustBrandBackground()
 
                 if entries.isEmpty {
                     JustEmptyState(
@@ -54,6 +54,7 @@ struct SongWordsSheet: View {
                         ForEach(entries) { entry in
                             row(entry)
                                 .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                         }
                     }
                     .listStyle(.plain)
@@ -68,6 +69,7 @@ struct SongWordsSheet: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
     }
 
     private func row(_ entry: VocabEntry) -> some View {
@@ -94,6 +96,7 @@ struct SongWordsSheet: View {
                     .lineLimit(2)
             }
         }
-        .padding(.vertical, 2)
+        .justCard()
+        .padding(.vertical, 3)
     }
 }

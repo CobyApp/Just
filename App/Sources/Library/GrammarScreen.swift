@@ -12,7 +12,7 @@ struct GrammarScreen: View {
 
     var body: some View {
         ZStack {
-            JustTheme.Surface.base.ignoresSafeArea()
+            JustBrandBackground()
 
             if !hasLoaded {
                 List(0..<5, id: \.self) { _ in
@@ -31,6 +31,7 @@ struct GrammarScreen: View {
                 List(notes) { note in
                     row(note)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
@@ -38,6 +39,7 @@ struct GrammarScreen: View {
         }
         .navigationTitle("문법")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .task {
             notes = JustStore(context: context).grammarNotes()
             hasLoaded = true
@@ -77,6 +79,7 @@ struct GrammarScreen: View {
             }
             .padding(.top, 2)
         }
-        .padding(.vertical, JustTheme.Space.tight)
+        .justCard()
+        .padding(.vertical, 3)
     }
 }

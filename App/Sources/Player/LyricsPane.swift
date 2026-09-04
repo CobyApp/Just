@@ -188,7 +188,7 @@ struct LyricsPane: View {
                         .buttonStyle(.justSecondary)
                 }
                 ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1)))
-                    .tint(JustTheme.Ink.primary)
+                    .tint(JustTheme.Kawaii.accent)
             }
             .justCard()
             .padding(.bottom, JustTheme.Space.snug)
@@ -288,6 +288,19 @@ private struct LyricRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, JustTheme.Space.snug)
+        .padding(.vertical, JustTheme.Space.tight)
+        .background(
+            isActive ? JustTheme.Kawaii.accent.opacity(0.10) : .clear,
+            in: .rect(cornerRadius: JustTheme.Radius.card)
+        )
+        .overlay(alignment: .leading) {
+            if isActive {
+                Capsule()
+                    .fill(JustTheme.Kawaii.accent)
+                    .frame(width: 3, height: 34)
+            }
+        }
         .animation(.easeInOut(duration: 0.25), value: isActive)
     }
 }

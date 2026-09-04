@@ -52,7 +52,8 @@ struct LibraryScreen: View {
                     wordList
                 }
             }
-            .navigationTitle("단어장")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
@@ -86,6 +87,10 @@ struct LibraryScreen: View {
         Group {
             List {
                 Section {
+                    JustScreenHeader("단어장", subtitle: "노래에서 만난 일본어")
+                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 18, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     StatsHeader(stats: stats)
                         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
@@ -104,6 +109,7 @@ struct LibraryScreen: View {
                         VocabRow(entry: entry)
                     }
                     .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
                 .onDelete { offsets in
                     for index in offsets { context.delete(filteredWords[index]) }
@@ -177,7 +183,7 @@ struct LibraryScreen: View {
                     .foregroundStyle(JustTheme.Ink.secondary)
             }
             .padding(JustTheme.Space.snug)
-            .background(.white.opacity(0.88), in: .rect(cornerRadius: JustTheme.Radius.card))
+            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
             .overlay {
                 RoundedRectangle(cornerRadius: JustTheme.Radius.card)
                     .strokeBorder(JustTheme.Kawaii.accent.opacity(0.10), lineWidth: 0.8)
@@ -255,7 +261,13 @@ struct VocabRow: View {
                 }
             }
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, JustTheme.Space.snug)
+        .padding(.vertical, JustTheme.Space.tight)
+        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+        }
     }
 }
 
@@ -265,7 +277,7 @@ struct VocabDetailView: View {
 
     var body: some View {
         ZStack {
-            JustTheme.Surface.base.ignoresSafeArea()
+            JustBrandBackground()
             ScrollView {
                 VStack(alignment: .leading, spacing: JustTheme.Space.loose) {
                     VStack(alignment: .leading, spacing: JustTheme.Space.tight) {

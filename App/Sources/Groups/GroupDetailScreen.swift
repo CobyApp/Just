@@ -57,6 +57,7 @@ struct GroupDetailScreen: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: JustTheme.Space.tight) {
+                    groupHeader
                     ForEach(tracks) { track in
                         Button { app.open(track, in: tracks) } label: { row(track) }
                             .buttonStyle(.plain)
@@ -66,6 +67,23 @@ struct GroupDetailScreen: View {
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    private var groupHeader: some View {
+        HStack(spacing: JustTheme.Space.snug) {
+            JustIconBadge("music.mic", tint: Color(hue: group.hue, saturation: 0.66, brightness: 0.82), size: 54)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(group.name)
+                    .font(.kawaii(24, weight: .bold, relativeTo: .title2))
+                    .foregroundStyle(JustTheme.Kawaii.ink)
+                Text("\(group.readingKo) · 노래 \(tracks.count)곡")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
+            }
+            Spacer(minLength: 0)
+        }
+        .justCard()
+        .padding(.bottom, JustTheme.Space.tight)
     }
 
     private func row(_ track: Track) -> some View {
@@ -87,10 +105,10 @@ struct GroupDetailScreen: View {
                 .foregroundStyle(JustTheme.Kawaii.inkSoft)
         }
         .padding(JustTheme.Space.snug)
-        .background(.white.opacity(0.86), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
         .overlay {
             RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(.white.opacity(0.7), lineWidth: 0.8)
+                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
         }
         .contentShape(.rect)
     }

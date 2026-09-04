@@ -67,15 +67,16 @@ public enum JustTheme {
         /// The bright ground for lists and group cards.
         public static let kawaii = LinearGradient(
             colors: [
-                Color(red: 1.0, green: 0.94, blue: 0.97),
-                Color(red: 0.97, green: 0.94, blue: 1.0),
-                Color(red: 1.0, green: 0.98, blue: 0.94),
+                Color(red: 1.0, green: 0.985, blue: 0.975),
+                Color(red: 0.985, green: 0.975, blue: 1.0),
             ],
-            startPoint: .top,
-            endPoint: .bottom
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
         public static let raised = adaptive(dark: .white.opacity(0.07), light: .white.opacity(0.84))
         public static let sunken = adaptive(dark: .black.opacity(0.28), light: Color(red: 0.24, green: 0.14, blue: 0.28).opacity(0.06))
+        public static let panel = adaptive(dark: .white.opacity(0.08), light: .white.opacity(0.94))
+        public static let border = adaptive(dark: .white.opacity(0.10), light: Color(red: 0.25, green: 0.16, blue: 0.29).opacity(0.07))
     }
 
     /// The one saturated element in an otherwise monochrome app. Used for
@@ -137,12 +138,12 @@ public extension View {
     /// The standard raised container: glass over artwork, never a flat card.
     func justCard(cornerRadius: CGFloat = JustTheme.Radius.card) -> some View {
         padding(JustTheme.Space.regular)
-            .background(.ultraThinMaterial, in: .rect(cornerRadius: cornerRadius))
+            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: cornerRadius))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                    .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
             }
-            .shadow(color: JustTheme.Kawaii.accent.opacity(0.08), radius: 14, y: 6)
+            .shadow(color: Color.black.opacity(0.04), radius: 12, y: 5)
     }
 
     func justSectionHeader() -> some View {
@@ -167,8 +168,7 @@ public struct JustPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(.white)
             .padding(.vertical, 12)
             .padding(.horizontal, 22)
-            .background(JustTheme.Accent.gradient.opacity(configuration.isPressed ? 0.72 : 1), in: .capsule)
-            .shadow(color: JustTheme.Kawaii.accent.opacity(0.22), radius: 9, y: 4)
+            .background(JustTheme.Kawaii.accent.opacity(configuration.isPressed ? 0.72 : 1), in: .capsule)
             .contentShape(.capsule)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
@@ -180,25 +180,11 @@ public struct JustBrandBackground: View {
     public init() {}
 
     public var body: some View {
-        ZStack {
-            JustTheme.Surface.kawaii
-            Circle()
-                .fill(JustTheme.Kawaii.accent.opacity(0.12))
-                .frame(width: 240, height: 240)
-                .blur(radius: 18)
-                .offset(x: 150, y: -280)
-            Circle()
-                .fill(JustTheme.Kawaii.lavender.opacity(0.10))
-                .frame(width: 280, height: 280)
-                .blur(radius: 24)
-                .offset(x: -170, y: 260)
-        }
-        .ignoresSafeArea()
+        JustTheme.Surface.kawaii.ignoresSafeArea()
     }
 }
 
-/// A compact brand mark for in-app headers and widgets. The app icon uses the
-/// same heart, note and sparkle silhouette.
+/// A compact version of the app icon: one note and one beat.
 public struct UtaringMark: View {
     private let size: CGFloat
 
@@ -206,22 +192,21 @@ public struct UtaringMark: View {
 
     public var body: some View {
         ZStack {
-            Circle()
-                .fill(JustTheme.Accent.gradient)
-            Image(systemName: "heart.fill")
-                .font(.system(size: size * 0.58, weight: .bold))
-                .foregroundStyle(.white)
+            RoundedRectangle(cornerRadius: size * 0.28)
+                .fill(JustTheme.Kawaii.cream)
             Image(systemName: "music.note")
-                .font(.system(size: size * 0.25, weight: .black))
+                .font(.system(size: size * 0.48, weight: .black))
                 .foregroundStyle(JustTheme.Kawaii.accent)
-                .offset(y: -1)
-            Image(systemName: "sparkle")
-                .font(.system(size: size * 0.19, weight: .bold))
-                .foregroundStyle(.white)
-                .offset(x: size * 0.34, y: -size * 0.32)
+            Circle()
+                .fill(JustTheme.Kawaii.lavender)
+                .frame(width: size * 0.13, height: size * 0.13)
+                .offset(x: size * 0.25, y: -size * 0.22)
         }
         .frame(width: size, height: size)
-        .shadow(color: JustTheme.Kawaii.accent.opacity(0.28), radius: size * 0.18, y: size * 0.08)
+        .overlay {
+            RoundedRectangle(cornerRadius: size * 0.28)
+                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+        }
         .accessibilityHidden(true)
     }
 }
@@ -243,7 +228,7 @@ public struct JustScreenHeader: View {
             if showsMark { UtaringMark(size: 46) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.kawaii(34, weight: .heavy, relativeTo: .largeTitle))
+                    .font(.kawaii(32, weight: .bold, relativeTo: .largeTitle))
                     .foregroundStyle(JustTheme.Kawaii.ink)
                 Text(subtitle)
                     .font(JustTheme.Font.caption)
@@ -251,6 +236,55 @@ public struct JustScreenHeader: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A semantic icon container used by rows, setup states and exercise cards.
+public struct JustIconBadge: View {
+    private let symbol: String
+    private let tint: Color
+    private let size: CGFloat
+
+    public init(_ symbol: String, tint: Color = JustTheme.Kawaii.accent, size: CGFloat = 44) {
+        self.symbol = symbol
+        self.tint = tint
+        self.size = size
+    }
+
+    public var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.4, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background(tint.opacity(0.10), in: .rect(cornerRadius: size * 0.32))
+            .accessibilityHidden(true)
+    }
+}
+
+/// Compact progress treatment shared by review and quizzes.
+public struct JustProgressHeader: View {
+    private let current: Int
+    private let total: Int
+
+    public init(current: Int, total: Int) {
+        self.current = current
+        self.total = max(total, 1)
+    }
+
+    public var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text("\(current) / \(total)")
+                    .font(JustTheme.Font.caption.monospacedDigit())
+                    .foregroundStyle(JustTheme.Ink.secondary)
+                Spacer()
+                Text("\(Int((Double(current) / Double(total) * 100).rounded()))%")
+                    .font(JustTheme.Font.caption.monospacedDigit())
+                    .foregroundStyle(JustTheme.Ink.tertiary)
+            }
+            ProgressView(value: Double(current), total: Double(total))
+                .tint(JustTheme.Kawaii.accent)
+        }
     }
 }
 
@@ -274,11 +308,11 @@ public struct JustSecondaryButtonStyle: ButtonStyle {
             .padding(.vertical, 7)
             .padding(.horizontal, 14)
             .background(
-                JustTheme.Surface.raised.opacity(configuration.isPressed ? 0.4 : 1),
+                JustTheme.Surface.panel.opacity(configuration.isPressed ? 0.55 : 1),
                 in: .capsule
             )
             .overlay {
-                Capsule().strokeBorder(JustTheme.Ink.hairline, lineWidth: 0.5)
+                Capsule().strokeBorder(JustTheme.Surface.border, lineWidth: 1)
             }
             .contentShape(.capsule)
     }

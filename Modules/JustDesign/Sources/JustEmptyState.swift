@@ -36,15 +36,27 @@ public struct JustEmptyState: View {
     }
 
     public var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: icon)
-        } description: {
-            Text(message)
-        } actions: {
+        VStack(spacing: JustTheme.Space.regular) {
+            JustIconBadge(icon, size: 58)
+            VStack(spacing: 6) {
+                Text(title)
+                    .font(JustTheme.Font.title)
+                    .foregroundStyle(JustTheme.Ink.primary)
+                    .multilineTextAlignment(.center)
+                Text(message)
+                    .font(JustTheme.Font.body)
+                    .foregroundStyle(JustTheme.Ink.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .buttonStyle(.justPrimary)
             }
         }
+        .frame(maxWidth: 360)
+        .padding(JustTheme.Space.loose)
+        .justCard()
+        .padding(JustTheme.Space.regular)
     }
 }
