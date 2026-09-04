@@ -111,6 +111,48 @@ public enum GrammarPatterns {
     /// Ordered longest-intent first: the list is scanned in order and a match
     /// removes the patterns it supersedes.
     public static let all: [Pattern] = [
+        // Quoting, dismissing, exclaiming — the everyday spoken forms lyrics
+        // are made of. だって before って, so 「だって」 is not also counted as
+        // a bare quotative.
+        .init(["だって"], display: "〜だって",
+              "「～도」, 「～라고 해도」, 또는 「그렇지만」. 앞말을 강조하거나 이유를 댈 때 씁니다.",
+              supersedes: ["って"]),
+        .init(["なんて"], display: "〜なんて",
+              "「～같은 것」, 「～라니」. 가볍게 여기거나 놀라움을 담아 말할 때 씁니다."),
+        .init(["って"], display: "〜って",
+              "「～라고」. 말이나 생각을 인용하거나, 화제를 꺼낼 때의 구어체입니다.",
+              requiresPredicate: true),
+        .init(["じゃん", "じゃない"], display: "〜じゃない",
+              "「～잖아」, 「～가 아니야」. 확인이나 가벼운 반박의 구어체입니다."),
+        .init(["んだ", "のだ", "んです"], display: "〜んだ",
+              "설명하거나 강조하는 어감을 더합니다. 「～인 거야」."),
+        .init(["っぽい"], display: "〜っぽい",
+              "「～같은」, 「～스러운」. 그런 느낌이 난다는 뜻입니다."),
+        .init(["まま"], display: "〜まま",
+              "「～한 채로」. 그 상태를 바꾸지 않고 둔다는 뜻입니다."),
+        .init(["とか"], display: "〜とか",
+              "「～라든가」. 예를 들어 가볍게 나열할 때 씁니다."),
+        .init(["くらい", "ぐらい"], display: "〜くらい",
+              "「～정도」, 「～만큼」. 대략의 정도를 나타냅니다."),
+        .init(["ほど"], display: "〜ほど",
+              "「～만큼」, 「～할 정도로」. 정도를 비교하거나 강조합니다."),
+        .init(["たり"], display: "〜たり",
+              "「～하거나 ～하거나」. 여러 동작을 예로 들어 늘어놓습니다."),
+        .init(["てみる", "てみた", "てみて"], display: "〜てみる",
+              "「～해 보다」. 시험 삼아 해 본다는 뜻입니다."),
+        .init(["てくれる", "てくれた", "てくれて"], display: "〜てくれる",
+              "「～해 주다」. 상대가 나를 위해 해 준다는 뜻입니다."),
+        .init(["てあげる", "てあげた"], display: "〜てあげる",
+              "「～해 주다」. 내가 상대를 위해 해 준다는 뜻입니다."),
+        .init(["てもらう", "てもらった"], display: "〜てもらう",
+              "「～해 받다」. 상대가 해 준 것을 내가 받는다는 뜻입니다."),
+        .init(["させる", "させて"], display: "〜させる",
+              "사역. 「～하게 하다」, 「～시키다」."),
+        .init(["られる", "られた", "られて"], display: "〜られる",
+              "수동 「～당하다」, 또는 가능 「～할 수 있다」. 문맥으로 갈립니다."),
+        .init(["ほうがいい"], display: "〜ほうがいい",
+              "「～하는 편이 좋다」. 권하는 말입니다."),
+
         // Aspect and completion
         .init(["てしまう", "ちゃう", "ちゃった", "てしまった"], display: "〜てしまう",
               "동작이 끝나 버렸음, 또는 그에 대한 아쉬움·후회를 나타냅니다."),

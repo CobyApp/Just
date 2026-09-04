@@ -1513,3 +1513,124 @@ struct MeaningsInLineTests {
         #expect(!dictionary.meanings(in: "二人だけの空が広がる夜に").contains { $0.contains("길이") })
     }
 }
+
+
+@Suite("흔한 뜻 우선")
+struct CommonestSenseTests {
+    private func entry(_ l: String, _ r: String, _ k: String, j: String? = nil) -> DictionarySensei.Entry {
+        DictionarySensei.Entry(l: l, r: r, k: k, p: nil, j: j)
+    }
+
+    @Test("가나로 쓴 말에 같은 가나 표제어가 있으면 그것이다")
+    func kanaHeadwordWins() {
+        // ラブ written as katakana is the loanword, not a kanji homophone.
+        let d = DictionarySensei(entries: [entry("羅武", "らぶ", "억지 한자"), entry("ラブ", "らぶ", "러브", j: "圏外")])
+        #expect(d.lookup(lemma: "ラブ", reading: "らぶ")?.l == "ラブ")
+    }
+
+    @Test("가나로 쓴 말은 수입된 한자 동음어로 넘어가지 않는다")
+    func noObscureKanjiForKana() {
+        // The complaint: a plain kana word explained as a rare kanji word,
+        // because the reading index kept whichever imported row came first.
+        let d = DictionarySensei(entries: [entry("賭ける", "かける", "내기하다"), entry("欠ける", "かける", "이지러지다")])
+        #expect(d.lookup(lemma: "かける", reading: "かける") == nil)
+    }
+
+    @Test("가나로 쓴 말이라도 손으로 확인한 흔한 한자 단어는 받는다")
+    func commonCuratedKanjiIsFine() {
+        // ゆめ → 夢 is the one everybody wants.
+        let d = DictionarySensei(entries: [entry("夢", "ゆめ", "꿈", j: "N5")])
+        #expect(d.lookup(lemma: "ゆめ", reading: "ゆめ")?.l == "夢")
+    }
+
+    @Test("같은 표기의 뜻이 여럿이면 읽기가 맞는 것, 그다음 쉬운 것")
+    func easierSenseBreaksTies() {
+        let d = DictionarySensei(entries: [entry("僕", "しもべ", "하인", j: "N1"), entry("僕", "ぼく", "나", j: "N5")])
+        #expect(d.lookup(lemma: "僕")?.r == "ぼく")
+        #expect(d.lookup(lemma: "僕", reading: "しもべ")?.k == "하인")
+    }
+}
+
+@Suite("명령형·의향형 되돌리기")
+struct ImperativeVolitionalTests {
+    private let dictionary = DictionarySensei()
+
+    @Test("笑え → 笑う, 止まれ → 止まる")
+    func imperatives() {
+        #expect(dictionary.lookup(lemma: "笑え")?.l == "笑う")
+        #expect(dictionary.lookup(lemma: "止まれ")?.l == "止まる")
+    }
+
+    @Test("始めよう → 始める, 行こう → 行く")
+    func volitionals() {
+        #expect(dictionary.lookup(lemma: "始めよう")?.l == "始める")
+        #expect(dictionary.lookup(lemma: "行こう")?.l == "行く")
+    }
+}
+
+@Suite("새 문법 패턴")
+struct NewGrammarPatternTests {
+    private func displays(_ line: String) -> [String] {
+        GrammarPatterns.matches(in: line).map(\.pattern)
+    }
+
+    @Test("だって는 って로 두 번 세지 않는다")
+    func datteIsNotAlsoTte() {
+        let found = displays("もう嫌だって 疲れたよなんて")
+        #expect(found.contains("〜だって"))
+        #expect(!found.contains("〜って"))
+        #expect(found.contains("〜なんて"))
+    }
+
+    @Test("行って 같은 て형은 って로 잡지 않는다")
+    func teFormIsNotQuotative() {
+        #expect(!displays("君に会いに行って").contains("〜って"))
+    }
+
+    @Test("수수 표현을 구분한다")
+    func givingAndReceiving() {
+        #expect(displays("教えてくれた").contains("〜てくれる"))
+        #expect(displays("見てみたい").contains("〜てみる"))
+    }
+}
+
+
+@Suite("가나를 구부려 한자 동사로 만들지 않는다")
+struct NoBentKanaToKanjiTests {
+    private let dictionary = DictionarySensei()
+    private let tokenizer = JapaneseTokenizer()
+
+    @Test("ない는 泣く가 아니다")
+    func negativeIsNotCrying() {
+        // 119 lines in the coverage corpus were taught otherwise.
+        #expect(dictionary.lookup(lemma: "ない", reading: "ない")?.l != "泣く")
+        // 「なく」 really is how 泣く reads, so the raw lookup may say so; what
+        // matters is that the negative 〜なく never becomes a candidate.
+        #expect(!tokenizer.studyCandidates(in: "泣かなくてもいい").map(\.surface).contains("なく"))
+    }
+
+    @Test("어미가 붙은 가나 활용형은 여전히 읽기로 닿는다")
+    func endingsStillResolveBySound() {
+        #expect(dictionary.lookup(lemma: "わすれた", reading: "わすれた")?.l == "忘れる")
+    }
+
+    @Test("また는 待つ가, いい는 言う가 아니다")
+    func adverbsAreNotVerbs() {
+        #expect(dictionary.lookup(lemma: "また", reading: "また")?.l != "待つ")
+        #expect(dictionary.lookup(lemma: "いい", reading: "いい")?.l != "言う")
+    }
+
+    @Test("자기 읽기 그대로는 여전히 한자 단어에 닿는다")
+    func ownReadingStillResolves() {
+        #expect(dictionary.lookup(lemma: "ゆめ", reading: "ゆめ")?.l == "夢")
+        #expect(dictionary.lookup(lemma: "わたし", reading: "わたし")?.l == "私")
+    }
+
+    @Test("어미와 형식명사는 후보에도 오르지 않는다")
+    func glueIsNotACandidate() {
+        let surfaces = tokenizer.studyCandidates(in: "泣かないことにしたもの").map(\.surface)
+        #expect(!surfaces.contains("ない"))
+        #expect(!surfaces.contains("こと"))
+        #expect(!surfaces.contains("もの"))
+    }
+}

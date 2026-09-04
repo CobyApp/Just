@@ -464,6 +464,11 @@ struct SenseiReportSuite {
         var known = 0
         var missing: [String: Int] = [:]
         var reached = 0
+        // A word the lyric wrote in kana that came back as a kanji headword.
+        // Sometimes right (ゆめ → 夢), often the complaint in the bug report:
+        // a plain kana word matched to an obscure homophone because the reading
+        // index kept whichever row was read first.
+        var kanaToKanji: [String: Int] = [:]
 
         for song in songs {
             guard let lyrics = try? await client.lyrics(artist: song.artist, title: song.title)
@@ -473,8 +478,11 @@ struct SenseiReportSuite {
                 for token in tokenizer.studyCandidates(in: line.text) {
                     let hit = dictionary.entry(forSpelling: token.surface, reading: token.reading)
                         ?? dictionary.lookup(lemma: token.lemma, reading: token.reading)
-                    if hit != nil {
+                    if let hit {
                         known += 1
+                        if !token.surface.contains(where: \.isKanji), hit.l.contains(where: \.isKanji) {
+                            kanaToKanji["\(token.surface) → \(hit.l)(\(hit.r)) \(hit.k)", default: 0] += 1
+                        }
                     } else {
                         missing["\(token.lemma)(\(token.reading))", default: 0] += 1
                     }
@@ -497,6 +505,12 @@ struct SenseiReportSuite {
         report += "\n## 모르는 것 (빈도순)\n\n"
         for (word, count) in missing.sorted(by: { ($0.value, $1.key) > ($1.value, $0.key) }).prefix(80) {
             report += "- \(count)회 \(word)\n"
+        }
+
+        report += "\n## 가나 표기가 한자 표제어로 잡힌 것 (빈도순)\n\n"
+        report += "| 건수 | \(kanaToKanji.values.reduce(0, +)) |\n\n"
+        for (pair, count) in kanaToKanji.sorted(by: { ($0.value, $1.key) > ($1.value, $0.key) }).prefix(40) {
+            report += "- \(count)회 \(pair)\n"
         }
 
         print("=== COVERAGE BEGIN ===")

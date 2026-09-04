@@ -127,7 +127,7 @@ struct SyncOffsetSheet: View {
                                 .foregroundStyle(
                                     line.id == guess ? JustTheme.Ink.primary : JustTheme.Ink.secondary
                                 )
-                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             if line.id == guess {
                                 Text("앱의 짚음")

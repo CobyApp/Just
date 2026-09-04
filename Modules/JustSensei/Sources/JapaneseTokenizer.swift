@@ -61,8 +61,13 @@ public struct JapaneseToken: Hashable, Sendable {
         "たく", "だっ", "じゃ", "だろう", "でしょう", "よう", "そう", "みたい",
         "らしい", "はず", "つもり", "わけ", "こそ",
         // 감탄·간투사
-        "ほら", "ねえ", "さあ", "もう", "まだ", "もっと", "ずっと", "きっと",
-        "やっぱり", "ちょっと",
+        "ほら", "ねえ", "ねぇ", "さあ", "もう", "まだ", "もっと", "ずっと", "きっと",
+        "やっぱり", "ちょっと", "また", "あぁ", "ああ",
+        // 어미·형식명사. 「ない」 is the negative, not a word; 「こと」 and 「もの」
+        // nominalise whatever precedes them. The diagnostic caught ない being
+        // read as 泣く on 119 lines — once these are not candidates, there is
+        // nothing to misread.
+        "ない", "なく", "なかっ", "こと", "もの", "いい", "よい", "たち", "ため",
     ]
 }
 
