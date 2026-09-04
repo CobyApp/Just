@@ -180,9 +180,14 @@ public struct AppleMusicClient: Sendable {
     /// the ones people know.
     /// What one group looks like and sings — its picture and its songs, from a
     /// single artist request.
-    public struct ArtistPage: Sendable {
+    public struct ArtistPage: Sendable, Codable, Equatable {
         public let artworkURL: URL?
         public let songs: [JustCore.Track]
+
+        public init(artworkURL: URL?, songs: [JustCore.Track]) {
+            self.artworkURL = artworkURL
+            self.songs = songs
+        }
     }
 
     /// The artist's own artwork, for the group card.

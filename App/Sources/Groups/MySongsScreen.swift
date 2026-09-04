@@ -63,7 +63,10 @@ struct MySongsScreen: View {
                 }
                 .padding(.horizontal, JustTheme.Space.regular)
 
+                // Inset like the rows above it, so it reads as the last card
+                // of the list rather than a strip across the screen.
                 AdBanner(unitID: AdBanner.testUnitID)
+                    .padding(.horizontal, JustTheme.Space.regular)
                     .padding(.top, JustTheme.Space.regular)
             }
             .padding(.vertical, JustTheme.Space.regular)

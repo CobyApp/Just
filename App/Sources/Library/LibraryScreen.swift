@@ -54,7 +54,9 @@ struct LibraryScreen: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            // The title and the sort control are drawn in the content; a bar
+            // for nothing was a blank strip. Pushed screens keep their own.
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
         }
@@ -87,8 +89,16 @@ struct LibraryScreen: View {
         Group {
             List {
                 Section {
-                    JustScreenHeader("단어장", subtitle: "노래에서 만난 일본어")
-                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 18, trailing: 16))
+                    HStack(alignment: .top, spacing: JustTheme.Space.snug) {
+                        JustScreenHeader("단어장", subtitle: "노래에서 만난 일본어")
+                        Spacer(minLength: 0)
+                        sortMenu
+                    }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 14, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    searchField
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 14, trailing: 16))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                     libraryGuide
@@ -113,9 +123,13 @@ struct LibraryScreen: View {
                         .listRowSeparator(.hidden)
                 }
                 ForEach(filteredWords) { entry in
-                    NavigationLink(value: entry) {
-                        VocabRow(entry: entry)
-                    }
+                    // The link is hidden behind the card for the same reason as
+                    // the review card: the List's own chevron landed outside
+                    // the card's border. The card draws one inside instead.
+                    VocabRow(entry: entry)
+                        .background {
+                            NavigationLink(value: entry) { EmptyView() }.opacity(0)
+                        }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 }
@@ -126,29 +140,59 @@ struct LibraryScreen: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
         }
-        .searchable(text: $search, prompt: "단어, 뜻")
         .navigationDestination(for: GrammarRoute.self) { _ in GrammarScreen() }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Picker("정렬", selection: $order) {
-                        ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
-                    }
+    }
+
+    /// The current order, in words, beside the title it orders. It used to be a
+    /// toolbar item — but this screen draws its own title, so the toolbar was
+    /// an empty bar with one button floating in it.
+    private var sortMenu: some View {
+        Menu {
+            Picker("정렬", selection: $order) {
+                ForEach(WordOrder.allCases) { Text($0.title).tag($0) }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(order.title)
+                Image(systemName: "arrow.up.arrow.down")
+            }
+            .font(JustTheme.Font.caption.weight(.semibold))
+            .foregroundStyle(JustTheme.Kawaii.accent)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(JustTheme.Surface.panel, in: .capsule)
+            .overlay { Capsule().strokeBorder(JustTheme.Surface.border, lineWidth: 1) }
+        }
+        .padding(.top, 4)
+    }
+
+    /// In the content rather than `.searchable`: the system field lives in the
+    /// navigation bar, and keeping the bar for it alone left a blank strip
+    /// above the page.
+    private var searchField: some View {
+        HStack(spacing: JustTheme.Space.tight) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(JustTheme.Kawaii.inkSoft)
+            TextField("단어, 뜻", text: $search)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .foregroundStyle(JustTheme.Kawaii.ink)
+            if !search.isEmpty {
+                Button {
+                    search = ""
                 } label: {
-                    // The current order, in words. An anonymous ↑↓ said neither
-                    // what the button was nor what it was set to.
-                    //
-                    // Spelled out as an HStack rather than a Label: a toolbar
-                    // collapses `Label` to its icon whatever `labelStyle` asks
-                    // for, which is how the text went missing the first time.
-                    HStack(spacing: 4) {
-                        Text(order.title)
-                        Image(systemName: "arrow.up.arrow.down")
-                    }
-                    .font(JustTheme.Font.caption.weight(.semibold))
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(JustTheme.Kawaii.inkSoft)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("검색어 지우기")
             }
         }
+        .padding(.horizontal, JustTheme.Space.snug)
+        .padding(.vertical, 12)
+        .background(JustTheme.Surface.panel, in: .capsule)
+        .overlay { Capsule().strokeBorder(JustTheme.Surface.border, lineWidth: 1) }
     }
 
     private var libraryGuide: some View {
@@ -183,8 +227,7 @@ struct LibraryScreen: View {
     /// Review is an action, not a place — so it reads as one call to action
     /// with the number on it, rather than a tab that is usually empty.
     private var reviewCard: some View {
-        NavigationLink(value: ReviewRoute()) {
-            HStack(spacing: JustTheme.Space.snug) {
+        HStack(spacing: JustTheme.Space.snug) {
                 Image(systemName: stats.dueCount > 0 ? "clock.arrow.circlepath" : "checkmark.circle")
                     .font(.system(size: 20))
                     .foregroundStyle(stats.dueCount > 0 ? JustTheme.Kawaii.accent : JustTheme.Kawaii.lavender)
@@ -211,7 +254,12 @@ struct LibraryScreen: View {
                 RoundedRectangle(cornerRadius: JustTheme.Radius.card)
                     .strokeBorder(JustTheme.Kawaii.accent.opacity(0.10), lineWidth: 0.8)
             }
-        }
+            // In a List a NavigationLink draws its own disclosure chevron next
+            // to the card's. Hidden in the background, the row still navigates
+            // and only the card's chevron shows.
+            .background {
+                NavigationLink(value: ReviewRoute()) { EmptyView() }.opacity(0)
+            }
         .buttonStyle(.plain)
     }
 
@@ -284,6 +332,10 @@ struct VocabRow: View {
                         .foregroundStyle(JustTheme.Ink.tertiary)
                 }
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(JustTheme.Ink.secondary)
         }
         .padding(.horizontal, JustTheme.Space.snug)
         .padding(.vertical, JustTheme.Space.tight)

@@ -60,6 +60,9 @@ struct GroupsScreen: View {
             .navigationDestination(for: IdolGroup.self) {
                 GroupDetailScreen(group: $0, store: artworkStore)
             }
+            // The gear sets the flag; this is what the flag opens. It went
+            // missing in the idol-only restructure, and the button did nothing.
+            .sheet(isPresented: $showsSettings) { SettingsScreen() }
             .task(id: app.isAuthorized) {
                 guard app.isAuthorized else { return }
                 await artworkStore.loadAll()

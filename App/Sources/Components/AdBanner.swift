@@ -6,10 +6,15 @@ import UIKit
 /// The app's only ad surface.
 ///
 /// Where it may appear, and why only there: an ad is acceptable at a moment the
-/// reader is not using the screen for anything. There are three such moments
-/// and no more — waiting for a song to be analysed, finishing a quiz, and
-/// finishing the day's review. All three are places where the work just
-/// stopped.
+/// reader is not using the screen for anything. Two kinds of moment qualify.
+/// The work just stopped — waiting for a song to be analysed, finishing a
+/// quiz, finishing the day's review. Or the reading just ended — below the last
+/// group on the home grid, after the last song of a group, after the last song
+/// in 「내 노래」. Nowhere else.
+///
+/// Sized to its width (an adaptive banner). Google's *test* creatives come in
+/// fixed sizes and sit letterboxed in black inside a wider slot; real fill is
+/// built to the slot and has no such bars. Not a bug to chase in test mode.
 ///
 /// Where it must not appear, for reasons worth writing down rather than
 /// rediscovering: the lyrics and the player, which are the product; any screen

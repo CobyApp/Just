@@ -33,7 +33,8 @@ struct SongRow: View {
                 Text(track.title)
                     .font(JustTheme.Font.body.weight(.semibold))
                     .foregroundStyle(JustTheme.Kawaii.ink)
-                    .lineLimit(2)
+                    // Three: a 「(feat. …)」 list was being cut at two.
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 6) {
