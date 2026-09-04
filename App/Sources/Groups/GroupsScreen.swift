@@ -45,10 +45,6 @@ struct GroupsScreen: View {
                         ForEach(IdolGroup.Label.allCases, id: \.self) { label in
                             groupSection(label)
                         }
-                        // Below the last group. The grid is what this screen is
-                        // for; the ad waits until it is over.
-                        AdBanner(unitID: AdBanner.testUnitID)
-                            .padding(.horizontal, JustTheme.Space.regular)
                     }
                     .padding(.vertical, JustTheme.Space.regular)
                 }

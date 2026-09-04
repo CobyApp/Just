@@ -192,11 +192,6 @@ struct ReviewScreen: View {
     private var finished: some View {
         VStack(spacing: JustTheme.Space.loose) {
             finishedState
-            // Only once the day's cards are done. Never between the card and
-            // the grade buttons, where it would sit under a tapping finger.
-            AdBanner(unitID: AdBanner.testUnitID)
-                // Inset like the card above it, not a strip across the screen.
-                .padding(.horizontal, JustTheme.Space.regular)
         }
     }
 

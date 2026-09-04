@@ -70,10 +70,6 @@ struct GroupDetailScreen: View {
                         }
                     }
 
-                    // After the last row, where the list has ended and nothing
-                    // is being read. Never between rows.
-                    AdBanner(unitID: AdBanner.testUnitID)
-                        .padding(.top, JustTheme.Space.regular)
                 }
                 .padding(JustTheme.Space.regular)
             }

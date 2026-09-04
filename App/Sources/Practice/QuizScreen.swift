@@ -360,12 +360,6 @@ struct QuizScreen: View {
             Button("한 번 더") { start() }
                 .buttonStyle(.justPrimary)
 
-            // The round is over, so the screen is not being used for anything.
-            // Kept clear of the button above it.
-            AdBanner(unitID: AdBanner.testUnitID)
-                // Inset like the card above it, not a strip across the screen.
-                .padding(.horizontal, JustTheme.Space.regular)
-                .padding(.top, JustTheme.Space.loose)
         }
         .justCard()
         .padding(JustTheme.Space.regular)

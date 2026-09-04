@@ -87,9 +87,6 @@ struct PreparingView: View {
             .justCard()
             }
 
-            // Under the controls, so it never sits between the reader and the
-            // button they are looking for.
-            AdBanner(unitID: AdBanner.testUnitID)
         }
         .padding(JustTheme.Space.section)
         .frame(maxWidth: 420)

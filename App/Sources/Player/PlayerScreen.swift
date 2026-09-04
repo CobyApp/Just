@@ -99,6 +99,18 @@ struct PlayerScreen: View {
             await app.player.load(track, autoplay: app.player.trackID != track.id)
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
+        // The app's one ad: a full-screen ad while this song is analysed. Asked
+        // for when analysis actually starts — after the quick/AI choice — and
+        // declined by `AnalysisInterstitial` when the wait is too short to
+        // matter or this song already had one.
+        .task { await AnalysisInterstitial.shared.preload() }
+        .onChange(of: session?.phase) { _, phase in
+            guard let session, case .analyzing(let done, let total, _) = phase else { return }
+            AnalysisInterstitial.shared.show(for: track.id, pendingLines: total - done) {
+                if case .analyzing = session.phase { return true }
+                return false
+            }
+        }
         .sheet(isPresented: $showsSyncOffset) {
             if let session {
                 SyncOffsetSheet(session: session, player: app.player)
