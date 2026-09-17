@@ -87,17 +87,6 @@ struct SettingsScreen: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 12, trailing: 0))
                 }
-                if let problem = app.connectionProblem {
-                    Section {
-                        Text(problem.message)
-                            .font(JustTheme.Font.caption)
-                            .foregroundStyle(JustTheme.Feedback.warning)
-                        Button(problem.actionTitle) { problem.act(openURL: openURL, app: app) }
-                    } header: {
-                        Label("Apple Music 연결 문제", systemImage: "exclamationmark.triangle")
-                    }
-                }
-
                 Section("복습") {
                     Picker("하루 목표", selection: Binding(
                         get: { app.dailyGoal },
@@ -208,7 +197,8 @@ struct SettingsScreen: View {
                 Section {
                     DisclosureGroup("정보") {
                         LabeledContent("번역 방식", value: app.engineLabel)
-                        LabeledContent("음악 · 앨범", value: "Apple Music")
+                        LabeledContent("곡 정보", value: "iTunes")
+                        LabeledContent("영상", value: "YouTube")
                         LabeledContent("가사", value: "LRCLIB")
                         LabeledContent("재생", value: app.playbackLabel)
                         if let unavailability = app.sensei.unavailability {
@@ -223,7 +213,7 @@ struct SettingsScreen: View {
                     // 안에서" as a blanket statement stopped being — the ad on
                     // the wait screen reaches Google. Saying so is the point:
                     // a privacy note that is quietly wrong is worse than none.
-                    Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.")
+                    Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생되고, 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.")
                 }
                 }
                 .scrollContentBackground(.hidden)
@@ -250,7 +240,6 @@ struct SettingsScreen: View {
                     Button("닫기") { dismiss() }
                 }
             }
-            .task { await app.refreshAccess() }
         }
         .presentationDetents([.large])
     }

@@ -12,10 +12,10 @@ import Foundation
 /// something that can always be fetched again, and it stays out of backups.
 public struct GroupPageCache: Sendable {
     public struct Snapshot: Codable, Equatable {
-        public var pages: [String: AppleMusicClient.ArtistPage]
+        public var pages: [String: ArtistPage]
         public var fetchedAt: [String: Date]
 
-        public init(pages: [String: AppleMusicClient.ArtistPage] = [:], fetchedAt: [String: Date] = [:]) {
+        public init(pages: [String: ArtistPage] = [:], fetchedAt: [String: Date] = [:]) {
             self.pages = pages
             self.fetchedAt = fetchedAt
         }

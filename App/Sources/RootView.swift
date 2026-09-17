@@ -36,16 +36,9 @@ struct RootView: View {
         .fullScreenCover(item: $app.openTrack) { track in
             PlayerScreen(track: track)
         }
-        .task { await app.prepareAccess() }
         .onOpenURL { url in
             guard let route = AppModel.Route(url: url) else { return }
             app.go(to: route)
-        }
-        .onChange(of: scenePhase) { _, phase in
-            // The permission can be flipped in Settings while the app is
-            // backgrounded, and iOS gives no callback for it.
-            guard phase == .active else { return }
-            Task { await app.refreshAccess() }
         }
     }
 }

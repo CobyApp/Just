@@ -47,9 +47,18 @@ struct MiniPlayer: View {
                 .accessibilityLabel("이전 곡")
 
                 Button {
-                    app.player.togglePlayback()
+                    // A video plays only while it is on screen, so resuming
+                    // from here opens the player rather than playing blind.
+                    if app.player.hasVideo {
+                        app.expandPlayer()
+                        app.player.play()
+                    } else {
+                        app.player.togglePlayback()
+                    }
                 } label: {
-                    Image(systemName: app.player.isPlaying ? "pause.fill" : "play.fill")
+                    Image(systemName: app.player.hasVideo
+                        ? "play.rectangle.fill"
+                        : (app.player.isPlaying ? "pause.fill" : "play.fill"))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(JustTheme.Ink.primary)
                 }
@@ -57,7 +66,7 @@ struct MiniPlayer: View {
                 // tap, which would expand the player instead of toggling
                 // playback.
                 .buttonStyle(.justIcon)
-                .accessibilityLabel(app.player.isPlaying ? "일시정지" : "재생")
+                .accessibilityLabel(app.player.hasVideo ? "이어서 보기" : (app.player.isPlaying ? "일시정지" : "재생"))
 
                 // Step buttons in place of ✕. Stopping is rare and lives in the
                 // player's menu now; moving to the next song of the group is the

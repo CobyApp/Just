@@ -43,6 +43,11 @@ struct PlayerScreen: View {
                         VStack(spacing: 0) {
                             if !session.isLyricsFullscreen {
                                 stage
+                            } else if app.player.hasVideo {
+                                // Lyrics-only mode keeps the video: it may not
+                                // play out of sight, and the reader still gets
+                                // the whole width below for the lines.
+                                video.padding(.bottom, JustTheme.Space.snug)
                             }
                             LyricsPane(session: session, player: app.player)
                         }
@@ -287,23 +292,37 @@ struct PlayerScreen: View {
 
     // MARK: - Artwork + transport
 
+    /// The video, full width and 16:9 — YouTube's player has to be at least
+    /// 200pt each way, and this is what that means on a phone.
+    private var video: some View {
+        VideoStage(player: app.player)
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
+            .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+    }
+
     private var stage: some View {
         VStack(spacing: JustTheme.Space.regular) {
-            Button {
-                withAnimation(.snappy) { session?.isLyricsFullscreen = true }
-                Haptics.tick()
-            } label: {
-                ArtworkView(
-                    image: artwork.image,
-                    cornerRadius: JustTheme.Radius.card,
-                    seed: track.id
-                )
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: sizeClass == .regular ? .infinity : 260)
-                .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+            if app.player.hasVideo {
+                video
+            } else {
+                Button {
+                    withAnimation(.snappy) { session?.isLyricsFullscreen = true }
+                    Haptics.tick()
+                } label: {
+                    ArtworkView(
+                        image: artwork.image,
+                        cornerRadius: JustTheme.Radius.card,
+                        seed: track.id
+                    )
+                    .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: sizeClass == .regular ? .infinity : 260)
+                    .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("가사 전체화면")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("가사 전체화면")
 
             VStack(spacing: 2) {
                 Text(track.title)
@@ -364,7 +383,7 @@ private struct TransportControls: View {
                 // user to wonder whether playback broke.
                 if player.isPreview {
                     Spacer()
-                    Text("미리듣기")
+                    Text("미리듣기 · 영상을 찾지 못한 곡")
                         .foregroundStyle(JustTheme.Ink.secondary)
                 }
                 Spacer()

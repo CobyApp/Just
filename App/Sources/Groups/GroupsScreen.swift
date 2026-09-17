@@ -30,17 +30,6 @@ struct GroupsScreen: View {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
                         learningGuide
-                        // Access has to be asked for somewhere, and this is the
-                        // only screen that reaches Apple Music now. It used to
-                        // live on the search screen; removing that took the
-                        // permission prompt with it, and the app had no way to
-                        // ask at all — which looks exactly like a group having
-                        // no songs.
-                        if !app.isAuthorized {
-                            AppleMusicGate()
-                                .environment(\.colorScheme, .light)
-                                .padding(.top, JustTheme.Space.loose)
-                        }
                         if !songs.isEmpty { continueShelf }
                         ForEach(IdolGroup.Label.allCases, id: \.self) { label in
                             groupSection(label)
@@ -61,10 +50,7 @@ struct GroupsScreen: View {
             // The gear sets the flag; this is what the flag opens. It went
             // missing in the idol-only restructure, and the button did nothing.
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
-            .task(id: app.isAuthorized) {
-                guard app.isAuthorized else { return }
-                await artworkStore.loadAll()
-            }
+            .task { await artworkStore.loadAll() }
         }
     }
 

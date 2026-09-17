@@ -15,20 +15,25 @@
 tuist generate
 ```
 
-Xcode 26.6 이상, iOS 26 SDK, Swift 6.3 기준입니다.
+Xcode 26.6 이상(27 포함), iOS 26 SDK, Swift 6.3 기준입니다.
 
-## 실행 전 준비 (한 번만)
+## 실행 전 준비
 
-Apple Music은 **앱에 붙여넣을 API 키가 없습니다.** 대신 App ID에 서비스를
-켜 주어야 MusicKit이 개발자 토큰을 스스로 발급합니다.
+계정도 권한 요청도 없습니다. 곡 정보는 Apple의 공개 iTunes 검색 API에서, 영상은
+YouTube에서 오므로 시뮬레이터에서도 그대로 동작합니다.
 
-1. [Apple Developer 계정의 Identifiers](https://developer.apple.com/account/resources/identifiers/list)
-   에서 `com.coby.just` App ID를 만들고 **MusicKit**을 켭니다.
-2. Xcode에서 `Just` 타깃 → Signing & Capabilities → 팀을 선택합니다.
-3. **실제 기기에서 실행합니다.** 시뮬레이터에는 Apple Music 계정이 없어
-   카탈로그 검색과 재생이 동작하지 않습니다.
+하나만 준비하면 됩니다 — 곡의 영상을 찾는 **YouTube Data API 키**입니다.
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials)에서
+YouTube Data API v3를 켜고 API 키를 만든 뒤, 프로젝트를 생성할 때 환경 변수로
+넘깁니다.
 
-첫 실행 시 앱이 Apple Music 접근 권한을 요청합니다.
+```bash
+TUIST_YOUTUBE_API_KEY=여기에_키 tuist generate --no-open
+```
+
+키 없이 생성하면 앱은 그대로 돌지만 영상을 찾을 수 없어 **모든 곡을 30초
+미리듣기로** 재생합니다. 무료 할당량은 하루 검색 약 100회이고, 한 번 찾은 영상은
+기기에 남아 다시 묻지 않습니다.
 
 ## 화면
 
@@ -61,7 +66,7 @@ Apple Music은 **앱에 붙여넣을 API 키가 없습니다.** 대신 App ID에
 이 앱은 **일곱 그룹만** 다룹니다. 검색이 없는 것이 결함이 아니라 정의입니다 —
 좋아하는 그룹이 첫 화면에 있고 두 번 눌러 곡에 닿는 것이 강점입니다.
 
-| 그룹 | Apple Music ID |
+| 그룹 | Apple 카탈로그 ID |
 |---|---|
 | FRUITS ZIPPER | 1617607581 |
 | CANDY TUNE | 1671095780 |
@@ -71,13 +76,15 @@ Apple Music은 **앱에 붙여넣을 API 키가 없습니다.** 대신 App ID에
 | iLiFE! | 1578837625 |
 | =LOVE | 1273762750 |
 
-그룹 카드의 사진도 Apple Music 아티스트 조회에서 옵니다 — 곡 목록과 **같은 요청**이라,
-카드를 그린 뒤 그룹을 열면 두 번 묻지 않습니다(`GroupArtworkStore`가 실행 중 한 번만
-받아 둡니다). 사진이 없거나 아직 안 왔으면 그룹 색 그라데이션이 카드 자체라, 아무것도
-깜빡이지 않습니다.
+곡 목록은 iTunes 조회(`lookup?id=…&entity=song`)에서 옵니다 — 새 싱글이 나오면 앱
+업데이트 없이 뜹니다. 이름이 아니라 ID로 찾는 이유는 동명이인입니다. 조회는 모든
+녹음을 돌려주므로 Instrumental·off vocal은 빼고, 같은 곡의 여러 판은 하나로 접어
+**새 것부터** 늘어놓습니다.
 
-명단만 앱에 있고 곡은 Apple Music 아티스트 조회로 옵니다 — 새 싱글이 나오면 앱
-업데이트 없이 뜹니다. 이름이 아니라 ID로 찾는 이유는 동명이인입니다.
+그룹 카드의 사진은 아티스트의 공개 Apple Music 페이지 `og:image`에서 읽고(조회 API에는
+아티스트 사진이 없습니다), 실패하면 가장 새 앨범 커버가 대신 섭니다. 페이지와 사진
+주소는 기기에 남겨 다음 실행의 첫 프레임부터 뜹니다(`GroupPageCache`, 하루 지나면
+뒤에서 갱신). 사진이 아직 안 왔으면 그룹 색 그라데이션이 카드 자체라 깜빡이지 않습니다.
 
 목록과 그룹 화면은 밝고 화사하게, **플레이어와 가사는 다크를 유지**합니다. 가사는
 어두운 배경에서 읽기가 훨씬 편하고, 이 앱에서 가장 긴 시간이 가사를 읽는 시간입니다.
@@ -99,7 +106,7 @@ Apple Music은 **앱에 붙여넣을 API 키가 없습니다.** 대신 App ID에
 Just (앱)
  ├── JustCore     도메인 모델, SwiftData 스키마, FSRS 스케줄러
  ├── JustDesign   팔레트 추출, 메시 배경, 후리가나 조판
- ├── JustMusic    MusicKit 검색 + ApplicationMusicPlayer
+ ├── JustMusic    iTunes 카탈로그 + YouTube 내장 플레이어
  ├── JustLyrics   LRCLIB 클라이언트, LRC 파서
  └── JustSensei   형태소 분석, 읽기, 온디바이스 해석 엔진
 ```
@@ -108,8 +115,9 @@ Just (앱)
 
 | | 출처 | 비고 |
 |---|---|---|
-| 곡·앨범·아트워크 | Apple Music (MusicKit) | 키 불필요, 쿼터 없음 |
-| 재생 | ApplicationMusicPlayer | 구독 없으면 30초 미리듣기로 대체 |
+| 곡·앨범·아트워크 | Apple iTunes 검색 API | 키·계정 불필요 |
+| 영상 찾기 | YouTube Data API v3 | API 키 필요, 하루 검색 약 100회, 결과는 기기에 저장 |
+| 재생 | YouTube 내장 플레이어 (MV) | 영상이 없거나 재생 불가면 30초 미리듣기 |
 | 가사 | LRCLIB | 무인증, 싱크 LRC |
 | 해석 | Apple Intelligence (온디바이스) | 빠르게/정확하게 선택, 사전 + 시스템 번역 |
 | 한자 음훈 | 번들 (1,591자) | 한국어 학습자용 |
@@ -118,7 +126,7 @@ Just (앱)
 
 두 가지가 어긋날 수 있고 원인이 다릅니다.
 
-**미리듣기에서는 가사가 따라가지 않습니다.** 구독이 없으면 재생은 30초 클립이고,
+**미리듣기에서는 가사가 따라가지 않습니다.** 영상을 찾지 못한 곡은 30초 클립이고,
 그 클립은 곡 중간에서 잘려 나옵니다(미리듣기 첫 1초의 평균 음량이 클립 전체
 평균과 0.3~3.5dB 차이뿐 - 곡의 시작이라면 무음에서 출발합니다). Apple은 어디서
 잘랐는지 공개하지 않으므로 클립 시간을 곡 시간으로 환산할 방법이 없습니다.
@@ -153,8 +161,26 @@ Just (앱)
 실제 수익에는 계정 보유자의 ID가 필요합니다. 맞춤 광고는 쓰지 않으므로 App
 Tracking Transparency 프롬프트도 띄우지 않습니다.
 
-**Apple Music API는 가사를 제공하지 않습니다.** 음악 앱에 가사가 보이는 것과
-별개로 공개 API에는 열려 있지 않아, 싱크 가사는 LRCLIB에서 받습니다.
+**iTunes도 YouTube도 가사를 제공하지 않습니다.** 싱크 가사는 LRCLIB에서 받습니다.
+
+### YouTube 재생
+
+곡은 그룹의 뮤직비디오로 재생됩니다. 계정이 필요 없는 유일한 전곡 경로이고,
+가사 싱크가 곡 전체를 따라갑니다.
+
+내장 플레이어의 약관을 지킵니다. **영상은 재생 중 화면에 있어야** 하므로 플레이어를
+접으면 영상이 멈추고, 미니플레이어의 재생 버튼은 플레이어를 다시 열어 이어 봅니다.
+가사 전체화면에서도 영상은 위에 남습니다. 오디오만 재생하거나 백그라운드로 보내는
+일은 없습니다. 플레이어 자체 컨트롤은 꺼 두고 앱의 재생 버튼·슬라이더가 대신합니다
+(한 세트면 충분합니다).
+
+영상은 `"<아티스트> <곡명> MV"`로 검색해 고릅니다. 검색 순위만 믿으면 댄스
+프랙티스·라이브·커버가 걸리므로, **제목에 곡명이 있는 것** 중에서 MV·Music Video를
+높이고, 그룹 채널을 높이고, Dance Practice·LIVE·cover·teaser·lyric은 낮춥니다. 임베드가
+막힌 영상(오류 101/150)은 목록에서 지우고 미리듣기로 넘어갑니다.
+
+MV는 음원과 시작이 다를 수 있습니다(인트로 연출). 가사가 어긋나면 플레이어의 싱크
+조정으로 맞춥니다.
 
 ### 로컬 저장
 
@@ -401,22 +427,6 @@ App Group `group.com.coby.just`가 필요합니다. 자동 서명이 등록하�
 developer.apple.com > Identifiers > App Groups에서 만들고, App ID의
 App Groups 기능에서 연결해 주세요.
 
-## MusicKit App ID 설정 (필수, 1회)
-
-검색이 "개발자 토큰 요청 실패"로 죽으면 이것 때문입니다.
-
-MusicKit은 개발자 토큰을 자동으로 발급하지만, **명시적 App ID에 MusicKit
-서비스가 켜져 있을 때만** 가능합니다. 와일드카드 팀 프로비저닝
-프로파일(`TEAM.*`)로 서명하면 실패하고, 오류 메시지는 토큰만 말하고 정작
-원인인 포털 스위치는 언급하지 않습니다.
-
-1. developer.apple.com > Certificates, Identifiers & Profiles > **Identifiers**
-2. **+** > App IDs > App > Bundle ID는 **Explicit**로 `com.coby.just`
-3. 그 App ID의 **App Services**에서 **MusicKit** 체크 후 저장
-4. 다시 빌드 (`-allowProvisioningUpdates`가 새 프로파일을 받아옵니다)
-
-설정 화면의 **카탈로그 연결 > 연결 확인**으로 실제 성공 여부를 볼 수 있습니다.
-
 ## 빌드와 배포
 
 옆 프로젝트 `mana`와 같은 구성입니다.
@@ -458,11 +468,7 @@ CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 ## 남은 것
 
 - 번들 사전 6.9천 단어 중 등급·품사가 붙은 것은 손으로 확인한 149개뿐입니다.
-- 뮤직비디오는 다루지 않습니다. 공개 API로는 전체 재생이 불가능합니다.
 - 곡 난이도는 분석한 줄에서만 집계되므로, 일부만 분석한 곡은 표본이 작습니다.
-
-시뮬레이터에는 Apple Music 계정이 없어 곡을 열 수 없습니다. 검색·재생·추천·앨범은
-실기기에서만 확인됩니다.
 
 ## 라이선스
 
@@ -473,5 +479,5 @@ MIT. 다만 번들 데이터의 출처는 구분해서 봐 주세요.
   다른 프로젝트에서 가져온 데이터입니다.
 - 가사는 저장소에 포함되지 않습니다. 실행 시 [LRCLIB](https://lrclib.net)에서
   받아 기기에만 저장됩니다.
-- 곡 정보와 아트워크는 Apple Music 카탈로그에서 옵니다. Apple Media Services
-  이용약관이 적용됩니다.
+- 곡 정보와 아트워크는 Apple의 iTunes 검색 API에서, 영상은 YouTube에서 옵니다.
+  각각 Apple Media Services 이용약관과 YouTube API Services 약관이 적용됩니다.

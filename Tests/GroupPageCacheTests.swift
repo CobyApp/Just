@@ -18,7 +18,7 @@ struct GroupPageCacheTests {
             id: "s1", title: "わたしの一番かわいいところ", artist: "FRUITS ZIPPER",
             artworkURL: URL(string: "https://example.com/a.jpg"), duration: 255
         )
-        let page = AppleMusicClient.ArtistPage(
+        let page = ArtistPage(
             artworkURL: URL(string: "https://example.com/artist.jpg"), songs: [track]
         )
         let stamp = Date(timeIntervalSince1970: 1_700_000_000)

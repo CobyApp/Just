@@ -13,10 +13,10 @@ import Observation
 @MainActor
 @Observable
 final class GroupArtworkStore {
-    private(set) var pages: [String: AppleMusicClient.ArtistPage]
+    private(set) var pages: [String: ArtistPage]
     private var fetchedAt: [String: Date]
     private var inFlight: Set<String> = []
-    private let client = AppleMusicClient()
+    private let client = ITunesCatalog()
     private let cache: GroupPageCache
 
     init(cache: GroupPageCache = GroupPageCache()) {
@@ -46,13 +46,13 @@ final class GroupArtworkStore {
         }
     }
 
-    func reload(_ group: IdolGroup) async throws -> AppleMusicClient.ArtistPage {
+    func reload(_ group: IdolGroup) async throws -> ArtistPage {
         let page = try await client.artistPage(id: group.id)
         remember(page, for: group)
         return page
     }
 
-    private func remember(_ page: AppleMusicClient.ArtistPage, for group: IdolGroup) {
+    private func remember(_ page: ArtistPage, for group: IdolGroup) {
         pages[group.id] = page
         fetchedAt[group.id] = .now
         let snapshot = GroupPageCache.Snapshot(pages: pages, fetchedAt: fetchedAt)
