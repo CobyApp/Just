@@ -1,6 +1,6 @@
 import Foundation
 import JustCore
-import JustMusic
+@testable import JustMusic
 import Testing
 
 @Suite("iTunes 카탈로그")

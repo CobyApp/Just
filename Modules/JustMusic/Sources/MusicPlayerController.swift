@@ -2,6 +2,7 @@ import AVFoundation
 import Foundation
 import JustCore
 import Observation
+import os
 import WebKit
 
 /// Playback: the song's video through YouTube's embedded player, or its
@@ -308,6 +309,9 @@ public final class MusicPlayerController {
 private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     let view: WKWebView
     private unowned let owner: MusicPlayerController
+    /// What the page says, for the log — the player's numeric errors are
+    /// otherwise invisible from outside the web view.
+    private let log = Logger(subsystem: "com.coby.just", category: "video")
     private var pageIsReady = false
     private var queued: (videoID: String, autoplay: Bool)?
 
@@ -325,16 +329,21 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
         super.init()
         configuration.userContentController.add(self, name: "just")
         view.navigationDelegate = self
-        // The player is told this is youtube.com so embedding is allowed the
-        // way it is on the web; the same base the official iOS helper uses.
-        view.loadHTMLString(Self.page, baseURL: URL(string: "https://www.youtube.com"))
+        // The page needs an https origin of its own: YouTube now checks the
+        // embedding page's referer and answers error 152/153 to a page that
+        // has none or claims to be youtube.com itself (the old helper trick).
+        // Nothing is fetched from this address; it is the app's name as an
+        // origin, and the same value is passed to the player as `origin`.
+        view.loadHTMLString(Self.page, baseURL: URL(string: Self.origin))
     }
 
     func load(videoID: String, autoplay: Bool) {
         guard pageIsReady else {
+            log.info("page not ready; queued \(videoID)")
             queued = (videoID, autoplay)
             return
         }
+        log.info("load \(videoID) autoplay=\(autoplay)")
         let call = autoplay ? "loadVideoById" : "cueVideoById"
         run("player.\(call)({videoId: '\(videoID)'});")
     }
@@ -352,11 +361,16 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
         view.evaluateJavaScript(script) { _, _ in }
     }
 
+    nonisolated func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        MainActor.assumeIsolated { log.error("page failed to load: \(error.localizedDescription)") }
+    }
+
     nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let event = body["e"] as? String else { return }
         MainActor.assumeIsolated {
             switch event {
             case "ready":
+                log.info("player ready")
                 pageIsReady = true
                 if let queued {
                     self.queued = nil
@@ -369,18 +383,22 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
                     duration: body["d"] as? TimeInterval ?? 0
                 )
             case "state":
+                log.info("player state \(body["s"] as? Int ?? -1)")
                 owner.pageReported(state: body["s"] as? Int ?? -1)
                 owner.pageReported(
                     time: body["t"] as? TimeInterval ?? owner.currentTime,
                     duration: body["d"] as? TimeInterval ?? 0
                 )
             case "error":
+                log.error("player error \(body["c"] as? Int ?? 0)")
                 owner.pageFailed(code: body["c"] as? Int ?? 0)
             default:
                 break
             }
         }
     }
+
+    static let origin = "https://utaring.app"
 
     /// The player fills the page; the page's own controls are off because
     /// the app draws its own transport, and one set of controls is enough.
@@ -398,7 +416,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('p', {
         width: '100%', height: '100%',
-        playerVars: { playsinline: 1, controls: 0, rel: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: 'https://www.youtube.com' },
+        playerVars: { playsinline: 1, controls: 0, rel: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: 'https://utaring.app' },
         events: {
           onReady: function() { post({e: 'ready'}); startTick(); },
           onStateChange: function(ev) { post({e: 'state', s: ev.data, t: player.getCurrentTime(), d: player.getDuration()}); },
