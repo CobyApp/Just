@@ -41,13 +41,18 @@ struct PlayerScreen: View {
                         .padding(.horizontal, JustTheme.Space.loose)
                     } else {
                         VStack(spacing: 0) {
+                            // The stage gets its height before the lyrics take
+                            // the rest. Split evenly, the video came out the
+                            // size of a thumbnail — and YouTube's player will
+                            // not play below about 200pt, so it also never
+                            // started.
                             if !session.isLyricsFullscreen {
-                                stage
+                                stage.layoutPriority(1)
                             } else if app.player.hasVideo {
                                 // Lyrics-only mode keeps the video: it may not
                                 // play out of sight, and the reader still gets
                                 // the whole width below for the lines.
-                                video.padding(.bottom, JustTheme.Space.snug)
+                                video.padding(.bottom, JustTheme.Space.snug).layoutPriority(1)
                             }
                             LyricsPane(session: session, player: app.player)
                         }
@@ -98,6 +103,14 @@ struct PlayerScreen: View {
             // is not adopted as "now playing" until it is about to be heard.
             guard !Task.isCancelled, session.phase == .ready else { return }
             app.confirmPlaying(track)
+
+            // Not while the analysis ad is up. A video started under a
+            // full-screen ad never got going: the page was hidden when it was
+            // told to play, and it sat on its poster with a spinner afterwards.
+            while AnalysisInterstitial.shared.isPresenting {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
+            }
 
             // Only autoplays when this is a different song. Reopening a paused
             // one from the mini player should not start it again.
@@ -297,7 +310,8 @@ struct PlayerScreen: View {
     private var video: some View {
         VideoStage(player: app.player)
             .aspectRatio(16 / 9, contentMode: .fit)
-            .frame(maxWidth: .infinity)
+            // 560pt: full width on a phone, a sane size on an iPad.
+            .frame(maxWidth: 560)
             .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
             .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
     }

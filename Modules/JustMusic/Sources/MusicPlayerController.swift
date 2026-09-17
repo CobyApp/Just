@@ -59,6 +59,10 @@ public final class MusicPlayerController {
     /// Bumped by every `load`, so a load that has been overtaken can tell.
     @ObservationIgnored private var loadGeneration = 0
     @ObservationIgnored private var pendingAutoplay = false
+    /// Cancels the video if it never starts — see `watchForStall`.
+    @ObservationIgnored private var stallWatch: Task<Void, Never>?
+    /// How long a video may sit buffering before it is given up on.
+    static let stallLimit: Duration = .seconds(15)
 
     public init(youtube: YouTubeClient = YouTubeClient()) {
         self.youtube = youtube
@@ -150,6 +154,21 @@ public final class MusicPlayerController {
         hasVideo = true
         pendingAutoplay = autoplay
         web.load(videoID: videoID, autoplay: autoplay)
+        if autoplay { watchForStall(videoID) }
+    }
+
+    /// Some videos never leave 「buffering」 in the embedded player and never
+    /// report an error either — the player just spins. Fifteen seconds of
+    /// that is a video that will not play here, and the clip takes over, the
+    /// same as for a video that refused outright.
+    private func watchForStall(_ videoID: String) {
+        stallWatch?.cancel()
+        stallWatch = Task { [weak self] in
+            try? await Task.sleep(for: Self.stallLimit)
+            guard let self, !Task.isCancelled, hasVideo, status != .playing, status != .paused else { return }
+            web.log.error("video \(videoID) never started; falling back to the clip")
+            pageFailed(code: 0)
+        }
     }
 
     private func startPreview(_ preview: SongPreview, autoplay: Bool) throws {
@@ -214,6 +233,7 @@ public final class MusicPlayerController {
     }
 
     public func stop() {
+        stallWatch?.cancel()
         previewTicker?.cancel()
         previewTicker = nil
         previewPlayer.pause()
@@ -237,8 +257,12 @@ public final class MusicPlayerController {
     fileprivate func pageReported(state: Int) {
         guard hasVideo else { return }
         switch state {
-        case 1: status = .playing
-        case 2, 0: status = .paused
+        case 1:
+            status = .playing
+            stallWatch?.cancel()
+        case 2, 0:
+            status = .paused
+            stallWatch?.cancel()
         case 5: status = .ready
         case 3: if status == .idle || status == .loading { status = .ready }
         default: break
@@ -254,6 +278,7 @@ public final class MusicPlayerController {
     /// private, 101/150 the owner disallows embedding.
     fileprivate func pageFailed(code: Int) {
         guard hasVideo, let trackID else { return }
+        stallWatch?.cancel()
         let autoplay = pendingAutoplay
         forgetVideo()
         // The clip instead, and the reader is not told a code.
@@ -311,7 +336,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     private unowned let owner: MusicPlayerController
     /// What the page says, for the log — the player's numeric errors are
     /// otherwise invisible from outside the web view.
-    private let log = Logger(subsystem: "com.coby.just", category: "video")
+    let log = Logger(subsystem: "com.coby.just", category: "video")
     private var pageIsReady = false
     private var queued: (videoID: String, autoplay: Bool)?
 

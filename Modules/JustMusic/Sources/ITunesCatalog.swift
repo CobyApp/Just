@@ -62,13 +62,17 @@ public struct ITunesCatalog: Sendable {
     /// picture of the artist. The picture is read off the artist's public
     /// Apple Music page; when that fails the newest album cover stands in, so
     /// the card is never blank.
-    public func artistPage(id artistID: String, limit: Int = 40) async throws -> ArtistPage {
+    ///
+    /// Every song, not the newest forty: the lookup has no popularity to
+    /// rank by, and a cap on a newest-first list dropped the group's biggest
+    /// hit from three years ago while keeping this month's B-sides.
+    public func artistPage(id artistID: String, limit: Int = 200) async throws -> ArtistPage {
         let songs = try await songs(forArtist: artistID, limit: limit)
         let portrait = await artistPortrait(id: artistID)
         return ArtistPage(artworkURL: portrait ?? songs.first?.artworkURL, songs: songs)
     }
 
-    public func songs(forArtist artistID: String, limit: Int = 40) async throws -> [Track] {
+    public func songs(forArtist artistID: String, limit: Int = 200) async throws -> [Track] {
         var components = URLComponents(string: "https://itunes.apple.com/lookup")!
         components.queryItems = [
             .init(name: "id", value: artistID),
