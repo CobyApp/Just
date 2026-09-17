@@ -45,6 +45,10 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
 
     init(unitID: String = AnalysisInterstitial.testUnitID) {
         self.unitID = unitID
+        // The SDK otherwise reconfigures the app's audio session when an ad
+        // loads or plays, which interrupted the song's clip mid-way. The app
+        // owns its session; the SDK is told so.
+        MobileAds.shared.audioVideoManager.isAudioSessionApplicationManaged = true
     }
 
     /// Fetches the next ad so it is ready when a song starts analysing.

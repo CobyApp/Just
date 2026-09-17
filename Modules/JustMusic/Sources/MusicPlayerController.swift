@@ -49,7 +49,16 @@ public final class MusicPlayerController {
     /// The video, to be placed on screen by whoever is showing the player.
     public var videoView: UIView { web.view }
 
-    @ObservationIgnored private lazy var web = WebPlayer(owner: self)
+    @ObservationIgnored private lazy var web: WebPlayer = {
+        hasWeb = true
+        return WebPlayer(owner: self)
+    }()
+    /// Whether the page has been created. It is made only for a video: made
+    /// for a clip it loaded YouTube's player anyway, and that player's media
+    /// session cut the clip off mid-way.
+    @ObservationIgnored private var hasWeb = false
+    /// The log, whether or not the page exists.
+    @ObservationIgnored private let log = Logger(subsystem: "com.coby.just", category: "video")
     @ObservationIgnored private let previewPlayer = AVPlayer()
     @ObservationIgnored private let catalog = ITunesCatalog()
     @ObservationIgnored private let youtube: YouTubeClient
@@ -68,13 +77,23 @@ public final class MusicPlayerController {
         self.youtube = youtube
         videos = directory.restore().videos
         configureAudioSession()
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ?? 99
+            MainActor.assumeIsolated { self?.log.info("audio session interruption type \(type)") }
+        }
     }
 
     /// Declares this as a playback app, so the clip is heard in silent mode.
     private func configureAudioSession() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default)
-        try? session.setActive(true)
+        do {
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+        } catch {
+            log.error("audio session: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Loading
@@ -166,16 +185,17 @@ public final class MusicPlayerController {
         stallWatch = Task { [weak self] in
             try? await Task.sleep(for: Self.stallLimit)
             guard let self, !Task.isCancelled, hasVideo, status != .playing, status != .paused else { return }
-            web.log.error("video \(videoID) never started; falling back to the clip")
+            log.error("video \(videoID) never started; falling back to the clip")
             pageFailed(code: 0)
         }
     }
 
     private func startPreview(_ preview: SongPreview, autoplay: Bool) throws {
         guard let url = preview.previewURL else { throw ITunesCatalog.Failure.noPreview }
+        log.info("clip \(url.absoluteString, privacy: .public)")
         hasVideo = false
         isPreview = true
-        web.stop()
+        if hasWeb { web.stop() }
         previewPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
         duration = 30
         status = .ready
@@ -203,6 +223,7 @@ public final class MusicPlayerController {
     }
 
     public func pause() {
+        log.info("pause requested (preview: \(self.isPreview))")
         if isPreview {
             previewPlayer.pause()
             status = .paused
@@ -237,7 +258,7 @@ public final class MusicPlayerController {
         previewTicker?.cancel()
         previewTicker = nil
         previewPlayer.pause()
-        web.stop()
+        if hasWeb { web.stop() }
         status = .idle
         trackID = nil
         isPreview = false
@@ -313,10 +334,24 @@ public final class MusicPlayerController {
                    itemDuration.isFinite, itemDuration > 0 {
                     duration = itemDuration
                 }
+                if let item = previewPlayer.currentItem, item.status == .failed {
+                    log.error("clip failed: \(item.error?.localizedDescription ?? "?", privacy: .public)")
+                }
                 if previewPlayer.timeControlStatus == .playing {
                     if status != .playing { status = .playing }
                 } else if status == .playing {
-                    status = .paused
+                    // Meant to be playing and not: an interruption (another
+                    // media session, a call) stopped it. Nobody pressed pause
+                    // — that path sets `.paused` — so it is started again.
+                    if previewPlayer.rate == 0, let item = previewPlayer.currentItem, item.status == .readyToPlay {
+                        if item.duration.isNumeric, previewPlayer.currentTime().seconds >= item.duration.seconds - 0.5 {
+                            // The clip simply ended.
+                            status = .paused
+                        } else {
+                            log.info("clip resumed after an interruption")
+                            previewPlayer.play()
+                        }
+                    }
                 }
             }
         }
