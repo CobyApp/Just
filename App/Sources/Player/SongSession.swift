@@ -286,6 +286,26 @@ final class SongSession {
         phase = .ready
     }
 
+    /// Lyrics the reader pasted in, because no database had them.
+    ///
+    /// New releases reach LRCLIB weeks after they reach the group's channel,
+    /// and some never do. A reader who has the words — from the booklet, the
+    /// label's site, wherever — should not be stopped from studying them.
+    /// LRC timestamps are honoured when present; plain text is unsynced.
+    func useLyrics(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        phase = .loadingLyrics
+        let lyrics = LRCParser.parse(trimmed, source: "직접 입력")
+        lyricsState = .ready(lyrics)
+        song?.lyrics = lyrics
+        if autoAnalysis {
+            await analyzeRemaining()
+        }
+        guard !Task.isCancelled else { return }
+        phase = .ready
+    }
+
     func fetchLyrics(artistOverride: String? = nil, titleOverride: String? = nil) async {
         lyricsState = .loading
         do {

@@ -70,11 +70,19 @@ public struct LRCLIBClient: Sendable {
         // takes the count from twenty results to none — for the structured
         // search and the free-text fallback alike, so there was no way back.
         var transportFailure: Error?
+        // A Japanese sheet whose length does not match this release — the
+        // studio version of a live take, the full song for a TV-size edit.
+        // Its timings would land on the wrong lines, but the words are the
+        // words; kept as plain text if nothing better turns up.
+        var differentEdit: Record?
         for variant in Self.queryVariants(artist: artist, title: title) {
             do {
                 let results = try await search(artist: variant.artist, title: variant.title)
                 if let best = Self.best(from: results, duration: duration) {
                     return try Self.lyrics(from: best)
+                }
+                if differentEdit == nil, let sheet = Self.bestRegardlessOfLength(from: results) {
+                    differentEdit = sheet
                 }
             } catch {
                 // Kept, not thrown: a later spelling may still succeed, and if
@@ -82,6 +90,9 @@ public struct LRCLIBClient: Sendable {
                 // "not found".
                 transportFailure = transportFailure ?? error
             }
+        }
+        if let differentEdit {
+            return try Self.lyrics(from: differentEdit, asPlain: true)
         }
         if let transportFailure { throw transportFailure }
         throw Failure.notFound
@@ -98,12 +109,33 @@ public struct LRCLIBClient: Sendable {
         var variants: [(artist: String, title: String)] = [(artist, title)]
         let cleanTitle = simplifiedTitle(title)
         let cleanArtist = primaryArtist(artist)
+        let plainTitle = plainestTitle(cleanTitle)
 
-        for candidate in [(artist, cleanTitle), (cleanArtist, cleanTitle)]
-        where !variants.contains(where: { $0 == candidate }) {
+        var candidates = [(artist, cleanTitle), (cleanArtist, cleanTitle), (cleanArtist, plainTitle)]
+        // The group's other spellings — LRCLIB often has a Japanese group
+        // under its katakana name — and finally the title alone, which the
+        // length check downstream keeps honest.
+        for alias in IdolGroup.group(forArtist: artist)?.aliases ?? [] {
+            candidates.append((alias, cleanTitle))
+        }
+        candidates.append(("", plainTitle))
+
+        for candidate in candidates
+        where !variants.contains(where: { $0 == candidate }) && !candidate.1.isEmpty {
             variants.append(candidate)
         }
         return variants
+    }
+
+    /// The title with its subtitle and edition gone: 「〜こんなに幸せでいいのかな?〜」,
+    /// 「-TV size-」, 「 - Single Version」. Half-width for the punctuation.
+    static func plainestTitle(_ title: String) -> String {
+        var result = title
+        for pattern in [#"\s*[〜~][^〜~]*[〜~]\s*$"#, #"\s+-\s*[^-]*-?\s*$"#, #"\s*[-−–—]\s*(TV|tv|Single|Album|Short|Live|Remix|Ver|ver)[^\n]*$"#] {
+            result = result.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        result = result.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespaces)
+        return result.isEmpty ? title : result
     }
 
     /// Drops the decoration the catalogue appends and LRCLIB does not index.
@@ -194,12 +226,10 @@ public struct LRCLIBClient: Sendable {
 
     func search(artist: String, title: String) async throws -> [Record] {
         var components = URLComponents(string: "\(Self.host)/api/search")!
-        components.queryItems = [
-            URLQueryItem(name: "track_name", value: title),
-            URLQueryItem(name: "artist_name", value: artist),
-        ]
+        components.queryItems = [URLQueryItem(name: "track_name", value: title)]
+            + (artist.isEmpty ? [] : [URLQueryItem(name: "artist_name", value: artist)])
         let results = try await get(components.url!, as: [Record].self)
-        guard results.isEmpty else { return results }
+        guard results.isEmpty, !artist.isEmpty else { return results }
 
         // Fall back to a free-text query: Japanese artist names are often
         // indexed in a different script than the catalog spells them.
@@ -278,10 +308,11 @@ public struct LRCLIBClient: Sendable {
         japaneseRatio(lrc) >= japaneseThreshold
     }
 
-    private static func lyrics(from record: Record) throws -> Lyrics {
+    private static func lyrics(from record: Record, asPlain: Bool = false) throws -> Lyrics {
         if record.instrumental == true { throw Failure.instrumental }
         if let synced = record.syncedLyrics, !synced.isEmpty {
-            return LRCParser.parse(synced)
+            // Timed for another edit: the words without the times.
+            return asPlain ? LRCParser.parsePlain(LRCParser.parse(synced).lines.map(\.text).joined(separator: "\n")) : LRCParser.parse(synced)
         }
         if let plain = record.plainLyrics, !plain.isEmpty {
             return LRCParser.parsePlain(plain)
@@ -325,6 +356,16 @@ public struct LRCLIBClient: Sendable {
             if lhsSynced != rhsSynced { return lhsSynced }
 
             return lhsGap < rhsGap
+        }
+    }
+
+    /// The best Japanese sheet with no regard for length — for the words
+    /// alone, when no record fits this release.
+    static func bestRegardlessOfLength(from records: [Record]) -> Record? {
+        records.first { record in
+            record.instrumental != true
+                && isJapanese(record.syncedLyrics ?? record.plainLyrics ?? "")
+                && ((record.syncedLyrics?.isEmpty == false) || (record.plainLyrics?.isEmpty == false))
         }
     }
 

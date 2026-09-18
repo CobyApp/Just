@@ -28,6 +28,9 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
     /// 「Topic」 channel with the label's audio tracks. A video from one of
     /// these is the group's own; anything else is somebody's copy.
     public let youtubeChannels: [String]
+    /// Other spellings of the name — katakana, the fans' nickname — that a
+    /// lyrics database may have indexed the group under.
+    public let aliases: [String]
 
     public enum Label: String, CaseIterable, Sendable {
         case kawaiiLab = "KAWAII LAB."
@@ -35,13 +38,14 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
         case equalLove = "=LOVE"
     }
 
-    public init(id: String, name: String, readingKo: String, label: Label, hue: Double, youtubeChannels: [String] = []) {
+    public init(id: String, name: String, readingKo: String, label: Label, hue: Double, youtubeChannels: [String] = [], aliases: [String] = []) {
         self.id = id
         self.name = name
         self.readingKo = readingKo
         self.label = label
         self.hue = hue
         self.youtubeChannels = youtubeChannels
+        self.aliases = aliases
     }
 }
 
@@ -53,19 +57,26 @@ public extension IdolGroup {
     /// its label was settled too.
     static let all: [IdolGroup] = [
         .init(id: "1617607581", name: "FRUITS ZIPPER", readingKo: "후룻파", label: .kawaiiLab, hue: 0.92,
-              youtubeChannels: ["UCQG8tNnV4hKetLhMb4MopHQ", Channels.kawaiiLab, "UCB_jIxmkTjjAHyVZUD-kf4w"]),
+              youtubeChannels: ["UCQG8tNnV4hKetLhMb4MopHQ", Channels.kawaiiLab, "UCB_jIxmkTjjAHyVZUD-kf4w"],
+              aliases: ["フルーツジッパー", "ふるっぱー"]),
         .init(id: "1671095780", name: "CANDY TUNE", readingKo: "캔디튠", label: .kawaiiLab, hue: 0.02,
-              youtubeChannels: ["UCU0PgOXf0lxzVxN2TLzMJkw", Channels.kawaiiLab, "UCCxkkhNWAbbV2mVSqLKDy9w"]),
+              youtubeChannels: ["UCU0PgOXf0lxzVxN2TLzMJkw", Channels.kawaiiLab, "UCCxkkhNWAbbV2mVSqLKDy9w"],
+              aliases: ["キャンディーチューン", "きゃんちゅー"]),
         .init(id: "1729116371", name: "SWEET STEADY", readingKo: "스윗스테", label: .kawaiiLab, hue: 0.55,
-              youtubeChannels: ["UC5s_kUbxX3P1q6lmDgygD-w", Channels.kawaiiLab, "UCPneIAYQhx4tNGuOWxAqk-Q"]),
+              youtubeChannels: ["UC5s_kUbxX3P1q6lmDgygD-w", Channels.kawaiiLab, "UCPneIAYQhx4tNGuOWxAqk-Q"],
+              aliases: ["スウィートステディ", "すいすて"]),
         .init(id: "1763185226", name: "CUTIE STREET", readingKo: "큐티스트리트", label: .kawaiiLab, hue: 0.85,
-              youtubeChannels: ["UCEz-AFAg3EUKsxraad1puQA", Channels.kawaiiLab, "UCMMY6niyWsdwcX9wv4UKVWQ"]),
+              youtubeChannels: ["UCEz-AFAg3EUKsxraad1puQA", Channels.kawaiiLab, "UCMMY6niyWsdwcX9wv4UKVWQ"],
+              aliases: ["キューティーストリート", "きゅーすと"]),
         .init(id: "1855752654", name: "MORE STAR", readingKo: "모어스타", label: .kawaiiLab, hue: 0.13,
-              youtubeChannels: ["UCBkLxz038AbxBA8CMw6o9oA", Channels.kawaiiLab, "UCmqMNVIY29wyaSDGrEGxqdQ"]),
+              youtubeChannels: ["UCBkLxz038AbxBA8CMw6o9oA", Channels.kawaiiLab, "UCmqMNVIY29wyaSDGrEGxqdQ"],
+              aliases: ["モアスター"]),
         .init(id: "1578837625", name: "iLiFE!", readingKo: "아이라이프", label: .iLife, hue: 0.45,
-              youtubeChannels: ["UChVflUz2J_jaaqYjXqvpmQA", "UCX4THHyTI9z4rS_rFTzMGDA"]),
+              youtubeChannels: ["UChVflUz2J_jaaqYjXqvpmQA", "UCX4THHyTI9z4rS_rFTzMGDA"],
+              aliases: ["アイライフ", "あいらいふ", "iLIFE!"]),
         .init(id: "1273762750", name: "=LOVE", readingKo: "이코러브", label: .equalLove, hue: 0.75,
-              youtubeChannels: ["UCv7VutirxDn3RWIJXI68n_A"]),
+              youtubeChannels: ["UCv7VutirxDn3RWIJXI68n_A"],
+              aliases: ["イコールラブ", "イコラブ", "＝LOVE"]),
     ]
 
     /// Channels shared by several groups.

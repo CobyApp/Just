@@ -126,6 +126,22 @@ struct LyricsQueryTests {
         #expect(titles.contains("夜に駆ける"))
     }
 
+    @Test("부제·판 표기를 뗀 가장 단순한 제목")
+    func plainestTitle() {
+        #expect(LRCLIBClient.plainestTitle("超めでたいソング 〜こんなに幸せでいいのかな?〜") == "超めでたいソング")
+        #expect(LRCLIBClient.plainestTitle("はちゃめちゃわちゃライフ! -TV size-") == "はちゃめちゃわちゃライフ!")
+        #expect(LRCLIBClient.plainestTitle("NEW KAWAII - Single Version") == "NEW KAWAII")
+        #expect(LRCLIBClient.plainestTitle("かがみ") == "かがみ")
+    }
+
+    @Test("그룹의 일본어 표기와 제목만으로도 찾는다")
+    func aliasVariants() {
+        let variants = LRCLIBClient.queryVariants(artist: "FRUITS ZIPPER", title: "わたしの一番かわいいところ")
+        #expect(variants.contains { $0.artist == "フルーツジッパー" && $0.title == "わたしの一番かわいいところ" })
+        #expect(variants.last?.artist == "")
+        #expect(variants.last?.title == "わたしの一番かわいいところ")
+    }
+
     @Test("- Single 꼬리표를 떼어낸다")
     func stripsReleaseTag() {
         #expect(LRCLIBClient.simplifiedTitle("夜に駆ける - Single") == "夜に駆ける")
@@ -154,7 +170,24 @@ struct LyricsQueryTests {
     @Test("같은 질의를 두 번 보내지 않는다")
     func doesNotRepeatItself() {
         let variants = LRCLIBClient.queryVariants(artist: "YOASOBI", title: "アイドル")
-        #expect(variants.count == 1)
+        #expect(Set(variants.map { "\($0.artist)|\($0.title)" }).count == variants.count)
+        #expect(variants.first?.title == "アイドル")
+    }
+}
+
+@Suite("직접 붙여 넣은 가사")
+struct PastedLyricsTests {
+    @Test("시간이 있으면 싱크, 없으면 글로")
+    func parsesBothForms() {
+        let synced = LRCParser.parse("[00:12.34]秘密の鍵を開けて\n[00:15.00]心の奥を見せてあげる", source: "직접 입력")
+        #expect(synced.isSynced)
+        #expect(synced.lines.map(\.text) == ["秘密の鍵を開けて", "心の奥を見せてあげる"])
+        #expect(synced.lines[0].time == 12.34)
+
+        let plain = LRCParser.parse("秘密の鍵を開けて\n\n心の奥を見せてあげる\n", source: "직접 입력")
+        #expect(!plain.isSynced)
+        // Blank lines stay as stanza breaks; the words are what matter here.
+        #expect(plain.lines.map(\.text).filter { !$0.isEmpty } == ["秘密の鍵を開けて", "心の奥を見せてあげる"])
     }
 }
 

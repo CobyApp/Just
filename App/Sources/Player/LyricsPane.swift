@@ -1,4 +1,5 @@
 import JustCore
+import JustLyrics
 import JustDesign
 import JustMusic
 import JustSensei
@@ -26,7 +27,13 @@ struct LyricsPane: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             case .missing(let message):
-                MissingLyricsView(session: session, message: message)
+                // Scrollable, so the card yields height to the stage instead
+                // of squeezing the video to a thumbnail when it grows a paste
+                // box — and so the keyboard has somewhere to push it.
+                ScrollView {
+                    MissingLyricsView(session: session, message: message)
+                }
+                .scrollDismissesKeyboard(.interactively)
 
             case .ready(let lyrics):
                 lyricsList(lyrics)
@@ -335,6 +342,7 @@ private struct MissingLyricsView: View {
     @State private var artist = ""
     @State private var title = ""
     @State private var isRetrying = false
+    @State private var showsPaste = false
 
     var body: some View {
         VStack(spacing: JustTheme.Space.regular) {
@@ -376,6 +384,16 @@ private struct MissingLyricsView: View {
             }
             .buttonStyle(.justPrimary)
             .disabled(isRetrying)
+
+            // The other way in: the words themselves. A song that is not in
+            // any database yet can still be studied if the reader has them.
+            // A sheet rather than a box in this card: the keyboard covered the
+            // box entirely, and pasting wants room.
+            Button("가사 직접 붙여넣기") { showsPaste = true }
+                .buttonStyle(.justSecondary)
+        }
+        .sheet(isPresented: $showsPaste) {
+            PasteLyricsSheet(session: session)
         }
         .justCard()
         .frame(maxWidth: 420)
@@ -384,5 +402,51 @@ private struct MissingLyricsView: View {
             if artist.isEmpty { artist = session.track.artist }
             if title.isEmpty { title = session.track.title }
         }
+    }
+}
+
+
+/// Lyrics typed or pasted by the reader, for a song no database has.
+private struct PasteLyricsSheet: View {
+    @Bindable var session: SongSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = ""
+    @FocusState private var isEditing: Bool
+
+    private var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
+                Text("가사를 복사해 붙여 넣으면 그 가사로 공부할 수 있어요. 「[00:12.34]」처럼 시간이 적힌 가사면 노래를 따라가고, 글만 있으면 줄을 눌러 공부합니다.")
+                    .font(JustTheme.Font.caption)
+                    .foregroundStyle(JustTheme.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextEditor(text: $text)
+                    .font(JustTheme.Font.body)
+                    .focused($isEditing)
+                    .scrollContentBackground(.hidden)
+                    .padding(JustTheme.Space.tight)
+                    .background(JustTheme.Surface.sunken, in: .rect(cornerRadius: JustTheme.Radius.chip))
+                    .autocorrectionDisabled()
+                Button {
+                    let lyrics = text
+                    dismiss()
+                    Task { await session.useLyrics(lyrics) }
+                } label: {
+                    Text("이 가사로 공부하기").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.justPrimary)
+                .disabled(isEmpty)
+            }
+            .padding(JustTheme.Space.regular)
+            .navigationTitle("가사 붙여넣기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
+            }
+            .onAppear { isEditing = true }
+        }
+        .presentationDetents([.large])
     }
 }
