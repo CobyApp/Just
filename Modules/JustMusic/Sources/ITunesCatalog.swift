@@ -20,12 +20,9 @@ public struct SongPreview: Sendable, Equatable {
 
 /// The song catalogue, from Apple's public iTunes lookup.
 ///
-/// No account, no permission prompt, no key. The previous source was MusicKit,
-/// which asked every reader to allow Apple Music access on first launch and
-/// then failed in ways that looked like a group having no songs when the
-/// device had no Apple account. The lookup service answers for anyone, and it
-/// uses the same catalogue ids — so a song saved under MusicKit is the same
-/// song here, and nothing the reader studied is lost.
+/// No account, no permission prompt, no key. The lookup service answers for
+/// anyone, and its ids are the catalogue ids the app has always used — so
+/// nothing the reader studied under the previous source is lost.
 ///
 /// Playback is not this file's business: songs are played as YouTube videos
 /// (`MusicPlayerController`), and the 30-second preview here is the fallback
@@ -39,7 +36,7 @@ public struct ITunesCatalog: Sendable {
         public var errorDescription: String? {
             switch self {
             case .notFound: "곡을 찾지 못했습니다."
-            case .noPreview: "이 곡은 영상도 미리듣기도 찾지 못했습니다."
+            case .noPreview: "이 곡은 재생할 수 있는 영상을 찾지 못했습니다."
             case .transport(let message): message
             }
         }
@@ -60,7 +57,7 @@ public struct ITunesCatalog: Sendable {
     ///
     /// Two requests, because the lookup service knows the songs but has no
     /// picture of the artist. The picture is read off the artist's public
-    /// Apple Music page; when that fails the newest album cover stands in, so
+    /// artist page; when that fails the newest album cover stands in, so
     /// the card is never blank.
     ///
     /// Every song, not the newest forty: the lookup has no popularity to

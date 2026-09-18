@@ -52,7 +52,7 @@ struct GroupDetailScreen: View {
             JustEmptyState(
                 icon: "music.note",
                 title: "곡이 없습니다",
-                message: "Apple Music에 이 그룹의 곡이 아직 올라오지 않았습니다."
+                message: "이 그룹의 곡을 아직 불러오지 못했습니다. 잠시 뒤 다시 열어 보세요."
             )
         } else {
             ScrollView {

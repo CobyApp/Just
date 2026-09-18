@@ -4,7 +4,7 @@ import JustCore
 /// Client for lrclib.net — an open, key-free, community lyrics database with
 /// good coverage of Japanese releases and, crucially, time-synced LRC.
 ///
-/// Apple Music does not expose lyrics through a public API — the Music app
+/// The catalogue does not provide lyrics — the Music app
 /// shows them, the catalog API does not — so a dedicated lyrics source is
 /// required no matter where the songs come from.
 public struct LRCLIBClient: Sendable {
@@ -65,7 +65,7 @@ public struct LRCLIBClient: Sendable {
             return try Self.lyrics(from: record)
         }
 
-        // Searching is attempted once per spelling, cleanest last. Apple Music
+        // Searching is attempted once per spelling, cleanest last. The catalogue
         // titles carry decoration LRCLIB does not index, and a single "(feat. …)"
         // takes the count from twenty results to none — for the structured
         // search and the free-text fallback alike, so there was no way back.
@@ -106,7 +106,7 @@ public struct LRCLIBClient: Sendable {
         return variants
     }
 
-    /// Drops the decoration Apple Music appends and LRCLIB does not index.
+    /// Drops the decoration the catalogue appends and LRCLIB does not index.
     static func simplifiedTitle(_ title: String) -> String {
         var result = title.trimmingCharacters(in: .whitespaces)
 
@@ -157,7 +157,7 @@ public struct LRCLIBClient: Sendable {
 
     /// The first act named, without its parenthetical reading.
     ///
-    /// Apple Music joins collaborators into one string — "EBiDAN (恵比寿学園男子部),
+    /// The catalogue joins collaborators into one string — "EBiDAN (恵比寿学園男子部),
     /// 超特急, M!LK & 原因は自分にある。" — where LRCLIB indexes a single name.
     static func primaryArtist(_ artist: String) -> String {
         var result = artist.trimmingCharacters(in: .whitespaces)

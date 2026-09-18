@@ -26,3 +26,6 @@ fastlane/screenshots
 fastlane/test_output
 build/
 Gemfile.lock
+
+# Local secrets for `tuist generate` (YouTube API key). Never committed.
+.env

@@ -116,7 +116,7 @@ Just (앱)
 | | 출처 | 비고 |
 |---|---|---|
 | 곡·앨범·아트워크 | Apple iTunes 검색 API | 키·계정 불필요 |
-| 영상 찾기 | YouTube Data API v3 | API 키 필요, 하루 검색 약 100회, 결과는 기기에 저장 |
+| 영상 찾기 | YouTube Data API v3 | API 키 필요. 공식 채널 목록(1단위/50개)을 먼저, 검색(100단위)은 그다음. 결과는 기기에 저장 |
 | 재생 | YouTube 내장 플레이어 (MV) | 영상이 없거나 재생 불가면 30초 미리듣기 |
 | 가사 | LRCLIB | 무인증, 싱크 LRC |
 | 해석 | Apple Intelligence (온디바이스) | 빠르게/정확하게 선택, 사전 + 시스템 번역 |
@@ -174,11 +174,34 @@ Tracking Transparency 프롬프트도 띄우지 않습니다.
 일은 없습니다. 플레이어 자체 컨트롤은 꺼 두고 앱의 재생 버튼·슬라이더가 대신합니다
 (한 세트면 충분합니다).
 
-영상은 `"<아티스트> <곡명> MV"`로 검색해 고릅니다. 검색 순위만 믿으면 댄스
-프랙티스·라이브·커버가 걸리므로, **제목에 곡명이 있는 것** 중에서 MV·Music Video를
-높이고, 그룹 채널을 높이고, Dance Practice·LIVE·cover·teaser·lyric은 낮춥니다. 임베드가
-막힌 영상(오류 101/150)과 **15초 안에 재생이 시작되지 않는 영상**(오류 없이 버퍼링만
-도는 경우가 있습니다)은 목록에서 지우고 미리듣기로 넘어갑니다.
+영상은 세 단계로 찾습니다.
+
+1. **그룹의 공식 채널.** 명단(`IdolGroup.youtubeChannels`)에 각 그룹의 채널, 뮤직비디오를
+   올리는 레이블 채널(KAWAII LAB.), 레이블 음원의 자동 생성 「Topic」 채널을 실어 둡니다.
+   곡을 열면 그 채널들의 업로드 목록을 받아(50개에 1단위) 제목으로 맞춥니다. 대부분의
+   곡은 여기서 끝나고, 목록은 기기에 남아 **하루 지나면 뒤에서 갱신**되므로 신곡의
+   영상이 나오는 주에 들어옵니다.
+2. **검색.** 채널에 없는 곡만 `"<아티스트> <곡명> MV"`로 검색합니다(100단위). 결과 중
+   **제목에 곡명이 있는 것**에서 MV·Music Video와 그룹 채널·레이블 채널·Topic 채널을
+   높이고, Dance Practice·cover·teaser·자막 재업로드를 낮춥니다. 아무것도 없으면 「MV」를
+   빼고 한 번 더 찾아 라이브·리릭 영상도 받습니다.
+3. **30초 클립.** 영상이 하나도 없을 때만.
+
+찾은 영상과 나머지 후보는 기기에 남습니다. 임베드가 막힌 영상(오류 101/150)과 **15초 안에
+재생이 시작되지 않는 영상**(오류 없이 버퍼링만 도는 경우가 있습니다)은 **다음 후보**로
+넘어가고, 후보가 다 떨어지면 클립으로 갑니다.
+
+| 그룹 | 공식 채널 | 함께 보는 채널 |
+|---|---|---|
+| FRUITS ZIPPER | UCQG8tNnV4hKetLhMb4MopHQ | KAWAII LAB., Topic |
+| CANDY TUNE | UCU0PgOXf0lxzVxN2TLzMJkw | KAWAII LAB., Topic |
+| SWEET STEADY | UC5s_kUbxX3P1q6lmDgygD-w | KAWAII LAB., Topic |
+| CUTIE STREET | UCEz-AFAg3EUKsxraad1puQA | KAWAII LAB., Topic |
+| MORE STAR | UCBkLxz038AbxBA8CMw6o9oA | KAWAII LAB., Topic |
+| iLiFE! | UChVflUz2J_jaaqYjXqvpmQA | Topic |
+| =LOVE | UCv7VutirxDn3RWIJXI68n_A | — |
+
+KAWAII LAB. 채널은 `UCW8Q9LBGGBgK6a-u0C0h95A`입니다.
 
 MV는 음원과 시작이 다를 수 있습니다(인트로 연출). 가사가 어긋나면 플레이어의 싱크
 조정으로 맞춥니다.

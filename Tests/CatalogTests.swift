@@ -58,6 +58,105 @@ struct YouTubeClientTests {
         #expect(YouTubeClient.choose(candidates, for: track)?.videoID == "mv")
     }
 
+    @Test("ISO 8601 길이를 초로")
+    func parsesDuration() {
+        #expect(YouTubeClient.parseDuration("PT3M28S") == 208)
+        #expect(YouTubeClient.parseDuration("PT24S") == 24)
+        #expect(YouTubeClient.parseDuration("PT1H2M") == 3720)
+        #expect(YouTubeClient.parseDuration("P1D") == nil)
+    }
+
+    @Test("곡 길이와 어긋나는 영상은 걸러진다")
+    func filtersByLength() {
+        let short = YouTubeClient.Candidate(videoID: "short", title: "『わたしの一番かわいいところ』MV公開", channelTitle: "FRUITS ZIPPER")
+        let mv = YouTubeClient.Candidate(videoID: "mv", title: "【MV】わたしの一番かわいいところ", channelTitle: "KAWAII LAB.")
+        let unknown = YouTubeClient.Candidate(videoID: "x", title: "わたしの一番かわいいところ", channelTitle: "Topic")
+        let kept = YouTubeClient.aboutTheSongsLength([short, mv, unknown], track: track, durations: ["short": 24, "mv": 262])
+        #expect(kept.map(\.videoID) == ["mv", "x"])
+    }
+
+    @Test("MV 공개 안내 쇼츠는 MV보다 뒤로 간다")
+    func announcementsSink() {
+        let candidates = [
+            YouTubeClient.Candidate(videoID: "short", title: "『わたしの一番かわいいところ』MV公開🚃 #FRUITSZIPPER #ふるっぱー", channelTitle: "FRUITS ZIPPER", channelID: "UCQG8tNnV4hKetLhMb4MopHQ"),
+            YouTubeClient.Candidate(videoID: "mv", title: "【MV】FRUITS ZIPPER『わたしの一番かわいいところ』", channelTitle: "KAWAII LAB.", channelID: "UCW8Q9LBGGBgK6a-u0C0h95A"),
+            YouTubeClient.Candidate(videoID: "inst", title: "わたしの一番かわいいところ (Instrumental)", channelTitle: "FRUITS ZIPPER - Topic", channelID: "UCB_jIxmkTjjAHyVZUD-kf4w"),
+        ]
+        let channels = IdolGroup.group(forArtist: "FRUITS ZIPPER")!.youtubeChannels
+        let ranked = YouTubeClient.rank(candidates, for: track, channels: channels, strict: true)
+        #expect(ranked.first?.videoID == "mv")
+        #expect(!ranked.contains { $0.videoID == "inst" })
+    }
+
+    @Test("그룹 채널의 영상이 무엇보다 앞선다")
+    func groupChannelFirst() {
+        let candidates = [
+            YouTubeClient.Candidate(videoID: "copy", title: "【MV】FRUITS ZIPPER「わたしの一番かわいいところ」", channelTitle: "someone official"),
+            YouTubeClient.Candidate(videoID: "own", title: "わたしの一番かわいいところ", channelTitle: "FRUITS ZIPPER - Topic", channelID: "UCB_jIxmkTjjAHyVZUD-kf4w"),
+        ]
+        let channels = IdolGroup.group(forArtist: "FRUITS ZIPPER")!.youtubeChannels
+        #expect(YouTubeClient.choose(candidates, for: track, channels: channels)?.videoID == "own")
+    }
+
+    @Test("업로드 목록은 채널 ID로 정해진다")
+    func uploadsPlaylist() {
+        #expect(YouTubeClient.uploadsPlaylist(ofChannel: "UCW8Q9LBGGBgK6a-u0C0h95A") == "UUW8Q9LBGGBgK6a-u0C0h95A")
+    }
+
+    @Test("업로드 응답에서 비공개·삭제 영상은 뺀다")
+    func decodesPlaylist() throws {
+        let data = """
+        {"nextPageToken":"N","items":[
+          {"snippet":{"title":"【MV】A","channelTitle":"KAWAII LAB.","resourceId":{"videoId":"a"}}},
+          {"snippet":{"title":"Private video","resourceId":{"videoId":"p"}}}]}
+        """.data(using: .utf8)!
+        let (items, next) = try YouTubeClient.playlistItems(from: data, channelID: "UC1")
+        #expect(items.map(\.videoID) == ["a"])
+        #expect(items[0].channelID == "UC1")
+        #expect(next == "N")
+    }
+
+    @Test("아티스트 이름으로 그룹을 찾는다")
+    func groupForArtist() {
+        #expect(IdolGroup.group(forArtist: "FRUITS ZIPPER")?.name == "FRUITS ZIPPER")
+        #expect(IdolGroup.group(forArtist: "=LOVE")?.name == "=LOVE")
+        #expect(IdolGroup.group(forArtist: "YOASOBI") == nil)
+    }
+
+    @Test("공식 MV가 자막 재업로드를 이긴다")
+    func officialBeatsSubtitledCopy() {
+        let candidates = [
+            YouTubeClient.Candidate(videoID: "copy", title: "[MV] FRUITS ZIPPER - わたしの一番かわいいところ (한글자막)", channelTitle: "some subs"),
+            YouTubeClient.Candidate(videoID: "mv", title: "【MV】FRUITS ZIPPER「わたしの一番かわいいところ」", channelTitle: "KAWAII LAB."),
+        ]
+        #expect(YouTubeClient.choose(candidates, for: track)?.videoID == "mv")
+    }
+
+    @Test("MV 다음에 다른 후보가 순서대로 남는다")
+    func keepsRunnersUp() {
+        let candidates = [
+            YouTubeClient.Candidate(videoID: "live", title: "わたしの一番かわいいところ LIVE", channelTitle: "FRUITS ZIPPER"),
+            YouTubeClient.Candidate(videoID: "mv", title: "【MV】FRUITS ZIPPER「わたしの一番かわいいところ」", channelTitle: "KAWAII LAB."),
+            YouTubeClient.Candidate(videoID: "topic", title: "わたしの一番かわいいところ", channelTitle: "FRUITS ZIPPER - Topic"),
+        ]
+        #expect(YouTubeClient.rank(candidates, for: track, strict: true).map(\.videoID) == ["mv", "topic", "live"])
+    }
+
+    @Test("느슨한 패스는 라이브·리릭도 받는다")
+    func plainPassAdmitsMore() {
+        let candidates = [YouTubeClient.Candidate(videoID: "lyric", title: "わたしの一番かわいいところ Lyric Video", channelTitle: "fan")]
+        #expect(YouTubeClient.rank(candidates, for: track, strict: true).isEmpty)
+        #expect(YouTubeClient.rank(candidates, for: track, strict: false).map(\.videoID) == ["lyric"])
+    }
+
+    @Test("옛 목록 파일도 읽힌다")
+    func decodesOldDirectory() throws {
+        let data = #"{"videos":{"1":"abc"}}"#.data(using: .utf8)!
+        let snapshot = try JSONDecoder().decode(VideoDirectory.Snapshot.self, from: data)
+        #expect(snapshot.videos == ["1": "abc"])
+        #expect(snapshot.alternates.isEmpty)
+    }
+
     @Test("제목에 곡명이 없으면 후보가 아니다")
     func requiresTitle() {
         let candidates = [YouTubeClient.Candidate(videoID: "x", title: "FRUITS ZIPPER NEW KAWAII MV", channelTitle: "FRUITS ZIPPER")]

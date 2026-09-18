@@ -8,10 +8,9 @@ import WebKit
 /// Playback: the song's video through YouTube's embedded player, or its
 /// 30-second clip when no video can be played.
 ///
-/// YouTube because it needs no account. Apple Music played full songs only
-/// for subscribers and asked everyone else to allow access to a library they
-/// did not have; the embedded player plays the group's own music videos for
-/// anyone. The terms of that player are honoured here: the video is on screen
+/// YouTube because it needs no account: the embedded player plays the
+/// group's own music videos for anyone. The 30-second catalogue clip is the
+/// last resort, for a song with no playable video at all. The terms of that player are honoured here: the video is on screen
 /// while it plays (`videoView`, shown by the player screen), never audio alone
 /// and never in the background — collapsing the player pauses it.
 ///
@@ -64,6 +63,8 @@ public final class MusicPlayerController {
     @ObservationIgnored private let youtube: YouTubeClient
     @ObservationIgnored private let directory = VideoDirectory()
     @ObservationIgnored private var videos: [String: String]
+    @ObservationIgnored private var alternates: [String: [String]]
+    @ObservationIgnored private var channels: [String: VideoDirectory.ChannelUploads]
     @ObservationIgnored private var previewTicker: Task<Void, Never>?
     /// Bumped by every `load`, so a load that has been overtaken can tell.
     @ObservationIgnored private var loadGeneration = 0
@@ -75,7 +76,10 @@ public final class MusicPlayerController {
 
     public init(youtube: YouTubeClient = YouTubeClient()) {
         self.youtube = youtube
-        videos = directory.restore().videos
+        let snapshot = directory.restore()
+        videos = snapshot.videos
+        alternates = snapshot.alternates
+        channels = snapshot.channels
         configureAudioSession()
         NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
@@ -133,39 +137,105 @@ public final class MusicPlayerController {
         }
     }
 
-    /// The song's video id, from the directory or from a search.
+    /// The song's video id: remembered, or found on the group's own channels,
+    /// or searched for.
+    ///
+    /// The channels first because they are where the videos are, and a
+    /// channel's list costs a hundredth of a search. Only a song the group
+    /// has not put on its channels goes to search.
     private func video(for track: Track) async throws -> String {
         if let known = videos[track.id] {
             guard !known.isEmpty else { throw YouTubeClient.Failure.notFound }
             return known
         }
+        let group = IdolGroup.group(forArtist: track.artist)
+        let groupChannels = group?.youtubeChannels ?? []
         do {
-            let id = try await youtube.videoID(for: track)
-            remember(id, for: track.id)
-            return id
+            var found = try await fromChannels(groupChannels, for: track)
+            var source = "the group's channels"
+            if found.isEmpty {
+                found = try await youtube.videos(for: track, channels: groupChannels)
+                source = "search"
+            }
+            // The lengths decide what is the song and what only mentions it.
+            // One request; the ranking above cannot tell a Short from an MV.
+            let lengths = (try? await youtube.durations(of: Array(found.prefix(50).map(\.videoID)))) ?? [:]
+            let fitting = YouTubeClient.aboutTheSongsLength(found, track: track, durations: lengths)
+            if !fitting.isEmpty { found = fitting }
+            log.info("video for \(track.title, privacy: .public) from \(source, privacy: .public): \(found[0].videoID, privacy: .public) (+\(found.count - 1))")
+            remember(found[0].videoID, alternates: found.dropFirst().map(\.videoID), for: track.id)
+            return found[0].videoID
         } catch YouTubeClient.Failure.notFound {
-            remember("", for: track.id)
+            log.info("no video found for \(track.title, privacy: .public)")
+            remember("", alternates: [], for: track.id)
             throw YouTubeClient.Failure.notFound
+        } catch {
+            log.error("video search failed: \(error.localizedDescription, privacy: .public)")
+            throw error
         }
     }
 
-    private func remember(_ videoID: String, for trackID: String) {
+    /// This song among what the group's channels have published, best first.
+    /// Refreshes a channel's list when it is a day old or missing.
+    private func fromChannels(_ ids: [String], for track: Track) async throws -> [YouTubeClient.Candidate] {
+        var published: [YouTubeClient.Candidate] = []
+        for id in ids {
+            if let cached = channels[id], !cached.isStale {
+                published += cached.videos
+                continue
+            }
+            do {
+                let uploads = try await youtube.uploads(ofChannel: id)
+                channels[id] = .init(fetchedAt: .now, videos: uploads)
+                published += uploads
+            } catch YouTubeClient.Failure.noKey {
+                throw YouTubeClient.Failure.noKey
+            } catch {
+                // A channel that would not answer: whatever was cached, even
+                // stale, and the others.
+                log.error("channel \(id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                published += channels[id]?.videos ?? []
+            }
+        }
+        persistDirectory()
+        return YouTubeClient.rank(published, for: track, channels: ids, strict: true)
+            + YouTubeClient.rank(published, for: track, channels: ids, strict: false).filter { loose in
+                !YouTubeClient.rank(published, for: track, channels: ids, strict: true).contains(loose)
+            }
+    }
+
+    private func remember(_ videoID: String, alternates others: [String]? = nil, for trackID: String) {
         videos[trackID] = videoID
-        let snapshot = VideoDirectory.Snapshot(videos: videos)
+        if let others { alternates[trackID] = others }
+        persistDirectory()
+    }
+
+    private func persistDirectory() {
+        let snapshot = VideoDirectory.Snapshot(videos: videos, alternates: alternates, channels: channels)
         let directory = self.directory
         Task.detached(priority: .utility) { directory.persist(snapshot) }
     }
 
-    /// Forgets this song's video, so the next open searches again.
+    /// Moves this song to its next video, or gives the song up as having
+    /// none. Returns the next id to try.
     ///
-    /// For a video that turned out not to be embeddable: the search cannot
-    /// tell, and the directory should not keep pointing at it.
-    private func forgetVideo() {
-        guard let trackID else { return }
-        videos[trackID] = nil
-        let snapshot = VideoDirectory.Snapshot(videos: videos)
-        let directory = self.directory
-        Task.detached(priority: .utility) { directory.persist(snapshot) }
+    /// For a video that would not play: the search cannot tell in advance,
+    /// and the runners-up are usually the same song — the label's audio
+    /// track, a live take — which is still the whole song.
+    private func advanceVideo() -> String? {
+        guard let trackID else { return nil }
+        var others = alternates[trackID] ?? []
+        if others.isEmpty {
+            videos[trackID] = ""
+            alternates[trackID] = nil
+            persistDirectory()
+            return nil
+        }
+        let next = others.removeFirst()
+        videos[trackID] = next
+        alternates[trackID] = others
+        persistDirectory()
+        return next
     }
 
     private func startVideo(_ videoID: String, autoplay: Bool) {
@@ -296,13 +366,18 @@ public final class MusicPlayerController {
     }
 
     /// The player's error codes: 2 bad id, 5 HTML5 failure, 100 not found or
-    /// private, 101/150 the owner disallows embedding.
+    /// private, 101/150 the owner disallows embedding — and 0 from the stall
+    /// watch. Whatever the reason, the next video for the song is tried, and
+    /// only when there is none does the clip take over.
     fileprivate func pageFailed(code: Int) {
         guard hasVideo, let trackID else { return }
         stallWatch?.cancel()
         let autoplay = pendingAutoplay
-        forgetVideo()
-        // The clip instead, and the reader is not told a code.
+        if let next = advanceVideo() {
+            log.info("video failed (\(code)); trying \(next, privacy: .public)")
+            startVideo(next, autoplay: autoplay)
+            return
+        }
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -312,11 +387,7 @@ public final class MusicPlayerController {
             } catch {
                 guard self.trackID == trackID else { return }
                 hasVideo = false
-                status = .failed(
-                    code == 101 || code == 150
-                        ? "이 영상은 앱 안에서 재생할 수 없게 되어 있고, 미리듣기도 없습니다."
-                        : ITunesCatalog.Failure.noPreview.localizedDescription
-                )
+                status = .failed("이 곡은 재생할 수 있는 영상을 찾지 못했습니다.")
             }
         }
     }

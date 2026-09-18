@@ -3,7 +3,6 @@ import Foundation
 // actor-isolated, so the compiler treats every call as sending it across a
 // boundary. The session is created and used only from this main-actor class,
 // one line at a time, so the checks are downgraded here — the same treatment
-// MusicKit gets in JustMusic.
 @preconcurrency import Translation
 
 /// The system translator, for lines the on-device model cannot answer.

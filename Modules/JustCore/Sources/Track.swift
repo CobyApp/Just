@@ -2,7 +2,7 @@ import Foundation
 
 /// A song as it comes back from the music source, before the user saves it.
 public struct Track: Identifiable, Hashable, Sendable, Codable {
-    /// Apple Music catalog id.
+    /// Catalogue id (Apple's, shared by the iTunes lookup).
     public let id: String
     public let title: String
     public let artist: String

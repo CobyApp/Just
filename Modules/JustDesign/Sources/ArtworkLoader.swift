@@ -94,7 +94,7 @@ final class ArtworkDiskCache: @unchecked Sendable {
         }
     }
 
-    /// Filenames are a stable hash of the URL — Apple Music artwork URLs
+    /// Filenames are a stable hash of the URL — catalogue artwork URLs
     /// contain slashes and query strings that cannot be a path component.
     private func path(for url: URL) -> URL {
         var hash: UInt64 = 5381

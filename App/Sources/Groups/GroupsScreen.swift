@@ -138,7 +138,7 @@ struct GroupsScreen: View {
 /// The group's own picture, with its colour laid over the bottom so the name
 /// stays legible whatever the photo is doing there. Until the picture arrives
 /// — or if it never does — the gradient alone is the card, so nothing flickers
-/// and a group Apple Music has no image for still looks like a group.
+/// and a group the catalogue has no image for still looks like a group.
 private struct GroupCard: View {
     let group: IdolGroup
     let artworkURL: URL?

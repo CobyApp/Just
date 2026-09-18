@@ -3,7 +3,7 @@ import Foundation
 /// The groups' pages, kept between launches.
 ///
 /// The pictures themselves were already on disk, but the *addresses* of the
-/// pictures were not — every launch asked Apple Music for all seven groups
+/// pictures were not — every launch asked the catalogue for all seven groups
 /// again and showed gradients until the answers came. Offline, or before Apple
 /// Music was allowed, the grid had no faces at all. The page is a URL and a
 /// song list, small enough to keep as one JSON file.
