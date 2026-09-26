@@ -69,11 +69,11 @@ struct GroupsScreen: View {
             Spacer(minLength: 0)
             Button { showsSettings = true } label: {
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(JustTheme.Kawaii.ink)
-                    .frame(width: 40, height: 40)
-                    .background(JustTheme.Surface.panel, in: .circle)
-                    .overlay { Circle().strokeBorder(JustTheme.Surface.border, lineWidth: 1) }
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(JustTheme.Kawaii.accent)
+                    .frame(width: 42, height: 42)
+                    .background(JustTheme.Kitsch.bubblegum.opacity(0.5), in: .circle)
+                    .kitschSticker(cornerRadius: 21, rim: 2.5, lift: 3)
             }
             .accessibilityLabel("설정")
         }
@@ -170,8 +170,9 @@ private struct GroupCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(group.name)
-                    .kawaiiFont(17, relativeTo: .headline)
+                    .kawaiiFont(18, weight: .black, relativeTo: .headline)
                     .foregroundStyle(.white)
+                    .shadow(color: Color(hue: group.hue, saturation: 0.7, brightness: 0.45), radius: 0, x: 1.5, y: 2)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
                 Text(group.readingKo)
@@ -183,7 +184,17 @@ private struct GroupCard: View {
         .frame(maxWidth: .infinity)
         .aspectRatio(1.0, contentMode: .fit)
         .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
-        .shadow(color: Color(hue: group.hue, saturation: 0.5, brightness: 0.7).opacity(0.25), radius: 10, y: 6)
+        // A trading card: white rim, and a shadow printed in the group's own
+        // colour.
+        .kitschSticker(tint: Color(hue: group.hue, saturation: 0.55, brightness: 0.95), rim: 3.5, lift: 5)
+        .overlay(alignment: .topTrailing) {
+            Twinkle()
+                .fill(.white)
+                .frame(width: 16, height: 16)
+                .shadow(color: Color(hue: group.hue, saturation: 0.6, brightness: 0.8), radius: 0, x: 1, y: 1)
+                .padding(10)
+                .accessibilityHidden(true)
+        }
         .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
         .task(id: artworkURL) { await artwork.load(artworkURL) }
     }

@@ -202,10 +202,6 @@ private struct PracticeRow: View {
         }
         .padding(JustTheme.Space.snug)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
+        .justSurface()
     }
 }

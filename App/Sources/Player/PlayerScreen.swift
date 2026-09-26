@@ -420,11 +420,22 @@ private struct TransportControls: View {
                         .contentShape(.rect)
                 }
                 Button { player.togglePlayback() } label: {
+                    // The candy of the bright screens, with a penlight glow —
+                    // the one bit of stage lighting the dark player allows.
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 32))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 72, height: 72)
-                        .background(JustTheme.Kawaii.accent, in: .circle)
+                        .background(
+                            LinearGradient(
+                                colors: [JustTheme.Kawaii.accent, JustTheme.Kawaii.lavender],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: .circle
+                        )
+                        .overlay { Circle().strokeBorder(.white.opacity(0.9), lineWidth: 2.5) }
+                        .shadow(color: JustTheme.Kawaii.accent.opacity(0.55), radius: 14)
                         .contentShape(.rect)
                 }
                 Button { player.skip(by: 5) } label: {

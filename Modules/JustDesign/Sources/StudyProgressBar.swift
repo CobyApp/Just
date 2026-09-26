@@ -23,12 +23,13 @@ public struct StudyProgressBar: View {
     }
 
     public var body: some View {
-        ProgressView(value: progress) {
+        VStack(alignment: .leading, spacing: 2) {
             Text("해석 \(Int((progress * 100).rounded()))%")
-                .font(JustTheme.Font.caption)
-                .foregroundStyle(.secondary)
+                .font(JustTheme.Font.caption.weight(.bold))
+                .foregroundStyle(JustTheme.Kawaii.inkSoft)
+            CandyProgressBar(value: progress, total: 1)
         }
-        .tint(.primary)
         .frame(width: width)
+        .accessibilityElement(children: .combine)
     }
 }

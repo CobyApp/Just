@@ -17,11 +17,7 @@ struct StatsHeader: View {
             if !stats.levelBreakdown.isEmpty { levelChart }
         }
         .padding(.vertical, JustTheme.Space.snug)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
+        .justSurface()
     }
 
     private var metrics: some View {
@@ -83,9 +79,12 @@ struct StatsHeader: View {
 
     private func metric(value: String, label: String, emphasised: Bool) -> some View {
         VStack(spacing: 3) {
+            // Candy numerals: pink when there is something to do, the soft
+            // ink otherwise, with the sticker-letter offset beneath.
             Text(value)
-                .justFont(20, weight: .semibold, relativeTo: .title3, monospacedDigits: true)
-                .foregroundStyle(emphasised ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
+                .font(JustFontStyle.kawaii(24, weight: .black, relativeTo: .title2).monospacedDigit())
+                .foregroundStyle(emphasised ? JustTheme.Kawaii.accent : JustTheme.Kawaii.ink)
+                .shadow(color: JustTheme.Kitsch.bubblegum, radius: 0, x: 1.5, y: 2)
             Text(label)
                 .font(JustTheme.Font.caption)
                 .foregroundStyle(JustTheme.Ink.tertiary)

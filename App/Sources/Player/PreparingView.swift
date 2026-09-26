@@ -147,11 +147,7 @@ struct PreparingView: View {
             .foregroundStyle(JustTheme.Ink.primary)
             .padding(JustTheme.Space.regular)
             .frame(maxWidth: .infinity)
-            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                    .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-            }
+            .justSurface()
             .contentShape(.rect)
         }
         .buttonStyle(.plain)

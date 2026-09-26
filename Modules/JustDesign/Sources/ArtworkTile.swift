@@ -31,7 +31,8 @@ public struct ArtworkTile: View {
         VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
             ArtworkView(image: artwork.image, seed: seed)
                 .frame(width: width, height: width)
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+                .clipShape(.rect(cornerRadius: JustTheme.Radius.artwork))
+                .kitschSticker(cornerRadius: JustTheme.Radius.artwork, rim: 3, lift: 4)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

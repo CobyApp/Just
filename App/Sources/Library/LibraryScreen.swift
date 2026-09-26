@@ -258,11 +258,7 @@ struct LibraryScreen: View {
                     .foregroundStyle(JustTheme.Ink.secondary)
             }
             .padding(JustTheme.Space.snug)
-            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                    .strokeBorder(JustTheme.Kawaii.accent.opacity(0.10), lineWidth: 0.8)
-            }
+            .justSurface()
             // In a List a NavigationLink draws its own disclosure chevron next
             // to the card's. Hidden in the background, the row still navigates
             // and only the card's chevron shows.
@@ -348,11 +344,7 @@ struct VocabRow: View {
         }
         .padding(.horizontal, JustTheme.Space.snug)
         .padding(.vertical, JustTheme.Space.tight)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
+        .justSurface()
     }
 }
 

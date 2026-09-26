@@ -58,11 +58,7 @@ struct SongRow: View {
                 .fixedSize()
         }
         .padding(JustTheme.Space.snug)
-        .background(JustTheme.Surface.panel, in: .rect(cornerRadius: JustTheme.Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
+        .justSurface()
         .contentShape(.rect)
     }
 }

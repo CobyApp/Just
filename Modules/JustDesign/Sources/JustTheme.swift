@@ -1,9 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// The design system is deliberately small: one ink scale, one accent that
-/// comes from the current artwork, and generous type. Everything colourful on
-/// screen is the album art — the chrome stays out of the way.
+/// Two moods. The bright screens — groups, lists, the word list, practice —
+/// dress like idol goods: stickers with printed shadows, polka dots, glitter,
+/// washi tape, candy buttons (see `Kitsch.swift`). The dark player is the
+/// stage, and stays plain: reading lyrics is what happens there, so the only
+/// decoration it allows is a penlight glow on the line being sung.
 public enum JustTheme {
     /// The bright half of the app.
     ///
@@ -145,22 +147,75 @@ public enum JustTheme {
 }
 
 public extension View {
-    /// The standard raised container: glass over artwork, never a flat card.
+    /// The standard raised container. On the bright screens it is a sticker —
+    /// white rim, printed pink shadow; under the dark player, plain glass,
+    /// because a sticker next to lyrics is noise where reading happens.
     func justCard(cornerRadius: CGFloat = JustTheme.Radius.card) -> some View {
         padding(JustTheme.Space.regular)
-            .background(JustTheme.Surface.panel, in: .rect(cornerRadius: cornerRadius))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.04), radius: 12, y: 5)
+            .modifier(JustCardSurface(cornerRadius: cornerRadius))
     }
 
+    /// `justCard`'s surface without its padding, for rows and panels that
+    /// lay out their own insets.
+    func justSurface(cornerRadius: CGFloat = JustTheme.Radius.card) -> some View {
+        modifier(JustCardSurface(cornerRadius: cornerRadius))
+    }
+
+    /// The small label over a group of rows: a pink twinkle and pink
+    /// rounded caps on the bright screens, quiet grey under the player.
     func justSectionHeader() -> some View {
-        font(JustTheme.Font.sectionTitle)
-            .foregroundStyle(JustTheme.Ink.tertiary)
-            .textCase(.uppercase)
-            .kerning(0.8)
+        modifier(SectionHeaderStyle())
+    }
+}
+
+private struct SectionHeaderStyle: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        if scheme == .dark {
+            content
+                .font(JustTheme.Font.sectionTitle)
+                .foregroundStyle(JustTheme.Ink.tertiary)
+                .textCase(.uppercase)
+                .kerning(0.8)
+        } else {
+            HStack(spacing: 5) {
+                Twinkle()
+                    .fill(JustTheme.Kawaii.accent)
+                    .frame(width: 11, height: 11)
+                    .accessibilityHidden(true)
+                content
+                    .font(JustTheme.Font.sectionTitle)
+                    .foregroundStyle(JustTheme.Kawaii.accent)
+                    .textCase(.uppercase)
+                    .kerning(0.8)
+            }
+        }
+    }
+}
+
+private struct JustCardSurface: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        if scheme == .dark {
+            content
+                .background(JustTheme.Surface.panel, in: .rect(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+                }
+        } else {
+            content
+                .background(.white, in: .rect(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(JustTheme.Kitsch.bubblegum, lineWidth: 1.5)
+                        .padding(2.5)
+                }
+                .kitschSticker(cornerRadius: cornerRadius, lift: 3)
+        }
     }
 }
 
@@ -172,15 +227,35 @@ public extension View {
 public struct JustPrimaryButtonStyle: ButtonStyle {
     public init() {}
 
+    /// A puffy candy button: gradient fill, white rim, printed shadow. Pressing
+    /// pushes it down onto its shadow, like a real button.
     public func makeBody(configuration: Configuration) -> some View {
+        let depth: CGFloat = configuration.isPressed ? 1 : 4
         configuration.label
-            .font(JustTheme.Font.body.weight(.semibold))
+            .kawaiiFont(16, weight: .heavy, relativeTo: .headline)
             .foregroundStyle(.white)
-            .padding(.vertical, 12)
+            .shadow(color: JustTheme.Kitsch.stickerShadow, radius: 0, x: 0, y: 1)
+            .padding(.vertical, 13)
             .padding(.horizontal, 22)
-            .background(JustTheme.Kawaii.accent.opacity(configuration.isPressed ? 0.72 : 1), in: .capsule)
+            .background(JustTheme.Kitsch.candy, in: .capsule)
+            .overlay {
+                // A gloss along the top, the candy's shine.
+                Capsule()
+                    .fill(.white.opacity(0.28))
+                    .padding(.horizontal, 14)
+                    .frame(height: 6)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 5)
+            }
+            .overlay { Capsule().strokeBorder(.white, lineWidth: 2.5) }
+            .background {
+                Capsule()
+                    .fill(JustTheme.Kitsch.stickerShadow)
+                    .offset(y: depth)
+            }
+            .offset(y: configuration.isPressed ? 3 : 0)
             .contentShape(.capsule)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(.spring(duration: 0.18, bounce: 0.4), value: configuration.isPressed)
     }
 }
 
@@ -190,7 +265,19 @@ public struct JustBrandBackground: View {
     public init() {}
 
     public var body: some View {
-        JustTheme.Surface.kawaii.ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 1.0, green: 0.95, blue: 0.97),
+                    Color(red: 0.97, green: 0.95, blue: 1.0),
+                    Color(red: 0.94, green: 0.98, blue: 1.0),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            KitschWallpaper()
+        }
+        .ignoresSafeArea()
     }
 }
 
@@ -213,10 +300,8 @@ public struct UtaringMark: View {
                 .offset(x: size * 0.25, y: -size * 0.22)
         }
         .frame(width: size, height: size)
-        .overlay {
-            RoundedRectangle(cornerRadius: size * 0.28)
-                .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-        }
+        .kitschSticker(cornerRadius: size * 0.28, rim: 2.5, lift: 3)
+        .rotationEffect(.degrees(-6))
         .accessibilityHidden(true)
     }
 }
@@ -236,13 +321,27 @@ public struct JustScreenHeader: View {
     public var body: some View {
         HStack(spacing: JustTheme.Space.snug) {
             if showsMark { UtaringMark(size: 46) }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .kawaiiFont(32, weight: .bold, relativeTo: .largeTitle)
-                    .foregroundStyle(JustTheme.Kawaii.ink)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top, spacing: 2) {
+                    Text(title)
+                        .kawaiiFont(32, weight: .black, relativeTo: .largeTitle)
+                        .foregroundStyle(JustTheme.Kawaii.ink)
+                        // A sticker-letter outline: white all round, then
+                        // the printed pink offset beneath it.
+                        .shadow(color: .white, radius: 0, x: 1.5, y: 1.5)
+                        .shadow(color: .white, radius: 0, x: -1.5, y: -1.5)
+                        .shadow(color: .white, radius: 0, x: 1.5, y: -1.5)
+                        .shadow(color: .white, radius: 0, x: -1.5, y: 1.5)
+                        .shadow(color: JustTheme.Kitsch.stickerShadow, radius: 0, x: 3, y: 3.5)
+                    SparkleCluster()
+                }
                 Text(subtitle)
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(JustTheme.Kawaii.inkSoft)
+                    .font(JustTheme.Font.caption.weight(.bold))
+                    .foregroundStyle(JustTheme.Kawaii.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.white, in: .capsule)
+                    .overlay { Capsule().strokeBorder(JustTheme.Kitsch.bubblegum, lineWidth: 1.5) }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -263,10 +362,21 @@ public struct JustIconBadge: View {
 
     public var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: size * 0.4, weight: .semibold))
+            .font(.system(size: size * 0.4, weight: .bold))
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(tint.opacity(0.10), in: .rect(cornerRadius: size * 0.32))
+            .background(
+                LinearGradient(
+                    colors: [tint.opacity(0.10), tint.opacity(0.22)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: .rect(cornerRadius: size * 0.36)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: size * 0.36)
+                    .strokeBorder(.white, lineWidth: 1.5)
+            }
             .accessibilityHidden(true)
     }
 }
@@ -296,8 +406,7 @@ public struct JustProgressHeader: View {
                     .font(JustTheme.Font.caption.monospacedDigit())
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }
-            ProgressView(value: Double(done), total: Double(total))
-                .tint(JustTheme.Kawaii.accent)
+            CandyProgressBar(value: Double(done), total: Double(total))
         }
     }
 }
@@ -333,8 +442,8 @@ public struct JustFeatureGuide: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
             HStack(spacing: JustTheme.Space.tight) {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundStyle(JustTheme.Feedback.info)
+                Image(systemName: "sparkles")
+                    .foregroundStyle(JustTheme.Kawaii.accent)
                     .accessibilityHidden(true)
                 Text(title)
                     .font(JustTheme.Font.body.weight(.bold))
@@ -367,10 +476,21 @@ public struct JustFeatureGuide: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(JustTheme.Space.regular)
-        .background(JustTheme.Feedback.info.opacity(0.07), in: .rect(cornerRadius: JustTheme.Radius.card))
+        .padding(.top, 6)
+        // A memo pad: lined-paper lavender, a stitched border, and a strip of
+        // tape holding it to the page.
+        .background(Color(red: 0.97, green: 0.95, blue: 1.0), in: .rect(cornerRadius: JustTheme.Radius.card))
         .overlay {
-            RoundedRectangle(cornerRadius: JustTheme.Radius.card)
-                .strokeBorder(JustTheme.Feedback.info.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: JustTheme.Radius.card - 4)
+                .strokeBorder(
+                    JustTheme.Kawaii.lavender.opacity(0.35),
+                    style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
+                )
+                .padding(5)
+        }
+        .kitschSticker(tint: JustTheme.Kawaii.lavender, lift: 3)
+        .overlay(alignment: .top) {
+            WashiTape().offset(y: -10)
         }
     }
 }
@@ -414,19 +534,42 @@ public struct JustSecondaryButtonStyle: ButtonStyle {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(JustTheme.Font.caption.weight(.semibold))
-            .foregroundStyle(JustTheme.Ink.primary)
-            .padding(.vertical, 7)
-            .padding(.horizontal, 14)
-            .background(
-                JustTheme.Surface.panel.opacity(configuration.isPressed ? 0.55 : 1),
-                in: .capsule
-            )
-            .overlay {
-                Capsule().strokeBorder(JustTheme.Surface.border, lineWidth: 1)
-            }
-            .contentShape(.capsule)
+        SecondaryLabel(configuration: configuration)
+    }
+
+    /// A view of its own so it can read the colour scheme: a stitched pink
+    /// badge on the bright screens, plain glass under the dark player.
+    private struct SecondaryLabel: View {
+        let configuration: Configuration
+        @Environment(\.colorScheme) private var scheme
+
+        var body: some View {
+            let isBright = scheme != .dark
+            configuration.label
+                .font(JustTheme.Font.caption.weight(.bold))
+                .foregroundStyle(isBright ? JustTheme.Kawaii.accent : JustTheme.Ink.primary)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 14)
+                .background(
+                    (isBright ? Color.white : JustTheme.Surface.panel)
+                        .opacity(configuration.isPressed ? 0.55 : 1),
+                    in: .capsule
+                )
+                .overlay {
+                    if isBright {
+                        Capsule()
+                            .strokeBorder(
+                                JustTheme.Kawaii.accent.opacity(0.55),
+                                style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])
+                            )
+                            .padding(2)
+                        Capsule().strokeBorder(JustTheme.Kitsch.bubblegum, lineWidth: 1)
+                    } else {
+                        Capsule().strokeBorder(JustTheme.Surface.border, lineWidth: 1)
+                    }
+                }
+                .contentShape(.capsule)
+        }
     }
 }
 
@@ -483,19 +626,28 @@ public struct JustChip: View {
         Text(text)
             .font(JustTheme.Font.caption)
             .foregroundStyle(tint)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .background(tint.opacity(0.14), in: .rect(cornerRadius: JustTheme.Radius.chip))
+            .background(tint.opacity(0.14), in: .capsule)
+            .overlay { Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1) }
     }
 }
 
 
 public extension View {
-    /// Section heading on the bright screens.
+    /// Section heading on the bright screens: a heart, and the words run
+    /// over with a highlighter.
     func kawaiiSectionTitle() -> some View {
-        kawaiiFont(20, relativeTo: .title3)
-            .foregroundStyle(JustTheme.Kawaii.ink)
-            .padding(.horizontal, JustTheme.Space.regular)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 6) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(JustTheme.Kawaii.accent)
+                .accessibilityHidden(true)
+            kawaiiFont(20, weight: .black, relativeTo: .title3)
+                .foregroundStyle(JustTheme.Kawaii.ink)
+                .kitschHighlight()
+        }
+        .padding(.horizontal, JustTheme.Space.regular)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

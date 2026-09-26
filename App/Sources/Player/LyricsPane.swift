@@ -295,10 +295,14 @@ private struct LyricRow: View {
                     color: isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary,
                     rubyHeight: 13 * scale
                 )
+                // The line being sung glows like a penlight; only that one,
+                // so the glow marks the place rather than decorating the page.
+                .shadow(color: JustTheme.Kawaii.accent.opacity(isActive ? 0.6 : 0), radius: 10)
             } else {
                 Text(line.text)
                     .font(lyricFont)
                     .foregroundStyle(isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
+                    .shadow(color: JustTheme.Kawaii.accent.opacity(isActive ? 0.6 : 0), radius: 10)
             }
 
             if isLooping {
