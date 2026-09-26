@@ -34,7 +34,7 @@ public struct LRCLIBClient: Sendable {
 
     private static let host = "https://lrclib.net"
     /// lrclib asks clients to identify themselves.
-    private static let userAgent = "Just/1.0 (https://github.com/; Japanese study app)"
+    private static let userAgent = "Just/1.0 (https://github.com/CobyApp/Just; Japanese study app)"
 
     private let session: URLSession
 
@@ -54,13 +54,25 @@ public struct LRCLIBClient: Sendable {
     ) async throws -> Lyrics {
         // The exact endpoint is asked with the real metadata only: it matches on
         // all four fields, so a trimmed title would not help it.
-        if let duration, duration > 0,
-           let record = try? await exact(
-               artist: artist,
-               title: title,
-               album: album,
-               duration: duration
-           ),
+        var exactRecord: Record?
+        if let duration, duration > 0 {
+            do {
+                exactRecord = try await exact(
+                    artist: artist,
+                    title: title,
+                    album: album,
+                    duration: duration
+                )
+            } catch let error where Self.isCancellation(error) {
+                // The caller has gone — another song, a closed player. Carrying
+                // on through the search below would spend a dozen requests on an
+                // answer nobody is waiting for.
+                throw error
+            } catch {
+                // A miss here is ordinary; the search is the real attempt.
+            }
+        }
+        if let record = exactRecord,
            Self.isJapanese(record.syncedLyrics ?? record.plainLyrics ?? "") {
             return try Self.lyrics(from: record)
         }
@@ -76,6 +88,7 @@ public struct LRCLIBClient: Sendable {
         // words; kept as plain text if nothing better turns up.
         var differentEdit: Record?
         for variant in Self.queryVariants(artist: artist, title: title) {
+            try Task.checkCancellation()
             do {
                 let results = try await search(artist: variant.artist, title: variant.title)
                 if let best = Self.best(from: results, duration: duration) {
@@ -84,6 +97,8 @@ public struct LRCLIBClient: Sendable {
                 if differentEdit == nil, let sheet = Self.bestRegardlessOfLength(from: results) {
                     differentEdit = sheet
                 }
+            } catch let error where Self.isCancellation(error) {
+                throw error
             } catch {
                 // Kept, not thrown: a later spelling may still succeed, and if
                 // none does the user deserves the network's reason rather than
@@ -246,6 +261,12 @@ public struct LRCLIBClient: Sendable {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
+        } catch let error where Self.isCancellation(error) {
+            // Passed through as it is. Wrapped as `.transport`, a cancelled
+            // lookup looked like a network failure: the loop above kept trying
+            // spellings, and the reader was shown "cancelled" as the reason
+            // there were no lyrics.
+            throw error
         } catch {
             throw Failure.transport(error.localizedDescription)
         }
@@ -263,6 +284,15 @@ public struct LRCLIBClient: Sendable {
         } catch {
             throw Failure.transport("가사 응답 형식이 예상과 다릅니다.")
         }
+    }
+
+    /// Whether an error means the caller gave up rather than that the lookup
+    /// failed. URLSession reports a cancelled task as `URLError.cancelled`
+    /// rather than `CancellationError`, so both count.
+    static func isCancellation(_ error: any Error) -> Bool {
+        if error is CancellationError { return true }
+        if let error = error as? URLError, error.code == .cancelled { return true }
+        return false
     }
 
     /// Fraction of lyric lines written in Japanese.
@@ -320,33 +350,39 @@ public struct LRCLIBClient: Sendable {
         throw Failure.notFound
     }
 
-    /// Prefers Japanese lyrics, then synced lyrics, then the closest duration.
-    ///
-    /// The language check is not optional: lrclib is full of user-submitted
-    /// translations, and a search for a J-pop song routinely ranks a
-    /// Vietnamese or English rendering above the original. For a Japanese
-    /// study app a translated lyric sheet is worse than none at all.
     /// How far a record's length may sit from the catalog's before its timings
     /// stop landing on the right lines.
     static let durationTolerance: TimeInterval = 10
 
+    /// The record to show as this release's lyrics, or nil when none will do.
+    ///
+    /// Only Japanese sheets are considered. The language check is not optional:
+    /// lrclib is full of user-submitted translations, and a search for a J-pop
+    /// song routinely ranks a Vietnamese or English rendering above the
+    /// original. For a Japanese study app a translated lyric sheet is worse than
+    /// none at all.
+    ///
+    /// And only sheets whose length fits this release, or whose length cannot be
+    /// compared. A synced sheet written for a different edit highlights the
+    /// wrong line for the whole song, which is worse than lyrics that simply do
+    /// not follow along — it looks right and is not.
+    ///
+    /// Nil is an answer, not a failure. This used to fall back to whatever was
+    /// left — the translation, the other edit's timings — so it never returned
+    /// nil, and everything the caller does when nothing fits (the next
+    /// spelling, the other edit's words as plain text) never ran.
     static func best(from records: [Record], duration: TimeInterval?) -> Record? {
-        let usable = records.filter {
-            ($0.syncedLyrics?.isEmpty == false) || ($0.plainLyrics?.isEmpty == false)
+        let candidates = records.filter { record in
+            hasLyrics(record)
+                && isJapanese(record.syncedLyrics ?? record.plainLyrics ?? "")
+                && fits(record, duration: duration)
         }
-        guard !usable.isEmpty else { return nil }
-
-        let japanese = usable.filter { isJapanese($0.syncedLyrics ?? $0.plainLyrics ?? "") }
-        let candidates = japanese.isEmpty ? usable : japanese
 
         return candidates.min { lhs, rhs in
             let lhsGap = Self.gap(lhs, from: duration)
             let rhsGap = Self.gap(rhs, from: duration)
 
-            // Length agreement comes first once the gap is past what timings
-            // survive. A synced sheet written for a different edit highlights
-            // the wrong line for the whole song, which is worse than lyrics
-            // that simply do not follow along — it looks right and is not.
+            // A length known to fit beats one that could not be checked.
             let lhsFits = lhsGap <= Self.durationTolerance
             let rhsFits = rhsGap <= Self.durationTolerance
             if lhsFits != rhsFits { return lhsFits }
@@ -359,20 +395,33 @@ public struct LRCLIBClient: Sendable {
         }
     }
 
+    private static func hasLyrics(_ record: Record) -> Bool {
+        (record.syncedLyrics?.isEmpty == false) || (record.plainLyrics?.isEmpty == false)
+    }
+
+    /// Whether a record's length is close enough to the song's, counting an
+    /// unknown length on either side as close enough — there is nothing to
+    /// hold against it, and refusing it would refuse every search made without
+    /// a duration.
+    private static func fits(_ record: Record, duration: TimeInterval?) -> Bool {
+        guard let duration, duration > 0, let recorded = record.duration else { return true }
+        return abs(recorded - duration) <= durationTolerance
+    }
+
     /// The best Japanese sheet with no regard for length — for the words
     /// alone, when no record fits this release.
     static func bestRegardlessOfLength(from records: [Record]) -> Record? {
         records.first { record in
             record.instrumental != true
                 && isJapanese(record.syncedLyrics ?? record.plainLyrics ?? "")
-                && ((record.syncedLyrics?.isEmpty == false) || (record.plainLyrics?.isEmpty == false))
+                && hasLyrics(record)
         }
     }
 
     /// Distance between a record's length and the song's, or infinity when
     /// either is unknown — an unknown length cannot vouch for its timings.
     private static func gap(_ record: Record, from duration: TimeInterval?) -> TimeInterval {
-        guard let duration, let recorded = record.duration else {
+        guard let duration, duration > 0, let recorded = record.duration else {
             return .greatestFiniteMagnitude
         }
         return abs(recorded - duration)

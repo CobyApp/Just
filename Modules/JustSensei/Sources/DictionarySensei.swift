@@ -22,34 +22,73 @@ public struct DictionarySensei: Sendable {
         var jlpt: JLPTLevel? { j.map(JLPTLevel.init(rawTag:)) }
     }
 
-    /// Every sense, not one per spelling.
+    /// The two lookup tables, built once and shared.
     ///
-    /// This was `[String: Entry]`, which meant the last row read for a spelling
-    /// silently erased the others at load time. Only eight spellings in the
-    /// bundled data are affected — but 僕 is one of them, and it resolved to
-    /// しもべ (a servant) rather than ぼく, on a word J-pop uses constantly.
-    /// Counting the collisions said they were negligible; weighting them by how
-    /// often lyrics use the word said otherwise.
-    private let byLemma: [String: [Entry]]
-    /// Every entry sharing a reading, not the first one read.
+    /// A reference rather than stored dictionaries so the bundled data can be
+    /// decoded once for the whole process and lazily: every `DictionarySensei()`
+    /// used to decode the 400 KB seed file on the spot, and the first of them is
+    /// built on the main thread while the app is launching.
+    final class Index: Sendable {
+        /// Every sense, not one per spelling.
+        ///
+        /// This was `[String: Entry]`, which meant the last row read for a spelling
+        /// silently erased the others at load time. Only eight spellings in the
+        /// bundled data are affected — but 僕 is one of them, and it resolved to
+        /// しもべ (a servant) rather than ぼく, on a word J-pop uses constantly.
+        /// Counting the collisions said they were negligible; weighting them by how
+        /// often lyrics use the word said otherwise.
+        let byLemma: [String: [Entry]]
+        /// Every entry sharing a reading, not the first one read.
+        ///
+        /// First-wins is what turned plain kana words into obscure ones. かける
+        /// shares its reading with 掛ける, 欠ける, 賭ける and more; the bulk-imported
+        /// rows carry no frequency information and sit in arbitrary order, so 「the
+        /// first row read」 was a coin toss weighted toward the rare. The reader then
+        /// saw a simple word explained as a difficult one.
+        let byReading: [String: [Entry]]
+
+        init(entries: [Entry]) {
+            var lemmas: [String: [Entry]] = [:]
+            var readings: [String: [Entry]] = [:]
+            for entry in entries {
+                lemmas[entry.l, default: []].append(entry)
+                readings[entry.r, default: []].append(entry)
+            }
+            byLemma = lemmas
+            byReading = readings
+        }
+
+        /// The seed file in `bundle`, or an empty index when it cannot be read.
+        convenience init(bundle: Bundle) {
+            guard
+                let url = bundle.url(forResource: "seed-dictionary", withExtension: "json"),
+                let data = try? Data(contentsOf: url),
+                let entries = try? JSONDecoder().decode([Entry].self, from: data)
+            else {
+                self.init(entries: [])
+                return
+            }
+            self.init(entries: entries)
+        }
+    }
+
+    /// The bundled dictionary, decoded on first use and never again.
     ///
-    /// First-wins is what turned plain kana words into obscure ones. かける
-    /// shares its reading with 掛ける, 欠ける, 賭ける and more; the bulk-imported
-    /// rows carry no frequency information and sit in arbitrary order, so 「the
-    /// first row read」 was a coin toss weighted toward the rare. The reader then
-    /// saw a simple word explained as a difficult one.
-    private let byReading: [String: [Entry]]
+    /// A `static let`, so the first access pays and every later one — from any
+    /// thread — gets the same tables.
+    private static let bundled = Index(bundle: .module)
+
+    /// Where the tables come from. A closure so the bundled ones are not
+    /// touched until a lookup actually needs them.
+    private let source: @Sendable () -> Index
+    private var index: Index { source() }
+    private var byLemma: [String: [Entry]] { index.byLemma }
+    private var byReading: [String: [Entry]] { index.byReading }
     private let tokenizer = JapaneseTokenizer()
 
     public init(entries: [Entry]) {
-        var lemmas: [String: [Entry]] = [:]
-        var readings: [String: [Entry]] = [:]
-        for entry in entries {
-            lemmas[entry.l, default: []].append(entry)
-            readings[entry.r, default: []].append(entry)
-        }
-        byLemma = lemmas
-        byReading = readings
+        let index = Index(entries: entries)
+        source = { index }
     }
 
     /// The sense whose reading matches; otherwise the commonest one.
@@ -98,19 +137,16 @@ public struct DictionarySensei: Sendable {
     }
 
     public init() {
-        self.init(bundle: .module)
+        source = { DictionarySensei.bundled }
+        // Decoded off the main thread ahead of the first lookup. Whoever gets
+        // there first pays; a lookup that arrives while this is still running
+        // waits for it rather than decoding a second copy.
+        Task.detached(priority: .utility) { _ = DictionarySensei.bundled }
     }
 
     init(bundle: Bundle) {
-        guard
-            let url = bundle.url(forResource: "seed-dictionary", withExtension: "json"),
-            let data = try? Data(contentsOf: url),
-            let entries = try? JSONDecoder().decode([Entry].self, from: data)
-        else {
-            self.init(entries: [])
-            return
-        }
-        self.init(entries: entries)
+        let index = Index(bundle: bundle)
+        source = { index }
     }
 
     public var count: Int { byLemma.count }

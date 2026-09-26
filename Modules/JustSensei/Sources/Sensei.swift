@@ -22,6 +22,15 @@ public final class Sensei {
     /// The song `entries` belongs to. Nil before any song has been opened.
     public private(set) var songID: String?
     public private(set) var inFlight: Set<Int> = []
+    /// Bumped whenever `reset(for:)` changes the song.
+    ///
+    /// Work that awaits — the model, the system translator — captures this on
+    /// the way in and checks it on the way out. Without it, a line from the song
+    /// being left finished after the new song had been opened and was filed
+    /// under the new song's index, then persisted into its record. A counter
+    /// rather than the song id, so leaving a song and coming straight back to it
+    /// still discards what the first visit left running.
+    private var scope = 0
 
     private let onDevice: OnDeviceSensei?
     /// The system translator, injected so the rules around it can be tested
@@ -120,6 +129,7 @@ public final class Sensei {
     public func reset(for songID: String) {
         guard songID != self.songID else { return }
         self.songID = songID
+        scope += 1
         entries.removeAll()
         inFlight.removeAll()
         refusedByModel.removeAll()
@@ -179,6 +189,10 @@ public final class Sensei {
         artist: String
     ) async -> LineStudy? {
         if let cached = entries[lineIndex], isFinal(cached) { return cached }
+        // Already being worked on — a tap landing while the background pass is
+        // on this line. A second run would be a second model request made while
+        // the first is still out, for the same answer.
+        guard !inFlight.contains(lineIndex) else { return entries[lineIndex] }
         guard let line = lyrics.lines.first(where: { $0.id == lineIndex }) else { return nil }
         let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
@@ -247,6 +261,10 @@ public final class Sensei {
     }
 
     /// Runs one line through one of the two engines and files the result.
+    ///
+    /// - Returns: nil when the song changed while the line was being worked
+    ///   on. The result belongs to a song that is no longer open, so it is
+    ///   dropped rather than filed under the new song's line of the same index.
     private func produce(
         text: String,
         lineIndex: Int,
@@ -255,13 +273,19 @@ public final class Sensei {
         artist: String,
         useModel: Bool
     ) async -> LineStudy? {
+        let scope = self.scope
         inFlight.insert(lineIndex)
-        defer { inFlight.remove(lineIndex) }
+        defer {
+            // Only our own marker. After a song change the set belongs to the
+            // new song, and the same index there may be in flight for real.
+            if self.scope == scope { inFlight.remove(lineIndex) }
+        }
 
         let result: LineStudy
         if let onDevice, useModel, !refusedByModel.contains(text) {
+            let outcome: Result<LineStudy, any Error>
             do {
-                result = try await onDevice.analyze(
+                outcome = .success(try await onDevice.analyze(
                     line: text,
                     lineIndex: lineIndex,
                     previous: lyrics.lines.first { $0.id == lineIndex - 1 }?.text,
@@ -269,34 +293,20 @@ public final class Sensei {
                     songTitle: songTitle,
                     artist: artist,
                     glossary: dictionary.glossary(for: text)
-                )
-            } catch let error as LanguageModelSession.GenerationError {
-                // A refusal is about these words and will not change on a
-                // second asking. Anything else — a busy system, a moment's
-                // failure — is worth another attempt on the next pass.
-                switch error {
-                case .guardrailViolation:
-                    refusedByModel.insert(text)
-                    lastFailure[lineIndex] = .guardrail
-                case .refusal:
-                    refusedByModel.insert(text)
-                    lastFailure[lineIndex] = .refused
-                case .exceededContextWindowSize:
-                    lastFailure[lineIndex] = .contextWindow
-                case .assetsUnavailable:
-                    lastFailure[lineIndex] = .assetsMissing
-                case .rateLimited:
-                    lastFailure[lineIndex] = .rateLimited
-                case .concurrentRequests:
-                    lastFailure[lineIndex] = .concurrent
-                case .decodingFailure:
-                    lastFailure[lineIndex] = .decoding
-                default:
-                    lastFailure[lineIndex] = .other
-                }
-                result = dictionary.analyze(line: text, lineIndex: lineIndex)
+                ))
             } catch {
-                lastFailure[lineIndex] = .other
+                outcome = .failure(error)
+            }
+            // Checked before anything is written, the failure memo included:
+            // `lastFailure` is keyed by index, so an old song's failure would
+            // be reported against the new song's line.
+            guard self.scope == scope else { return nil }
+
+            switch outcome {
+            case .success(let study):
+                result = study
+            case .failure(let error):
+                noteFailure(error, text: text, lineIndex: lineIndex)
                 result = dictionary.analyze(line: text, lineIndex: lineIndex)
             }
         } else {
@@ -334,6 +344,7 @@ public final class Sensei {
         // model: asking again is spending a call on an answer already known.
         if refined.translationKo.isEmpty, !useModel || refusedByModel.contains(text) {
             refined = await translated(refined)
+            guard self.scope == scope else { return nil }
         }
         // A failed attempt must not cost the reader what they already had.
         //
@@ -357,6 +368,37 @@ public final class Sensei {
         // the model again.
         entries[lineIndex] = refined
         return refined
+    }
+
+    /// Files why the model did not answer a line.
+    private func noteFailure(_ error: any Error, text: String, lineIndex: Int) {
+        guard let error = error as? LanguageModelSession.GenerationError else {
+            lastFailure[lineIndex] = .other
+            return
+        }
+        // A refusal is about these words and will not change on a
+        // second asking. Anything else — a busy system, a moment's
+        // failure — is worth another attempt on the next pass.
+        switch error {
+        case .guardrailViolation:
+            refusedByModel.insert(text)
+            lastFailure[lineIndex] = .guardrail
+        case .refusal:
+            refusedByModel.insert(text)
+            lastFailure[lineIndex] = .refused
+        case .exceededContextWindowSize:
+            lastFailure[lineIndex] = .contextWindow
+        case .assetsUnavailable:
+            lastFailure[lineIndex] = .assetsMissing
+        case .rateLimited:
+            lastFailure[lineIndex] = .rateLimited
+        case .concurrentRequests:
+            lastFailure[lineIndex] = .concurrent
+        case .decodingFailure:
+            lastFailure[lineIndex] = .decoding
+        default:
+            lastFailure[lineIndex] = .other
+        }
     }
 
     /// Whether a result is the best this device can produce.
@@ -782,15 +824,20 @@ public final class Sensei {
 
     /// Walks the whole song one line at a time.
     ///
-    /// Sequential rather than concurrent: the on-device model serialises
-    /// requests anyway, and doing it in order means the progress bar matches
-    /// what the user sees filling in.
+    /// Sequential rather than concurrent: the on-device model answers one
+    /// request at a time anyway (`OnDeviceSensei` queues them), and doing it in
+    /// order means the progress bar matches what the user sees filling in.
+    ///
+    /// Stops as soon as the song changes. The lines it was handed belong to the
+    /// song it was started for, and carrying on would analyse them into the new
+    /// song's cache.
     public func analyzeAll(
         lyrics: Lyrics,
         songTitle: String,
         artist: String,
         onProgress: @MainActor (Int, Int) -> Void = { _, _ in }
     ) async {
+        let scope = self.scope
         let total = pendingLines(in: lyrics).count
         guard total > 0 else { return }
 
@@ -802,10 +849,11 @@ public final class Sensei {
         // progress rather than completion: the first pass that settles nothing
         // ends the run. At most one pass per line, so it terminates.
         while !Task.isCancelled {
+            guard self.scope == scope else { return }
             let before = pendingLines(in: lyrics).count
             guard before > 0 else { return }
 
-            await onePass(lyrics: lyrics, songTitle: songTitle, artist: artist) {
+            await onePass(lyrics: lyrics, songTitle: songTitle, artist: artist, scope: scope) {
                 // Lines that now have an answer, not attempts made. A bar that
                 // fills while every line is failing says the opposite of what
                 // is happening, and the remaining-time estimate is computed off
@@ -813,6 +861,7 @@ public final class Sensei {
                 onProgress(total - self.pendingLines(in: lyrics).count, total)
             }
 
+            guard self.scope == scope else { return }
             if pendingLines(in: lyrics).count >= before { break }
         }
 
@@ -822,8 +871,10 @@ public final class Sensei {
         // progress.
         for line in pendingLines(in: lyrics) {
             if Task.isCancelled { return }
+            guard self.scope == scope else { return }
             guard let study = entries[line.id] else { continue }
             let filled = await translated(study)
+            guard self.scope == scope else { return }
             guard !filled.translationKo.isEmpty else { continue }
             entries[line.id] = filled
             onProgress(total - pendingLines(in: lyrics).count, total)
@@ -857,6 +908,7 @@ public final class Sensei {
         lyrics: Lyrics,
         songTitle: String,
         artist: String,
+        scope: Int,
         onLine: @MainActor () -> Void
     ) async {
         // Grouped by the text itself. A song is not a list of distinct lines —
@@ -873,6 +925,7 @@ public final class Sensei {
         for key in order {
             guard let lines = groups[key], let first = lines.first else { continue }
             if Task.isCancelled { return }
+            guard self.scope == scope else { return }
 
             let study = await analyze(
                 lineIndex: first.id,
@@ -883,7 +936,7 @@ public final class Sensei {
 
             // The repeats are filled in from the one answer, each under its own
             // index so the lyric view and the record still address them by line.
-            if let study {
+            if let study, self.scope == scope {
                 for repeated in lines.dropFirst() {
                     entries[repeated.id] = study.moved(to: repeated.id)
                 }

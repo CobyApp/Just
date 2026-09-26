@@ -92,12 +92,52 @@ struct GeneratedGrammar {
 
 // MARK: - Engine
 
+/// Lets one caller through at a time, the rest in the order they arrived.
+///
+/// A queue rather than a flag checked in a loop: a waiter is resumed by
+/// `release` handing the turn straight over, so nobody can slip in between one
+/// request finishing and the next starting.
+@MainActor
+final class RequestGate {
+    /// Whether someone currently holds the turn.
+    private var isBusy = false
+    /// Callers waiting for it, first come first served.
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    init() {}
+
+    /// Waits until nobody holds the turn, then takes it. Every call must be
+    /// paired with a `release`.
+    func acquire() async {
+        guard isBusy else {
+            isBusy = true
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiting.append(continuation)
+        }
+        // Resumed by `release`, which leaves `isBusy` set on our behalf.
+    }
+
+    /// Hands the turn to the next caller, or frees it.
+    func release() {
+        if waiting.isEmpty {
+            isBusy = false
+        } else {
+            waiting.removeFirst().resume()
+        }
+    }
+}
+
 /// Wraps Apple Intelligence's on-device language model.
 ///
-/// Main-actor isolated on purpose: a `LanguageModelSession` must not receive
-/// overlapping `respond` calls, and pinning it to one actor makes that
-/// impossible to get wrong from the UI. Inference itself runs off-thread, so
-/// this does not block scrolling.
+/// Main-actor isolated so the session and its bookkeeping live on one actor.
+/// That alone does not stop overlapping requests: `respond` suspends, and while
+/// it is suspended the main actor is free to start a second `analyze` — a
+/// background pass and a tap on 「이 줄만 정확하게」 are enough — and the session
+/// rejects the overlap with `concurrentRequests`. So every request also waits
+/// its turn at a `RequestGate`. Inference itself runs off-thread, so this does
+/// not block scrolling.
 @MainActor
 public final class OnDeviceSensei {
     public enum Unavailability: Sendable {
@@ -140,7 +180,8 @@ public final class OnDeviceSensei {
     """
 
     private var session: LanguageModelSession
-    private let tokenizer = JapaneseTokenizer()
+    /// Admits one request to the session at a time.
+    private let gate = RequestGate()
     /// When to stop reusing the session. See `SessionRecycler` for the balance
     /// it strikes.
     private var recycler = SessionRecycler()
@@ -190,10 +231,9 @@ public final class OnDeviceSensei {
         line: String,
         lineIndex: Int
     ) async throws -> LineStudy {
-        if recycler.claim() {
-            session = LanguageModelSession { Self.instructions }
-        }
-
+        // The session has already been claimed for this line by `analyze`.
+        // Claiming again here booked every English line twice against the
+        // recycler's quota, so sessions were thrown away early.
         let response: LanguageModelSession.Response<GeneratedTranslation>
         do {
             response = try await session.respond(
@@ -261,6 +301,15 @@ public final class OnDeviceSensei {
         artist: String,
         glossary: [String] = []
     ) async throws -> LineStudy {
+        // One request at a time, for the whole exchange: the session may be
+        // replaced below, and a second request must not be halfway through a
+        // conversation with the one being thrown away.
+        await gate.acquire()
+        defer { gate.release() }
+        // A request that waited its turn may no longer be wanted — the song
+        // changed, the sheet closed. Better to give the turn up than spend it.
+        try Task.checkCancellation()
+
         // Tagged delimiters rather than Korean labels like "분석할 줄:".
         // A 3B model reads a bare label as content — labelling the target with
         // the word 분석 produced vocabulary cards for 分析する on a line that

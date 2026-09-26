@@ -45,9 +45,15 @@ import Testing
 @Suite("해석 품질 보고서", .serialized)
 @MainActor
 struct SenseiReportSuite {
-    /// Lines whose failures were actually observed, each with what a correct
-    /// answer looks like. A baseline built from real misses rather than invented
-    /// examples.
+    /// Lines built to reproduce failures actually observed, each with what a
+    /// correct answer looks like.
+    ///
+    /// Invented rather than quoted. The misses were first seen on a commercial
+    /// song, and its lyrics have no business in a source file; each line here
+    /// carries the same shape that tripped the model — the doubled 〜ように, 空
+    /// read as 공기, a quoted word followed by だけ, a whole line offered as a
+    /// word, katakana copied into the Korean, だって/なんて as quotation, and
+    /// 〜んだ — so the counts still measure the same things.
     private struct Fixture {
         let song: String
         let artist: String
@@ -63,59 +69,80 @@ struct SenseiReportSuite {
         let forbidden: [String]
     }
 
+    /// The invented song the fixtures come from. Its title is one of the things
+    /// a translation must not borrow from, as the real one's was.
+    static let fixtureSong = "夜を追いかけて"
+    static let fixtureArtist = "テスト"
+    static let fixtureLines = [
+        "揺れるように消えてゆくように",
+        "二人だけの空が続く朝に",
+        "「またね」だけだった",
+        "あの一言で答えが分かった",
+        "日が傾いた窓と君の影",
+        "カーテン越しに揺れていた",
+        "もう無理だって 眠いよなんて",
+        "本当は僕も笑いたいんだ",
+    ]
+
     private var fixtures: [Fixture] {
-        let yoasobi = [
-            "沈むように溶けてゆくように",
-            "二人だけの空が広がる夜に",
-            "「さよなら」だけだった",
-            "その一言で全てが分かった",
-            "日が沈み出した空と君の姿",
-            "フェンス越しに重なっていた",
-            "もう嫌だって 疲れたよなんて",
-            "本当は僕も言いたいんだ",
-        ]
+        let song = Self.fixtureSong
+        let artist = Self.fixtureArtist
+        let lines = Self.fixtureLines
         return [
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 0,
-                expectation: "가라앉듯이, 녹아내리듯이 — 곡 제목(밤을 달린다)이 새어들면 실패",
-                forbidden: ["달리", "달빛"]
+                song: song, artist: artist, lines: lines, target: 0,
+                expectation: "흔들리듯이, 사라져 가듯이 — 곡 제목(밤을 쫓아서)이 새어들면 실패",
+                forbidden: ["쫓", "달빛"]
             ),
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 1,
-                expectation: "둘만의 하늘이 펼쳐지는 밤에 — 空은 하늘. '공기'는 空気와 혼동한 것",
+                song: song, artist: artist, lines: lines, target: 1,
+                expectation: "둘만의 하늘이 이어지는 아침에 — 空은 하늘. '공기'는 空気와 혼동한 것",
                 forbidden: ["공기"]
             ),
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 2,
-                expectation: "'잘 가' 그 한마디뿐이었다 — 이웃 줄의 뜻을 가져오면 실패",
-                forbidden: ["이해", "공기", "펼쳐"]
+                song: song, artist: artist, lines: lines, target: 2,
+                expectation: "'또 봐' 그 한마디뿐이었다 — 이웃 줄의 뜻을 가져오면 실패",
+                forbidden: ["이해", "공기", "이어"]
             ),
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 3,
-                expectation: "그 한마디로 모든 것을 알았다 — 줄 전체가 단어 카드로 오면 실패",
+                song: song, artist: artist, lines: lines, target: 3,
+                expectation: "그 한마디로 답을 알았다 — 줄 전체가 단어 카드로 오면 실패",
                 forbidden: []
             ),
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 6,
-                expectation: "이제 싫다느니 지쳤다느니 — だって/なんて를 인용으로 읽어야 한다",
-                forbidden: ["말하고 싶"]
+                song: song, artist: artist, lines: lines, target: 6,
+                expectation: "이제 무리라느니 졸리다느니 — だって/なんて를 인용으로 읽어야 한다",
+                forbidden: ["웃고 싶"]
             ),
             Fixture(
-                song: "夜に駆ける", artist: "YOASOBI", lines: yoasobi, target: 7,
-                expectation: "실은 나도 말하고 싶어 — んだ의 어감이 살아야 한다",
+                song: song, artist: artist, lines: lines, target: 7,
+                expectation: "실은 나도 웃고 싶어 — んだ의 어감이 살아야 한다",
                 forbidden: []
             ),
         ]
     }
 
+    /// The engine line for a report header, from what will actually run.
+    ///
+    /// The model being installed is not the model being asked: `Sensei()` takes
+    /// the stored depth, quick by default, and a quick run never calls the model
+    /// however the header described it.
+    private static func engineLabel(_ sensei: Sensei) -> String {
+        guard sensei.usesOnDeviceModel else { return "사전 (모델 없음)" }
+        return sensei.depth == .deep ? "온디바이스 모델 (정확하게)" : "사전·번역기 (빠르게, 모델 호출 없음)"
+    }
+
     @Test("고정된 줄에 실제 모델을 돌려 결과를 찍는다")
     func writeReport() async {
         let sensei = Sensei()
+        // What this report measures is the model, so it is asked for rather
+        // than inherited from whatever the settings screen last stored.
+        sensei.depth = .deep
         var report = ""
         var flags = Flags()
 
         report += "# 해석 품질 보고서\n\n"
-        report += "엔진: \(sensei.usesOnDeviceModel ? "온디바이스 모델" : "사전 (모델 없음)")\n"
+        report += "엔진: \(Self.engineLabel(sensei))\n"
         if !sensei.usesOnDeviceModel {
             report += "\n> 모델을 쓸 수 없어 사전으로 대체됐습니다. "
             report += "이 보고서로는 프롬프트 변경을 판단할 수 없습니다.\n"
@@ -196,28 +223,18 @@ struct SenseiReportSuite {
     @Test("전곡을 한 번에 돌려 이웃 줄 침범을 센다")
     func writeWholeSongReport() async {
         let sensei = Sensei()
+        sensei.depth = .deep
         // A chorus line brought back, so the repeat path runs: it must reappear
         // as a copy, and must not be counted as bleed.
-        let texts = [
-            "沈むように溶けてゆくように",
-            "二人だけの空が広がる夜に",
-            "「さよなら」だけだった",
-            "その一言で全てが分かった",
-            "日が沈み出した空と君の姿",
-            "フェンス越しに重なっていた",
-            "もう嫌だって 疲れたよなんて",
-            "本当は僕も言いたいんだ",
-            "「さよなら」だけだった",
-        ]
+        let texts = Self.fixtureLines + [Self.fixtureLines[2]]
         // The same words the per-line fixtures forbid. Without them the run
         // reports zero because it asked nothing, which reads exactly like a run
         // that asked and found nothing.
-        let forbidden: [String: [String]] = [
-            "沈むように溶けてゆくように": ["달리", "달빛"],
-            "二人だけの空が広がる夜に": ["공기"],
-            "「さよなら」だけだった": ["이해", "공기", "펼쳐"],
-            "もう嫌だって 疲れたよなんて": ["말하고 싶"],
-        ]
+        let forbidden: [String: [String]] = Dictionary(
+            uniqueKeysWithValues: fixtures
+                .filter { !$0.forbidden.isEmpty }
+                .map { ($0.lines[$0.target], $0.forbidden) }
+        )
 
         let lyrics = Lyrics(
             lines: texts.enumerated().map { index, text in
@@ -234,7 +251,7 @@ struct SenseiReportSuite {
         var perLine: [TimeInterval] = []
         var lastTick = Date.now
         let started = lastTick
-        await sensei.analyzeAll(lyrics: lyrics, songTitle: "夜に駆ける", artist: "YOASOBI") { _, _ in
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: Self.fixtureSong, artist: Self.fixtureArtist) { _, _ in
             let now = Date.now
             perLine.append(now.timeIntervalSince(lastTick))
             lastTick = now
@@ -242,7 +259,7 @@ struct SenseiReportSuite {
         let elapsed = Date.now.timeIntervalSince(started)
 
         var report = "# 전곡 한 번에 — 이웃 줄 침범\n\n"
-        report += "엔진: \(sensei.usesOnDeviceModel ? "온디바이스 모델" : "사전 (모델 없음)")\n\n"
+        report += "엔진: \(Self.engineLabel(sensei))\n\n"
 
         var flags = Flags()
         let dictionary = DictionarySensei()
@@ -289,7 +306,7 @@ struct SenseiReportSuite {
 
         // The repeat must be a copy of the line it repeats, not a second guess.
         let first = sensei.cached(2)?.translationKo ?? ""
-        let repeated = sensei.cached(8)?.translationKo ?? ""
+        let repeated = sensei.cached(texts.count - 1)?.translationKo ?? ""
         report += "\n반복 줄 복사: "
         report += first == repeated ? "같음 (기대대로)" : "다름 — `\(first)` vs `\(repeated)`"
         report += "\n\n"
@@ -399,32 +416,28 @@ struct SenseiReportSuite {
         print("=== QUICK MODE END ===")
     }
 
-    /// Consecutive lines from songs a learner would actually open. Shared by the
-    /// reports that measure over real lyrics rather than over fixtures.
+    /// Consecutive lines written in the register of J-pop lyrics. Shared by the
+    /// reports that measure over song-like text rather than over fixtures.
+    ///
+    /// Invented, like the fixtures: the constructions are what the measurement
+    /// needs — conditionals, 〜てる, 〜ように, quoted words, katakana loanwords —
+    /// not anyone's actual song. Real lyrics are measured by the coverage report
+    /// below, which fetches them instead of keeping copies in the source.
     static let realLyrics: [(String, [String])] = [
-        ("夜に駆ける", [
-            "沈むように溶けてゆくように",
-            "二人だけの空が広がる夜に",
-            "「さよなら」だけだった",
-            "その一言で全てが分かった",
-            "日が沈み出した空と君の姿",
-            "フェンス越しに重なっていた",
-            "もう嫌だって 疲れたよなんて",
-            "本当は僕も言いたいんだ",
+        (fixtureSong, fixtureLines),
+        ("手紙", [
+            "夢ならもう少し続いてほしかった",
+            "あの日の約束がまだ胸にある",
+            "薄明かりの中で道を探した",
+            "その横顔を今も覚えている",
+            "失くしたものの重さを知って",
+            "別れ際に君が気づかせてくれた",
         ]),
-        ("Lemon", [
-            "夢ならばどれほどよかったでしょう",
-            "今でもあなたはわたしの光",
-            "暗闇であなたの背をなぞった",
-            "その輪郭を鮮明に覚えている",
-            "戻らない幸せがあることを",
-            "最後にあなたが教えてくれた",
-        ]),
-        ("マリーゴールド", [
-            "麦わらの帽子の君が",
-            "揺れたマリーゴールドに似てる",
-            "あれから七年経っても",
-            "僕は君に会いたいんだ",
+        ("ひまわり畑", [
+            "白い帽子をかぶった君が",
+            "風に揺れる花みたいで",
+            "季節がいくつ変わっても",
+            "僕は君を探してるんだ",
         ]),
     ]
 
@@ -573,10 +586,10 @@ struct SenseiReportSuite {
             translations.append((line: line, text: study.translationKo))
 
             // A translation far longer than the line it renders is the model
-            // padding. Measured, not guessed: 「「さよなら」だけだった」 — eleven
-            // characters — came back as a conditional about parting being
-            // enough, and 「沈むように溶けてゆくように」 gained an inner door that
-            // is in no part of the song. Both are short lines stretched.
+            // padding. Measured, not guessed: an eleven-character line quoting
+            // a goodbye came back as a conditional about parting being enough,
+            // and a line of two 〜ように clauses gained an inner door that is in
+            // no part of the song. Both are short lines stretched.
             //
             // A ratio rather than a length, because a long line has room for a
             // long sentence. Korean is more compact than Japanese here, so

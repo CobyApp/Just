@@ -70,6 +70,53 @@ struct LRCParserTests {
     func plainLyricsHaveNoActiveLine() {
         #expect(LRCParser.parsePlain("a\nb").activeLineIndex(at: 10) == nil)
     }
+
+    /// LRC convention: a positive offset makes the lyrics appear earlier.
+    @Test("[offset:+ms]는 가사를 그만큼 앞당긴다")
+    func positiveOffsetShowsLyricsEarlier() {
+        let lyrics = LRCParser.parse("[offset:+500]\n[00:10.00] a\n[00:20.00] b")
+        #expect(lyrics.lines.map(\.time) == [9.5, 19.5])
+        #expect(lyrics.lines.map(\.text) == ["a", "b"])
+    }
+
+    @Test("[offset:-ms]는 가사를 그만큼 늦춘다")
+    func negativeOffsetShowsLyricsLater() {
+        let lyrics = LRCParser.parse("[00:10.00] a\n[offset:-250]")
+        #expect(lyrics.lines.map(\.time) == [10.25])
+    }
+
+    @Test("오프셋으로 0초 앞으로 밀린 줄은 0초에 둔다")
+    func offsetNeverGoesNegative() {
+        let lyrics = LRCParser.parse("[offset:1000]\n[00:00.50] a")
+        #expect(lyrics.lines.first?.time == 0)
+    }
+
+    @Test("줄 끝의 타임스탬프는 떼고 글은 남긴다")
+    func stripsTrailingTimestamps() {
+        let lyrics = LRCParser.parse("[00:12.00]窓を開けて[00:15.00]\n[00:15.00]風が来る")
+        #expect(lyrics.lines.count == 2)
+        #expect(lyrics.lines.map(\.text) == ["窓を開けて", "風が来る"])
+        #expect(lyrics.lines.map(\.time) == [12, 15])
+    }
+
+    @Test("줄 안의 단어별 타임스탬프도 글이 아니다")
+    func stripsInlineWordTimestamps() {
+        let lyrics = LRCParser.parse("[00:12.00]<00:12.00>窓を<00:12.50>開けて[00:13.00]もう一度")
+        #expect(lyrics.lines.count == 1)
+        #expect(lyrics.lines[0].text == "窓を開けてもう一度")
+        #expect(lyrics.lines[0].time == 12)
+    }
+
+    @Test("BOM이 붙은 첫 줄도 잃지 않는다")
+    func stripsByteOrderMark() {
+        let lyrics = LRCParser.parse("\u{FEFF}[00:01.00] 一行目\n[00:05.00] 二行目")
+        #expect(lyrics.isSynced)
+        #expect(lyrics.lines.map(\.text) == ["一行目", "二行目"])
+        #expect(lyrics.lines.first?.time == 1)
+
+        let plain = LRCParser.parsePlain("\u{FEFF}一行目")
+        #expect(plain.lines.first?.text == "一行目")
+    }
 }
 
 @Suite("가사 언어 판정")
@@ -93,9 +140,9 @@ struct LyricsLanguageTests {
     @Test("본문이 일본어면 일본어로 본다")
     func acceptsJapaneseBody() {
         let japanese = """
-        [00:01.64] 夢ならばどれほどよかったでしょう
-        [00:07.19] 未だにあなたのことを夢にみる
-        [00:12.00] 忘れた物を取りに帰るように
+        [00:01.64] 雨ならば窓の外で待っていよう
+        [00:07.19] 今でも君の声を夢にみる
+        [00:12.00] 置いてきた傘を探しに戻るように
         """
         #expect(LRCLIBClient.isJapanese(japanese))
         #expect(LRCLIBClient.japaneseRatio(japanese) == 1)
@@ -235,6 +282,84 @@ struct LyricsCandidateTests {
             duration: nil
         )
         #expect(chosen?.syncedLyrics != nil)
+    }
+
+    private func translation(duration: Double?) -> LRCLIBClient.Record {
+        LRCLIBClient.Record(
+            trackName: "夜に駆ける",
+            artistName: "YOASOBI",
+            albumName: nil,
+            duration: duration,
+            instrumental: false,
+            plainLyrics: "Like sinking\nLike melting away",
+            syncedLyrics: "[00:01.00]Like sinking\n[00:04.00]Like melting away"
+        )
+    }
+
+    /// Nil is what lets the caller move on — to the next spelling, and in the
+    /// end to the other edit's words as plain text. Falling back to whatever
+    /// was left meant neither ever ran.
+    @Test("맞는 후보가 없으면 아무것도 고르지 않는다")
+    func returnsNilWhenNothingFits() {
+        let chosen = LRCLIBClient.best(
+            from: [translation(duration: 261), record(duration: 200, synced: true)],
+            duration: 261
+        )
+        #expect(chosen == nil)
+    }
+
+    @Test("번역본보다 길이가 맞는 일본어 가사를 고른다")
+    func choosesJapaneseWithinTolerance() {
+        let chosen = LRCLIBClient.best(
+            from: [translation(duration: 261), record(duration: 265, synced: false)],
+            duration: 261
+        )
+        #expect(chosen?.duration == 265)
+        #expect(chosen?.plainLyrics == "沈むように")
+    }
+
+    @Test("번역본만 있으면 길이가 맞아도 고르지 않는다")
+    func neverFallsBackToATranslation() {
+        #expect(LRCLIBClient.best(from: [translation(duration: 261)], duration: 261) == nil)
+        #expect(LRCLIBClient.best(from: [translation(duration: nil)], duration: nil) == nil)
+    }
+
+    @Test("길이가 어긋난 일본어 가사는 다른 판본으로 따로 남는다")
+    func lengthMismatchIsLeftForThePlainFallback() {
+        let other = record(duration: 200, synced: true)
+        #expect(LRCLIBClient.best(from: [other], duration: 261) == nil)
+        #expect(LRCLIBClient.bestRegardlessOfLength(from: [translation(duration: 261), other])?.duration == 200)
+    }
+}
+
+@Suite("가사 요청 취소")
+struct LyricsCancellationTests {
+    @Test("취소는 취소로 알아본다")
+    func recognisesCancellation() {
+        #expect(LRCLIBClient.isCancellation(CancellationError()))
+        #expect(LRCLIBClient.isCancellation(URLError(.cancelled)))
+    }
+
+    @Test("네트워크 실패는 취소가 아니다")
+    func networkFailureIsNotCancellation() {
+        #expect(!LRCLIBClient.isCancellation(URLError(.notConnectedToInternet)))
+        #expect(!LRCLIBClient.isCancellation(LRCLIBClient.Failure.notFound))
+    }
+
+    /// Cancelled before it starts, the lookup must not walk every spelling and
+    /// then report the cancellation as a network failure.
+    @Test("취소된 작업은 다른 표기를 더 시도하지 않고 취소로 끝난다")
+    func cancelledLookupThrowsCancellation() async {
+        let task = Task {
+            try await LRCLIBClient().lyrics(artist: "テスト", title: "テスト")
+        }
+        task.cancel()
+        do {
+            _ = try await task.value
+            Issue.record("취소됐는데 가사를 돌려받았다")
+        } catch {
+            #expect(LRCLIBClient.isCancellation(error))
+        }
     }
 }
 

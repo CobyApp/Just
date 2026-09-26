@@ -1,6 +1,7 @@
 import Foundation
 import JustCore
 import NaturalLanguage
+import Synchronization
 
 public struct JapaneseToken: Hashable, Sendable {
     public let surface: String
@@ -81,13 +82,99 @@ public struct JapaneseToken: Hashable, Sendable {
 public struct JapaneseTokenizer: Sendable {
     public init() {}
 
+    /// One tagger for every call, rather than one per call.
+    ///
+    /// Building an `NLTagger` loads its models, and `tokenize` runs on the main
+    /// actor for every line the reader taps and every candidate `refine` checks
+    /// — so a fresh tagger per call was a real cost paid on the thread that
+    /// scrolls. `NLTagger` is not `Sendable`, so it lives behind a lock: the
+    /// work under it is a single line of lyrics, and callers from different
+    /// threads simply take turns.
+    private static let tagger = Mutex(NLTagger(tagSchemes: [.lemma, .lexicalClass]))
+
     public func tokenize(_ text: String) -> [JapaneseToken] {
         guard !text.isEmpty else { return [] }
 
-        let tagger = NLTagger(tagSchemes: [.lemma, .lexicalClass])
-        tagger.string = text
-        tagger.setLanguage(.japanese, range: text.startIndex..<text.endIndex)
+        return Self.tagger.withLock { tagger in
+            tagger.string = text
+            tagger.setLanguage(.japanese, range: text.startIndex..<text.endIndex)
 
+            var tokens: [JapaneseToken] = []
+            Self.forEachToken(in: text) { surface, range, transcription in
+                let lemmaTag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lemma).0
+                let classTag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lexicalClass).0
+
+                tokens.append(
+                    JapaneseToken(
+                        surface: surface,
+                        reading: Self.hiragana(fromRomaji: transcription) ?? surface.toHiragana(),
+                        lemma: lemmaTag?.rawValue ?? surface,
+                        lexicalClass: classTag?.rawValue ?? "Other",
+                        range: range
+                    )
+                )
+            }
+            // Released so the tagger does not keep the last line alive.
+            tagger.string = nil
+            return tokens
+        }
+    }
+
+    /// Words from a line, de-duplicated, in the order they appear.
+    public func studyCandidates(in text: String) -> [JapaneseToken] {
+        var seen = Set<String>()
+        return tokenize(text)
+            .filter(\.isStudyCandidate)
+            .filter { seen.insert($0.surface).inserted }
+    }
+
+    /// The hiragana reading of a whole string, from the tokenizer alone.
+    ///
+    /// This is what `toHiragana` falls back on for kanji, where ICU's own
+    /// transliteration is no use: its Latin transform reads kanji as Mandarin,
+    /// so 夢 came out as 「め̀んぐ」 and was stored as a reading.
+    ///
+    /// Nil when any kanji-bearing piece has no transcription. A reading with a
+    /// hole in it is worse than none — it would print as furigana and be
+    /// accepted as an answer.
+    static func reading(of text: String) -> String? {
+        guard !text.isEmpty else { return nil }
+        var reading = ""
+        var cursor = text.startIndex
+        var complete = true
+
+        forEachToken(in: text) { surface, range, transcription in
+            guard complete else { return }
+            // Whatever the tokenizer stepped over — spaces, symbols — is kept
+            // as written rather than dropped.
+            if cursor < range.lowerBound {
+                reading += String(text[cursor..<range.lowerBound])
+            }
+            cursor = range.upperBound
+
+            if let kana = hiragana(fromRomaji: transcription) {
+                reading += kana
+            } else if surface.containsKanji {
+                complete = false
+            } else {
+                reading += surface.toHiragana()
+            }
+        }
+        guard complete else { return nil }
+        if cursor < text.endIndex {
+            reading += String(text[cursor...])
+        }
+        // A kanji the tokenizer passed over whole is still a hole.
+        guard !reading.isEmpty, !reading.containsKanji else { return nil }
+        return reading
+    }
+
+    /// Walks `text` with `CFStringTokenizer`, handing over each non-blank
+    /// token with its Latin transcription.
+    private static func forEachToken(
+        in text: String,
+        _ body: (_ surface: String, _ range: Range<String.Index>, _ transcription: String?) -> Void
+    ) {
         let locale = (Locale(identifier: "ja") as NSLocale) as CFLocale
         let cfText = text as CFString
         let tokenizer = CFStringTokenizerCreate(
@@ -98,7 +185,6 @@ public struct JapaneseTokenizer: Sendable {
             locale
         )
 
-        var tokens: [JapaneseToken] = []
         while CFStringTokenizerAdvanceToNextToken(tokenizer).rawValue != 0 {
             let cfRange = CFStringTokenizerGetCurrentTokenRange(tokenizer)
             guard
@@ -116,28 +202,8 @@ public struct JapaneseTokenizer: Sendable {
                 kCFStringTokenizerAttributeLatinTranscription
             ) as? String
 
-            let lemmaTag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lemma).0
-            let classTag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lexicalClass).0
-
-            tokens.append(
-                JapaneseToken(
-                    surface: surface,
-                    reading: Self.hiragana(fromRomaji: transcription) ?? surface.toHiragana(),
-                    lemma: lemmaTag?.rawValue ?? surface,
-                    lexicalClass: classTag?.rawValue ?? "Other",
-                    range: range
-                )
-            )
+            body(surface, range, transcription)
         }
-        return tokens
-    }
-
-    /// Words from a line, de-duplicated, in the order they appear.
-    public func studyCandidates(in text: String) -> [JapaneseToken] {
-        var seen = Set<String>()
-        return tokenize(text)
-            .filter(\.isStudyCandidate)
-            .filter { seen.insert($0.surface).inserted }
     }
 
     private static func hiragana(fromRomaji romaji: String?) -> String? {
@@ -165,11 +231,34 @@ public extension Character {
 public extension String {
     var containsKanji: Bool { contains(where: \.isKanji) }
 
-    /// Best-effort kana conversion, used when the tokenizer gives no
-    /// transcription (single symbols, mixed-script fragments).
+    /// Best-effort hiragana, used when the tokenizer gives no transcription
+    /// (single symbols, mixed-script fragments) and to repair a model's
+    /// reading field.
+    ///
+    /// Katakana is folded and romaji converted. Kanji is never handed to ICU's
+    /// Latin transform, which reads it as Mandarin — 夢 became 「め̀んぐ」 and
+    /// 空 「こおんぐ」, and both were stored as readings. For kanji the
+    /// tokenizer's reading is used instead, and when it has none the answer is
+    /// empty: no reading is better than a wrong one.
     func toHiragana() -> String {
-        let mutable = NSMutableString(string: self) as CFMutableString
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        guard !containsKanji else { return JapaneseTokenizer.reading(of: self) ?? "" }
+
+        // Katakana by code point rather than through ICU, whose
+        // Katakana-Hiragana transform rewrites 「ー」 as a vowel (ラーメン →
+        // らあめん). The long-vowel mark is kept as written.
+        var folded = String.UnicodeScalarView()
+        for scalar in unicodeScalars {
+            if (0x30A1...0x30F6).contains(scalar.value),
+               let shifted = Unicode.Scalar(scalar.value - 0x60) {
+                folded.append(shifted)
+            } else {
+                folded.append(scalar)
+            }
+        }
+
+        // Romaji — the model sometimes answers the reading field in Latin
+        // letters. Leaves kana alone.
+        let mutable = NSMutableString(string: String(folded)) as CFMutableString
         CFStringTransform(mutable, nil, kCFStringTransformLatinHiragana, false)
         return mutable as String
     }

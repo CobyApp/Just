@@ -196,14 +196,38 @@ public struct QuizBuilder: Sendable {
             prompt: lineText.replacingOccurrences(of: surface, with: QuizQuestion.blank),
             context: [source.meaning, source.songLabel].compactMap { $0 }.joined(separator: " · "),
             // The inflected form is what the line needs, but the dictionary
-            // form shows the learner knew the word, so both pass.
-            acceptedAnswers: [surface, source.lemma, source.reading],
+            // form shows the learner knew the word, so both pass — and so do
+            // their readings. `source.reading` is the dictionary form's, so
+            // without the surface's own reading 「つかれた」 for 「疲れた」 — the
+            // exact answer, typed in kana — was only "almost".
+            acceptedAnswers: Self.accepted(
+                [surface, source.lemma, source.reading, Self.reading(ofSurface: surface)]
+            ),
             expected: surface,
             expectedReading: source.reading,
             meaning: source.meaning,
             entryKey: source.key,
             songLabelOnly: source.songLabel
         )
+    }
+
+    /// How the form the lyric used is read, when it holds kanji.
+    ///
+    /// The tokenizer reads the form on its own, without the line around it.
+    /// That is weaker than reading it in context, but it only ever widens what
+    /// is accepted: the dictionary form and its reading still pass whatever
+    /// this says. Nil when there is no kanji — the kana form is its own reading
+    /// — or when the tokenizer cannot read it.
+    static func reading(ofSurface surface: String) -> String? {
+        guard surface.containsKanji else { return nil }
+        let reading = surface.toHiragana()
+        return reading.isEmpty ? nil : reading
+    }
+
+    /// The non-empty answers, first occurrence kept, in the order given.
+    private static func accepted(_ answers: [String?]) -> [String] {
+        var seen = Set<String>()
+        return answers.compactMap { $0 }.filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
     private func recall(_ source: Source) -> QuizQuestion {

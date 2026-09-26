@@ -183,9 +183,9 @@ struct QuizBuilderTests {
             lemma: "夢",
             reading: "ゆめ",
             meaning: "꿈",
-            lineText: "夢ならばどれほどよかったでしょう",
+            lineText: "夢ならばもう一度だけ会いたい",
             surface: "夢",
-            songLabel: "米津玄師 — Lemon"
+            songLabel: "テスト歌手 — 夢の歌"
         )
     }
 
@@ -202,7 +202,7 @@ struct QuizBuilderTests {
     @Test("빈칸 문제는 곡 이름만 따로 들고 있다")
     func clozeKeepsSongLabelSeparate() {
         let question = try! #require(builder.build(from: [source], kind: .cloze).first)
-        #expect(question.songLabelOnly == "米津玄師 — Lemon")
+        #expect(question.songLabelOnly == "テスト歌手 — 夢の歌")
         #expect(question.songLabelOnly?.contains("꿈") != true)
     }
 
@@ -675,8 +675,8 @@ struct RepeatedLineTests {
     func movedKeepsEverythingButIndex() {
         let study = LineStudy(
             lineIndex: 3,
-            original: "夢ならばどれほどよかったでしょう",
-            translationKo: "꿈이라면 얼마나 좋았을까요?",
+            original: "夢ならばもう一度だけ会いたい",
+            translationKo: "꿈이라면 한 번만 더 만나고 싶어",
             words: [
                 StudyWord(
                     surface: "夢",
@@ -706,7 +706,7 @@ struct RepeatedLineTests {
     @Test("후렴이 반복되면 모델 호출이 줄어든다")
     func repeatsReduceModelCalls() {
         let lines = [
-            "夢ならば", "未だに", "サビ", "忘れた物", "サビ", "戻らない", "サビ",
+            "夢ならば", "今でも", "サビ", "置いてきた", "サビ", "戻れない", "サビ",
         ]
         let unique = Set(lines)
         #expect(unique.count == 5)
@@ -814,9 +814,9 @@ struct DictationQuizTests {
             lemma: "夢",
             reading: "ゆめ",
             meaning: "꿈",
-            lineText: "夢ならばどれほどよかったでしょう",
+            lineText: "夢ならばもう一度だけ会いたい",
             surface: "夢",
-            songLabel: "米津玄師 — Lemon"
+            songLabel: "テスト歌手 — 夢の歌"
         )
     }
 
@@ -839,7 +839,7 @@ struct DictationQuizTests {
         #expect(!spoken.contains("夢"))
         // The rest of the line is left as written — context is what lets the
         // synthesiser read the remaining kanji correctly.
-        #expect(spoken.hasSuffix("ならばどれほどよかったでしょう"))
+        #expect(spoken.hasSuffix("ならばもう一度だけ会いたい"))
     }
 
     @Test("활용형·조사 결합형은 원문 그대로 읽는다")
@@ -903,8 +903,8 @@ struct DictationQuizTests {
         let sources = (0..<40).map { index in
             QuizBuilder.Source(
                 key: "k\(index)", lemma: "夢", reading: "ゆめ", meaning: "꿈\(index)",
-                lineText: "夢ならばどれほどよかったでしょう", surface: "夢",
-                songLabel: "米津玄師 — Lemon"
+                lineText: "夢ならばもう一度だけ会いたい", surface: "夢",
+                songLabel: "テスト歌手 — 夢の歌"
             )
         }
         let questions = builder.build(from: sources, limit: 40)
@@ -1484,7 +1484,7 @@ struct GrammarPatternFalsePositiveTests {
     /// pattern along with its lookalikes.
     @Test("진짜 조건형은 그대로 잡는다")
     func realConditionalStillMatches() {
-        #expect(patterns("夢ならばどれほどよかったでしょう").contains("〜なら"))
+        #expect(patterns("夢ならばもう一度だけ会いたい").contains("〜なら"))
     }
 }
 
@@ -1632,5 +1632,215 @@ struct NoBentKanaToKanjiTests {
         #expect(!surfaces.contains("ない"))
         #expect(!surfaces.contains("こと"))
         #expect(!surfaces.contains("もの"))
+    }
+}
+
+@Suite("가나 읽기 변환")
+struct ToHiraganaTests {
+    /// ICU's Latin transform reads kanji as Mandarin: 夢 came back as 「め̀んぐ」
+    /// and was stored as the word's reading.
+    @Test("한자는 중국어 병음이 아니라 일본어 읽기로 바뀐다")
+    func kanjiIsReadAsJapanese() {
+        #expect("夢".toHiragana() == "ゆめ")
+        #expect("空".toHiragana() == "そら")
+    }
+
+    @Test("한자가 섞여도 병음이나 로마자가 남지 않는다")
+    func neverLeavesPinyin() {
+        for word in ["夢", "空", "疲れた", "一言", "東京"] {
+            let reading = word.toHiragana()
+            let isKana = reading.allSatisfy { $0.isHiragana || $0 == "ー" }
+            let hasLatin = reading.contains { $0.isASCII }
+            #expect(isKana, "\(word) → \(reading)")
+            #expect(!hasLatin, "\(word) → \(reading)")
+        }
+    }
+
+    @Test("가타카나와 로마자는 히라가나로, 장음 부호는 그대로")
+    func foldsKanaAndRomaji() {
+        #expect("ゆめ".toHiragana() == "ゆめ")
+        #expect("カタカナとひらがな".toHiragana() == "かたかなとひらがな")
+        #expect("ラーメン".toHiragana() == "らーめん")
+        #expect("yume".toHiragana() == "ゆめ")
+    }
+
+    @Test("토큰의 읽기에도 병음이 들어가지 않는다")
+    func tokenReadingsAreKana() {
+        for token in JapaneseTokenizer().tokenize("夢の空に疲れた") {
+            let hasLatin = token.reading.contains { $0.isASCII }
+            #expect(!hasLatin, "\(token.surface) → \(token.reading)")
+        }
+    }
+}
+
+@Suite("빈칸 문제의 활용형 읽기")
+struct SurfaceReadingAnswerTests {
+    private let builder = QuizBuilder()
+    private let checker = AnswerChecker()
+
+    private var inflected: QuizBuilder.Source {
+        .init(
+            key: "疲れる|つかれる",
+            lemma: "疲れる",
+            reading: "つかれる",
+            meaning: "지치다",
+            lineText: "もう無理だって 疲れたよなんて",
+            surface: "疲れた",
+            songLabel: nil
+        )
+    }
+
+    /// The answer the line needs, typed in kana, used to be only "almost":
+    /// the accepted reading was the dictionary form's.
+    @Test("활용형을 가나로 쓰면 정답")
+    func acceptsTheSurfaceReading() {
+        let question = try! #require(builder.build(from: [inflected], kind: .cloze).first)
+        #expect(question.acceptedAnswers.contains("つかれた"))
+        #expect(checker.check("つかれた", against: question) == .correct)
+        #expect(checker.check("tsukareta", against: question) == .correct)
+    }
+
+    @Test("사전형과 그 읽기도 여전히 정답")
+    func stillAcceptsTheDictionaryForm() {
+        let question = try! #require(builder.build(from: [inflected], kind: .cloze).first)
+        #expect(checker.check("疲れる", against: question) == .correct)
+        #expect(checker.check("つかれる", against: question) == .correct)
+        #expect(checker.check("疲れた", against: question) == .correct)
+    }
+
+    @Test("가나뿐인 활용형은 읽기를 따로 더하지 않는다")
+    func kanaSurfaceNeedsNoExtraReading() {
+        #expect(QuizBuilder.reading(ofSurface: "つかれた") == nil)
+        #expect(QuizBuilder.reading(ofSurface: "疲れた") == "つかれた")
+    }
+}
+
+/// Lets a translator stub reach the `Sensei` it was handed to.
+@MainActor
+private final class SenseiHandle {
+    weak var sensei: Sensei?
+    var calls = 0
+}
+
+@MainActor
+@Suite("곡이 바뀐 뒤 도착한 결과")
+struct SongChangeDuringAnalysisTests {
+    private let lyrics = Lyrics(
+        lines: [
+            LyricLine(id: 0, time: 0, text: "夢を見た"),
+            LyricLine(id: 1, time: 4, text: "夜が明ける"),
+        ],
+        isSynced: true,
+        source: "test"
+    )
+
+    /// A translator that opens another song while it is "thinking" — which is
+    /// what a reader switching songs mid-analysis looks like from here.
+    private func senseiThatSwitchesSongs(_ handle: SenseiHandle) -> Sensei {
+        let sensei = Sensei(
+            dictionary: DictionarySensei(entries: []),
+            modelIsAvailable: false,
+            translate: { _ in
+                handle.calls += 1
+                handle.sensei?.reset(for: "songB")
+                return "꿈을 꿨다"
+            }
+        )
+        handle.sensei = sensei
+        return sensei
+    }
+
+    @Test("이전 곡의 결과는 새 곡의 같은 줄에 기록되지 않는다")
+    func dropsTheOldSongsResult() async {
+        let handle = SenseiHandle()
+        let sensei = senseiThatSwitchesSongs(handle)
+        sensei.reset(for: "songA")
+
+        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "A", artist: "-")
+
+        #expect(study == nil)
+        #expect(sensei.cached(0) == nil)
+        #expect(sensei.cache(for: "songB")?.isEmpty == true)
+        #expect(!sensei.isAnalyzing(0))
+    }
+
+    @Test("곡이 바뀌면 전곡 해석은 거기서 멈춘다")
+    func wholeSongRunStopsAtTheSwitch() async {
+        let handle = SenseiHandle()
+        let sensei = senseiThatSwitchesSongs(handle)
+        sensei.reset(for: "songA")
+
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "A", artist: "-")
+
+        // One line was underway when the song changed; the second was never
+        // started, and nothing was filed under song B.
+        #expect(handle.calls == 1)
+        #expect(sensei.cache(for: "songB")?.isEmpty == true)
+    }
+
+    @Test("곡이 그대로면 결과는 평소처럼 기록된다")
+    func keepsTheResultWhenTheSongStays() async {
+        let sensei = Sensei(
+            dictionary: DictionarySensei(entries: []),
+            modelIsAvailable: false,
+            translate: { _ in "꿈을 꿨다" }
+        )
+        sensei.reset(for: "songA")
+
+        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "A", artist: "-")
+
+        #expect(study?.translationKo == "꿈을 꿨다")
+        #expect(sensei.cache(for: "songA")?[0]?.translationKo == "꿈을 꿨다")
+    }
+}
+
+@MainActor
+@Suite("모델 요청은 한 번에 하나씩")
+struct RequestGateTests {
+    /// Awaiting the model releases the main actor, so a second request could
+    /// start while the first was still out — and the session answers that
+    /// with `concurrentRequests`. The gate is what makes them take turns.
+    @Test("앞 요청이 끝나기 전에는 다음 요청이 들어가지 않는다")
+    func secondWaitsForFirst() async {
+        let gate = RequestGate()
+        var log: [String] = []
+
+        await gate.acquire()
+        log.append("first in")
+
+        let second = Task { @MainActor in
+            await gate.acquire()
+            log.append("second in")
+            gate.release()
+        }
+        // Give the second request every chance to barge in.
+        for _ in 0..<20 { await Task.yield() }
+        log.append("first out")
+        gate.release()
+
+        await second.value
+        #expect(log == ["first in", "first out", "second in"])
+    }
+
+    @Test("기다리는 순서대로 들어간다")
+    func waitersGoInArrivalOrder() async {
+        let gate = RequestGate()
+        var order: [Int] = []
+
+        await gate.acquire()
+        var tasks: [Task<Void, Never>] = []
+        for index in 0..<3 {
+            tasks.append(Task { @MainActor in
+                await gate.acquire()
+                order.append(index)
+                gate.release()
+            })
+            // Each one reaches the queue before the next is created.
+            for _ in 0..<5 { await Task.yield() }
+        }
+        gate.release()
+        for task in tasks { await task.value }
+
+        #expect(order == [0, 1, 2])
     }
 }
