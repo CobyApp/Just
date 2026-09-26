@@ -52,7 +52,12 @@ struct MiniPlayer: View {
                     // `play()` does not start it yet: the full screen opens on
                     // its preparing view first, and the player holds the
                     // request until the video's stage is actually on screen.
-                    if app.player.hasVideo {
+                    if app.player.trackID != track.id || app.player.hasFailed {
+                        // The load was abandoned (the player closed while the
+                        // video was still being looked up) or failed: nothing
+                        // here can play. The full player loads it again.
+                        app.expandPlayer()
+                    } else if app.player.hasVideo {
                         app.expandPlayer()
                         app.player.play()
                     } else {

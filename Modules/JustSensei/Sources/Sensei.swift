@@ -862,7 +862,18 @@ public final class Sensei {
             }
 
             guard self.scope == scope else { return }
-            if pendingLines(in: lyrics).count >= before { break }
+            let pending = pendingLines(in: lyrics)
+            if pending.count >= before {
+                // A line tapped while this ran is answered by that call, and
+                // this pass skipped it — which read as no progress and ended
+                // the run with the bar short. Wait for that call to finish and
+                // count again; `inFlight` always empties, so this terminates.
+                let isBusy = { pending.contains { self.inFlight.contains($0.id) } }
+                guard isBusy() else { break }
+                while !Task.isCancelled, self.scope == scope, isBusy() {
+                    try? await Task.sleep(for: .milliseconds(200))
+                }
+            }
         }
 
         // Whatever the model never managed. Last, deliberately: a line the

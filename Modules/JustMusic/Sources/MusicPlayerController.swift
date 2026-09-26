@@ -77,6 +77,11 @@ public final class MusicPlayerController {
     @ObservationIgnored private var currentVideoID: String?
     /// Cancels the video if it never starts — see `watchForStall`.
     @ObservationIgnored private var stallWatch: Task<Void, Never>?
+    /// A stall watch asked for before the page was ready, for this video.
+    @ObservationIgnored private var stallWatchAwaitsPage: String?
+    /// Videos that stalled during this load. Skipped for the rest of it, but
+    /// not held against them: a stall is usually the connection.
+    @ObservationIgnored private var stalledThisLoad: Set<String> = []
     /// How long a video may sit buffering before it is given up on.
     static let stallLimit: Duration = .seconds(15)
     /// The longest the whole video lookup may take — channels, search,
@@ -310,6 +315,15 @@ public final class MusicPlayerController {
     /// track, a live take — which is still the whole song.
     private func advanceVideo(afterError code: Int) -> String? {
         guard let trackID else { return nil }
+        if code == 0 {
+            // A stall, not an answer from YouTube: slow or offline looks the
+            // same. The next candidate is tried for now, but nothing is
+            // recorded — writing it down cost good videos their place, and
+            // after every candidate stalled once, marked the song as having
+            // none for a week.
+            if let currentVideoID { stalledThisLoad.insert(currentVideoID) }
+            return known.alternates[trackID]?.first { !stalledThisLoad.contains($0) }
+        }
         let next = known.advance(trackID, afterError: code)
         persistDirectory()
         return next
@@ -320,6 +334,8 @@ public final class MusicPlayerController {
     private func clearPlayback() {
         stallWatch?.cancel()
         stallWatch = nil
+        stallWatchAwaitsPage = nil
+        stalledThisLoad = []
         offscreenCheck?.cancel()
         offscreenCheck = nil
         previewTicker?.cancel()
@@ -346,6 +362,10 @@ public final class MusicPlayerController {
         hasVideo = true
         currentVideoID = videoID
         pendingAutoplay = autoplay
+        // A new video after one that failed mid-play starts over: left at
+        // `.playing`, the UI showed playback and the stall watch, which only
+        // acts on a video that has not started, never fired.
+        status = .loading
         // A video starts only where it can be seen. Until the stage is on
         // screen it is only cued, and `videoWindowChanged` starts it.
         let playsNow = autoplay && canShowVideo
@@ -361,6 +381,14 @@ public final class MusicPlayerController {
     /// same as for a video that refused outright.
     private func watchForStall(_ videoID: String) {
         stallWatch?.cancel()
+        // The clock starts once the page can take the video. Before that it
+        // is still fetching YouTube's player script, and on a slow first
+        // launch those fifteen seconds were blamed on the video.
+        guard hasWeb, web.pageIsReady else {
+            stallWatchAwaitsPage = videoID
+            return
+        }
+        stallWatchAwaitsPage = nil
         let generation = loadGeneration
         stallWatch = Task { [weak self] in
             try? await Task.sleep(for: Self.stallLimit)
@@ -431,6 +459,7 @@ public final class MusicPlayerController {
     public func pause() {
         log.info("pause requested (preview: \(self.isPreview))")
         stallWatch?.cancel()
+        stallWatchAwaitsPage = nil
         playsWhenOnScreen = false
         resumeAfterInterruption = false
         if isPreview {
@@ -598,6 +627,9 @@ public final class MusicPlayerController {
     }
 
     fileprivate func pageReady() {
+        if let waiting = stallWatchAwaitsPage, waiting == currentVideoID, hasVideo {
+            watchForStall(waiting)
+        }
         guard hasVideo, status == .loading else { return }
         status = .ready
     }
@@ -698,7 +730,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     /// What the page says, for the log — the player's numeric errors are
     /// otherwise invisible from outside the web view.
     let log = Logger(subsystem: "com.coby.just", category: "video")
-    private var pageIsReady = false
+    private(set) var pageIsReady = false
     private var queued: (videoID: String, autoplay: Bool)?
     /// Numbers each video handed to the page. The page stamps every message
     /// with the number it is playing under, and only messages stamped with

@@ -63,7 +63,7 @@ public struct LRCLIBClient: Sendable {
                     album: album,
                     duration: duration
                 )
-            } catch let error where Self.isCancellation(error) {
+            } catch let error where error.isCancellation {
                 // The caller has gone — another song, a closed player. Carrying
                 // on through the search below would spend a dozen requests on an
                 // answer nobody is waiting for.
@@ -97,7 +97,7 @@ public struct LRCLIBClient: Sendable {
                 if differentEdit == nil, let sheet = Self.bestRegardlessOfLength(from: results) {
                     differentEdit = sheet
                 }
-            } catch let error where Self.isCancellation(error) {
+            } catch let error where error.isCancellation {
                 throw error
             } catch {
                 // Kept, not thrown: a later spelling may still succeed, and if
@@ -261,7 +261,7 @@ public struct LRCLIBClient: Sendable {
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
-        } catch let error where Self.isCancellation(error) {
+        } catch let error where error.isCancellation {
             // Passed through as it is. Wrapped as `.transport`, a cancelled
             // lookup looked like a network failure: the loop above kept trying
             // spellings, and the reader was shown "cancelled" as the reason
@@ -284,15 +284,6 @@ public struct LRCLIBClient: Sendable {
         } catch {
             throw Failure.transport("가사 응답 형식이 예상과 다릅니다.")
         }
-    }
-
-    /// Whether an error means the caller gave up rather than that the lookup
-    /// failed. URLSession reports a cancelled task as `URLError.cancelled`
-    /// rather than `CancellationError`, so both count.
-    static func isCancellation(_ error: any Error) -> Bool {
-        if error is CancellationError { return true }
-        if let error = error as? URLError, error.code == .cancelled { return true }
-        return false
     }
 
     /// Fraction of lyric lines written in Japanese.

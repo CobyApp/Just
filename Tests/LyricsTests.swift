@@ -336,14 +336,14 @@ struct LyricsCandidateTests {
 struct LyricsCancellationTests {
     @Test("취소는 취소로 알아본다")
     func recognisesCancellation() {
-        #expect(LRCLIBClient.isCancellation(CancellationError()))
-        #expect(LRCLIBClient.isCancellation(URLError(.cancelled)))
+        #expect(CancellationError().isCancellation)
+        #expect(URLError(.cancelled).isCancellation)
     }
 
     @Test("네트워크 실패는 취소가 아니다")
     func networkFailureIsNotCancellation() {
-        #expect(!LRCLIBClient.isCancellation(URLError(.notConnectedToInternet)))
-        #expect(!LRCLIBClient.isCancellation(LRCLIBClient.Failure.notFound))
+        #expect(!URLError(.notConnectedToInternet).isCancellation)
+        #expect(!LRCLIBClient.Failure.notFound.isCancellation)
     }
 
     /// Cancelled before it starts, the lookup must not walk every spelling and
@@ -358,7 +358,7 @@ struct LyricsCancellationTests {
             _ = try await task.value
             Issue.record("취소됐는데 가사를 돌려받았다")
         } catch {
-            #expect(LRCLIBClient.isCancellation(error))
+            #expect(error.isCancellation)
         }
     }
 }

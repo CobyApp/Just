@@ -1,14 +1,7 @@
 import Foundation
+import JustCore
 
 extension Error {
-    /// The caller gave up — the player was closed, another song was opened.
-    /// Not a failure of the song, and never to be remembered as one.
-    var isCancellation: Bool {
-        if self is CancellationError { return true }
-        if let url = self as? URLError, url.code == .cancelled { return true }
-        return false
-    }
-
     /// The network, not the song: no connection, or one too slow to answer.
     var isOffline: Bool {
         guard let url = self as? URLError else { return false }
