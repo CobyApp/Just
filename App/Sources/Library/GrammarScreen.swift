@@ -1,6 +1,7 @@
 import JustCore
 import JustDesign
 import JustSensei
+import SwiftData
 import SwiftUI
 
 /// Grammar patterns pooled from every song the user has studied.

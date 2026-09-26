@@ -6,6 +6,7 @@ import SwiftUI
 /// collected, and being tested on it.
 struct RootView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -46,7 +47,13 @@ struct RootView: View {
         // The 30-second clip is audio and carries on.
         .onChange(of: scenePhase) { _, phase in
             app.player.sceneDidChange(isActive: phase != .background)
+            if phase == .active { JustStore(context: context).publishActivity() }
         }
+        // Cards fall due while the app is closed, and the reminder planned
+        // last time may no longer fit, so the widget, the badge and the
+        // reminder are brought up to date whenever the app comes back — not
+        // only after a grade. Here rather than in a tab, which may never load.
+        .task { JustStore(context: context).publishActivity() }
     }
 }
 

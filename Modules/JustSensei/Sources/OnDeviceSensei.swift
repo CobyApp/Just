@@ -196,6 +196,10 @@ public final class OnDeviceSensei {
     ///
     /// What is lost is variety, which a study aid has no use for: there is one
     /// right reading of a lyric line, not a distribution of them.
+    ///
+    /// `sampling:` is deprecated in the iOS 27 SDK in favour of `samplingMode:`,
+    /// but that initializer does not exist in the Xcode 26.6 SDK CI builds
+    /// with. Keep the old spelling until 26.6 is no longer supported.
     private static let generation = GenerationOptions(sampling: .greedy)
 
     public init() {

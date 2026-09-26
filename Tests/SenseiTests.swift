@@ -524,8 +524,8 @@ struct GrammarPresenceTests {
     @Test("가사에 있는 패턴은 남긴다")
     func keepsAPatternThatIsThere() {
         #expect(Sensei.grammarAppears("〜んだ", in: "本当は僕も言いたいんだ"))
-        #expect(Sensei.grammarAppears("〜ように", in: "沈むように溶けてゆくように"))
-        #expect(Sensei.grammarAppears("だって", in: "もう嫌だって 疲れたよなんて"))
+        #expect(Sensei.grammarAppears("〜ように", in: "眠るように揺れてゆくように"))
+        #expect(Sensei.grammarAppears("だって", in: "もう無理だって 疲れたよなんて"))
     }
 
     @Test("물결만 남는 패턴은 버린다")
@@ -572,7 +572,7 @@ struct GroundingTests {
                 == .word(surface: "その一言", headword: "その一言", reading: "そのひとこと")
         )
         #expect(
-            ground("空", in: "二人だけの空が広がる夜に")
+            ground("空", in: "君だけの空が広がる朝に")
                 == .word(surface: "空", headword: "空", reading: "そら")
         )
     }
@@ -623,9 +623,9 @@ struct GrammaticalFormTests {
     @Test("문법 형태는 단어에서 뺀다")
     func rejectsGrammaticalForms() {
         // 본 것: 「だけ」가 사전의 「丈」(길이)에 붙었다. 읽기를 공유하기 때문이다.
-        #expect(ground("だけ", in: "二人だけの空が広がる夜に") == .glue)
-        #expect(ground("なんて", in: "もう嫌だって 疲れたよなんて") == .glue)
-        #expect(ground("って", in: "もう嫌だって 疲れたよなんて") == .glue)
+        #expect(ground("だけ", in: "君だけの空が広がる朝に") == .glue)
+        #expect(ground("なんて", in: "もう無理だって 疲れたよなんて") == .glue)
+        #expect(ground("って", in: "もう無理だって 疲れたよなんて") == .glue)
     }
 
     @Test("문법 형태를 포함한 단어는 남는다")
@@ -640,7 +640,7 @@ struct GrammaticalFormTests {
     @Test("한자 단어는 영향이 없다")
     func leavesRealWordsAlone() {
         #expect(
-            ground("空", in: "二人だけの空が広がる夜に")
+            ground("空", in: "君だけの空が広がる朝に")
                 == .word(surface: "空", headword: "空", reading: "そら")
         )
     }
@@ -659,7 +659,7 @@ struct SurfaceIntegrityTests {
         // 보고서에 「疲れ (가사: 疲れ)」로 찍혀 있었다. 가사는 「疲れた」다. 이 형태가
         // 빈칸 문제로 넘어가면 「___たよなんて」처럼 조각이 남는다.
         #expect(
-            ground("疲れた", in: "もう嫌だって 疲れたよなんて")
+            ground("疲れた", in: "もう無理だって 疲れたよなんて")
                 == .word(surface: "疲れた", headword: "疲れ", reading: "つかれ")
         )
         #expect(
@@ -775,9 +775,9 @@ struct UsableTranslationTests {
         // Seen in the whole-song report: four lines came back with the lyric
         // itself in translationKo, and because it was not empty the record
         // kept it forever and never asked again.
-        #expect(!Sensei.isUsableTranslation("沈むように溶けてゆくように"))
-        #expect(!Sensei.isUsableTranslation("「さよなら」だけだった"))
-        #expect(!Sensei.isUsableTranslation("もう嫌だって 疲れたよなんて"))
+        #expect(!Sensei.isUsableTranslation("眠るように揺れてゆくように"))
+        #expect(!Sensei.isUsableTranslation("「さよなら」だけ残った"))
+        #expect(!Sensei.isUsableTranslation("もう無理だって 疲れたよなんて"))
     }
 
     @Test("한글이 섞여도 일본어가 인용부호 밖에 남으면 번역이 아니다")
@@ -854,20 +854,20 @@ struct DictationQuizTests {
             lemma: "疲れる",
             reading: "つかれる",
             meaning: "지치다",
-            lineText: "もう嫌だって 疲れたよなんて",
+            lineText: "もう無理だって 疲れたよなんて",
             surface: "疲れた",
             songLabel: "YOASOBI — 夜に駆ける"
         )
         let question = try! #require(builder.build(from: [inflected], kind: .dictation).first)
-        #expect(question.spokenLine == "もう嫌だって 疲れたよなんて")
+        #expect(question.spokenLine == "もう無理だって 疲れたよなんて")
 
         let withParticle = QuizBuilder.Source(
-            key: "夜|よる", lemma: "夜", reading: "よる", meaning: "밤",
-            lineText: "二人だけの空が広がる夜に", surface: "夜に",
+            key: "朝|あさ", lemma: "朝", reading: "あさ", meaning: "아침",
+            lineText: "君だけの空が広がる朝に", surface: "朝に",
             songLabel: "YOASOBI — 夜に駆ける"
         )
         let particled = try! #require(builder.build(from: [withParticle], kind: .dictation).first)
-        #expect(particled.spokenLine == "二人だけの空が広がる夜に")
+        #expect(particled.spokenLine == "君だけの空が広がる朝に")
     }
 
     @Test("화면에 보이는 줄은 단어가 빠져 있다")
@@ -1071,7 +1071,7 @@ struct PlainTranslationTests {
 struct JapaneseLeftInTranslationTests {
     @Test("인용부호 안의 일본어는 그대로 둔다")
     func quotedJapaneseIsFine() {
-        // The lyric itself quotes the word — 「「さよなら」だけだった」 — so a
+        // The lyric itself quotes the word — 「「さよなら」だけ残った」 — so a
         // translation that quotes it back is doing the right thing.
         #expect(Sensei.isUsableTranslation("그 외에는 'さよなら'만 남았어요."))
         #expect(Sensei.isUsableTranslation("「さよなら」 그 한마디뿐이었다"))
@@ -1103,9 +1103,9 @@ struct GlossaryTests {
         // 空 is the case this exists for: the model kept translating it as
         // 「공기」, which is 空気 — a different word. The dictionary has it right,
         // but nothing was telling the model.
-        let glossary = dictionary.glossary(for: "二人だけの空が広がる夜に")
+        let glossary = dictionary.glossary(for: "君だけの空が広がる朝に")
         #expect(glossary.contains { $0.contains("空") && $0.contains("하늘") })
-        #expect(glossary.contains { $0.contains("夜") && $0.contains("밤") })
+        #expect(glossary.contains { $0.contains("朝") && $0.contains("아침") })
     }
 
     @Test("가나로 쓰인 말을 읽기가 같은 한자 단어로 넘기지 않는다")
@@ -1114,7 +1114,7 @@ struct GlossaryTests {
         // — length, height — and matching on reading alone handed that over as
         // 「사전이 확인한 뜻」. A wrong gloss is worse than none: the prompt tells
         // the model to follow it.
-        let glossary = dictionary.glossary(for: "二人だけの空が広がる夜に")
+        let glossary = dictionary.glossary(for: "君だけの空が広がる朝に")
         #expect(!glossary.contains { $0.contains("丈") })
     }
 
@@ -1466,7 +1466,7 @@ struct GrammarPatternFalsePositiveTests {
     /// in lyrics that leaving them in meant teaching the wrong thing regularly.
     @Test("패턴 글자를 품은 다른 단어는 잡지 않는다")
     func falseFriends() {
-        #expect(!patterns("「さよなら」だけだった").contains("〜なら"))
+        #expect(!patterns("「さよなら」だけ残った").contains("〜なら"))
         #expect(!patterns("素晴らしい世界").contains("〜らしい"))
         #expect(!patterns("切ない気持ち").contains("〜ない"))
         #expect(!patterns("少ない時間").contains("〜ない"))
@@ -1494,23 +1494,23 @@ struct MeaningsInLineTests {
 
     @Test("줄에 있는 단어의 뜻을 돌려준다")
     func findsTheLineOwnMeanings() {
-        let meanings = dictionary.meanings(in: "二人だけの空が広がる夜に")
+        let meanings = dictionary.meanings(in: "君だけの空が広がる朝に")
         #expect(meanings.contains { $0.contains("하늘") })
-        #expect(meanings.contains { $0.contains("밤") })
+        #expect(meanings.contains { $0.contains("아침") })
     }
 
     @Test("줄에 없는 단어의 뜻은 돌려주지 않는다")
     func doesNotInventMeanings() {
-        // This is what the bleed check leans on: 「「さよなら」だけだった」 has no
+        // This is what the bleed check leans on: 「「さよなら」だけ残った」 has no
         // 夜 in it, so 「밤」 appearing in its translation came from the line
         // before it.
-        let meanings = dictionary.meanings(in: "「さよなら」だけだった")
+        let meanings = dictionary.meanings(in: "「さよなら」だけ残った")
         #expect(!meanings.contains { $0.contains("밤") })
     }
 
     @Test("읽기가 같은 한자 단어를 끌어오지 않는다")
     func keepsTheGlossaryRule() {
-        #expect(!dictionary.meanings(in: "二人だけの空が広がる夜に").contains { $0.contains("길이") })
+        #expect(!dictionary.meanings(in: "君だけの空が広がる朝に").contains { $0.contains("길이") })
     }
 }
 
@@ -1576,7 +1576,7 @@ struct NewGrammarPatternTests {
 
     @Test("だって는 って로 두 번 세지 않는다")
     func datteIsNotAlsoTte() {
-        let found = displays("もう嫌だって 疲れたよなんて")
+        let found = displays("もう無理だって 疲れたよなんて")
         #expect(found.contains("〜だって"))
         #expect(!found.contains("〜って"))
         #expect(found.contains("〜なんて"))

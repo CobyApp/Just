@@ -250,8 +250,8 @@ struct LyricsCandidateTests {
             albumName: nil,
             duration: duration,
             instrumental: false,
-            plainLyrics: "沈むように",
-            syncedLyrics: synced ? "[00:01.00]沈むように" : nil
+            plainLyrics: "眠るように",
+            syncedLyrics: synced ? "[00:01.00]眠るように" : nil
         )
     }
 
@@ -315,7 +315,7 @@ struct LyricsCandidateTests {
             duration: 261
         )
         #expect(chosen?.duration == 265)
-        #expect(chosen?.plainLyrics == "沈むように")
+        #expect(chosen?.plainLyrics == "眠るように")
     }
 
     @Test("번역본만 있으면 길이가 맞아도 고르지 않는다")

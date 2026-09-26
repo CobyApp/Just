@@ -11,7 +11,6 @@ import SwiftUI
 struct GroupsScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.modelContext) private var context
-    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \StudySong.lastOpenedAt, order: .reverse) private var songs: [StudySong]
 
     @State private var showsSettings = false
@@ -56,14 +55,6 @@ struct GroupsScreen: View {
             // missing in the idol-only restructure, and the button did nothing.
             .sheet(isPresented: $showsSettings) { SettingsScreen() }
             .task { await artworkStore.loadAll() }
-        }
-        // The first tab, so the one screen alive from launch: the place to
-        // bring the widget, the badge and the reminder up to date whenever the
-        // app comes back, not only after a grade. Cards fall due while the app
-        // is closed, and the reminder planned last time may no longer fit.
-        .task { JustStore(context: context).publishActivity() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { JustStore(context: context).publishActivity() }
         }
     }
 

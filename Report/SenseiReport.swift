@@ -275,7 +275,7 @@ struct SenseiReportSuite {
             // Words the line before had and this one does not. If one of their
             // meanings turns up in this translation, it came from next door.
             //
-            // The character-overlap check cannot see this: 「「さよなら」だけだった」
+            // The character-overlap check cannot see this: 「「さよなら」だけ残った」
             // came back as 「작별 인사만 있었던 밤에」, and 「밤에」 overlaps the
             // previous line's translation by two characters — far under any
             // threshold that would not also flag every coincidence. The
