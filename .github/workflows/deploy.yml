@@ -7,7 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: 'Optional build number override (defaults to GitHub run number)'
+        description: 'Optional build number override (defaults to latest TestFlight build + 1)'
+        required: false
+      marketing_version:
+        description: 'Optional marketing version, e.g. 1.2.0 (tag pushes take it from the tag)'
         required: false
 
 concurrency:
@@ -15,8 +18,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The same suite as every push; a failing test stops the upload.
+  test:
+    uses: ./.github/workflows/test.yml
+
   deploy:
-    runs-on: macos-latest
+    needs: test
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -26,7 +34,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.6'
 
       - name: Setup Ruby + Bundler
         uses: ruby/setup-ruby@v1
@@ -34,15 +42,13 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
+      - name: Stub local env file
+        run: touch .env
+
       - name: Install Tuist via mise
+        uses: jdx/mise-action@v2
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          curl https://mise.run | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/share/mise/shims" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/mise" install
-          "$HOME/.local/bin/mise" exec -- tuist version
 
       - name: Stage App Store Connect API key
         env:
@@ -54,18 +60,33 @@ jobs:
           echo "$APPSTORE_PRIVATE_KEY" > "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
           echo "AUTH_KEY_PATH=$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" >> "$GITHUB_ENV"
 
-      - name: Compute build number
+      # Only an explicit override is exported. Without one, fastlane asks
+      # TestFlight for the latest build number and adds one — the run number
+      # restarts per workflow and would collide with builds uploaded before.
+      - name: Resolve build and marketing version
+        env:
+          INPUT_BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+          INPUT_MARKETING_VERSION: ${{ github.event.inputs.marketing_version }}
         run: |
-          if [ -n "${{ github.event.inputs.build_number }}" ]; then
-            echo "BUILD_NUMBER=${{ github.event.inputs.build_number }}" >> "$GITHUB_ENV"
-          else
-            echo "BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
+          if [ -n "$INPUT_BUILD_NUMBER" ]; then
+            echo "BUILD_NUMBER=$INPUT_BUILD_NUMBER" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$INPUT_MARKETING_VERSION" ]; then
+            echo "TUIST_MARKETING_VERSION=$INPUT_MARKETING_VERSION" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "TUIST_MARKETING_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
           fi
 
+      # `fastlane beta` runs `tuist generate`, which bakes these into
+      # Info.plist; the lane refuses to build if any is missing or still a
+      # Google test id.
       - name: Deploy to TestFlight
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          TUIST_YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          TUIST_ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          TUIST_ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: bundle exec fastlane beta
 
       - name: Cleanup

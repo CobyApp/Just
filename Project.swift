@@ -11,10 +11,34 @@ private let allDevices: Destinations = [.iPhone, .iPad]
 /// project with no extra environment set up.
 private let developmentTeam = "3Y8YH8GWMM"
 
+/// Reads a `TUIST_*` variable, treating an empty value like an unset one — a
+/// CI secret that was never added arrives as an empty string, not as nothing.
+private func environmentString(_ value: Environment.Value?, default fallback: String) -> String {
+    let string = value.getString(default: fallback)
+    return string.isEmpty ? fallback : string
+}
+
+/// The version shown on the App Store. Set TUIST_MARKETING_VERSION before
+/// `tuist generate` (the deploy workflow takes it from the `v*` tag) to ship a new one;
+/// the default is what a plain local checkout builds as.
+private let marketingVersion = environmentString(Environment.marketingVersion, default: "1.0.0")
+
+/// AdMob ids, injected at generation time so the account holder's real ids
+/// never live in the repository. Unset, they fall back to Google's public test
+/// ids, which always fill and earn nothing — right for local builds, and
+/// fastlane refuses to upload a build that still carries them.
+private let adMobTestAppID = "ca-app-pub-3940256099942544~1458002511"
+private let adMobTestInterstitialID = "ca-app-pub-3940256099942544/4411468910"
+private let adMobAppID = environmentString(Environment.admobAppID, default: adMobTestAppID)
+private let adMobInterstitialID = environmentString(
+    Environment.admobInterstitialID,
+    default: adMobTestInterstitialID
+)
+
 private let baseSettings: SettingsDictionary = [
     "DEVELOPMENT_TEAM": .string(developmentTeam),
     "CODE_SIGN_STYLE": "Automatic",
-    "MARKETING_VERSION": "1.0.0",
+    "MARKETING_VERSION": .string(marketingVersion),
     "CURRENT_PROJECT_VERSION": "1",
     "SWIFT_VERSION": "6.0",
     "SWIFT_STRICT_CONCURRENCY": "complete",
@@ -24,6 +48,11 @@ private let baseSettings: SettingsDictionary = [
 
 /// Every module in `Modules/` is an iOS framework with the same shape,
 /// so the target definition is generated rather than repeated five times.
+///
+/// `hasResources` also carries a module's own `PrivacyInfo.xcprivacy`: these
+/// are dynamic frameworks, and Apple requires each one that calls a
+/// required-reason API (UserDefaults, here) to ship its own manifest — the
+/// app's manifest does not cover code inside an embedded framework.
 private func module(
     _ name: String,
     dependencies: [TargetDependency] = [],
@@ -61,7 +90,7 @@ let project = Project(
         module("JustDesign", dependencies: [
             .target(name: "JustCore"),
             .target(name: "JustSensei"),
-        ]),
+        ], hasResources: true),
 
         module("JustMusic", dependencies: [.target(name: "JustCore")]),
 
@@ -111,11 +140,26 @@ let project = Project(
                 // with it. Google's public test application id: real earnings
                 // need the account holder's own, and shipping someone else's
                 // placeholder would serve no ads at all.
-                "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511",
-                // Banner ads only, on the analysis wait screen. Personalised
-                // advertising would need an App Tracking Transparency prompt
-                // and a tracking declaration; this app asks for neither.
+                // Set TUIST_ADMOB_APP_ID for a release; unset, this is
+                // Google's public test application id (see `adMobAppID`).
+                "GADApplicationIdentifier": .string(adMobAppID),
+                // Read by `AnalysisInterstitial` in Release builds. Debug builds
+                // always use the test unit, so development never touches real
+                // inventory. Set TUIST_ADMOB_INTERSTITIAL_ID for a release.
+                "AdMobInterstitialUnitID": .string(adMobInterstitialID),
+                // One interstitial, on the analysis wait screen. Ads are
+                // requested as non-personalised and only after Google's UMP
+                // consent flow allows it. Personalised advertising would need
+                // an App Tracking Transparency prompt and a tracking
+                // declaration; this app asks for neither.
                 "GADIsAdManagerApp": false,
+                // Lets ad networks attribute installs through Apple's
+                // SKAdNetwork, which needs no tracking permission. Google's
+                // own id is the minimum; the full list of third-party buyers
+                // Google publishes can be appended here.
+                "SKAdNetworkItems": [
+                    ["SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"],
+                ],
                 "UIUserInterfaceStyle": "Dark",
                 // Lets notifications and the widget deep-link into a screen.
                 "CFBundleURLTypes": [
@@ -136,6 +180,9 @@ let project = Project(
                 .target(name: "JustLyrics"),
                 .target(name: "JustSensei"),
                 .external(name: "GoogleMobileAds"),
+                // Google's consent SDK. Already resolved as a dependency of
+                // GoogleMobileAds; named here because the app imports it.
+                .external(name: "GoogleUserMessagingPlatform"),
             ],
             settings: .settings(base: baseSettings.merging([
                 "TARGETED_DEVICE_FAMILY": "1,2",

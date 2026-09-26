@@ -2,6 +2,72 @@ import Foundation
 import GoogleMobileAds
 import Observation
 import UIKit
+import UserMessagingPlatform
+
+/// Google's consent flow (UMP), and the gate every ad request goes through.
+///
+/// The SDK is started, and ads are requested, only once UMP says
+/// `canRequestAds`. Where no consent is required that is immediately; in the
+/// EEA and the UK it is after the reader has answered Google's form. Consent
+/// given on an earlier launch counts straight away, so a returning reader's
+/// first ad is not held up by the network round-trip.
+@MainActor
+final class AdsConsent {
+    static let shared = AdsConsent()
+
+    private var isGathering = false
+    private var didStartSDK = false
+
+    var canRequestAds: Bool { ConsentInformation.shared.canRequestAds }
+
+    /// True where the reader must be able to change their answer later (the
+    /// EEA and the UK). A settings row calling `presentPrivacyOptions()` is
+    /// expected to be shown only when this is set.
+    var isPrivacyOptionsRequired: Bool {
+        ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+    }
+
+    /// Refreshes consent at launch and shows Google's form if it is required.
+    func gather() async {
+        guard !isGathering else { return }
+        isGathering = true
+        defer { isGathering = false }
+
+        startSDKIfAllowed()
+        do {
+            try await ConsentInformation.shared.requestConsentInfoUpdate(with: RequestParameters())
+            if let controller = Self.presentingController() {
+                try await ConsentForm.loadAndPresentIfRequired(from: controller)
+            }
+        } catch {
+            // Offline, or the form failed to load. Consent from an earlier
+            // launch still applies; with none, ads simply stay off until the
+            // next launch tries again. Nothing is said to the reader.
+        }
+        startSDKIfAllowed()
+    }
+
+    /// Reopens Google's form so the reader can change their answer.
+    func presentPrivacyOptions() async {
+        guard let controller = Self.presentingController() else { return }
+        try? await ConsentForm.presentPrivacyOptionsForm(from: controller)
+        startSDKIfAllowed()
+    }
+
+    private func startSDKIfAllowed() {
+        guard canRequestAds, !didStartSDK else { return }
+        didStartSDK = true
+        MobileAds.shared.start(completionHandler: nil)
+    }
+
+    private static func presentingController() -> UIViewController? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        var top = scene?.keyWindow?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        return top
+    }
+}
 
 /// The app's only ad: one full-screen ad while a song is being analysed.
 ///
@@ -29,6 +95,20 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
     /// that the placement behaves.
     static let testUnitID = "ca-app-pub-3940256099942544/4411468910"
 
+    /// The unit to request from. Debug builds always use the test unit, so a
+    /// development build never serves (or clicks) real inventory. Release
+    /// builds read the id `tuist generate` wrote into Info.plist from
+    /// TUIST_ADMOB_INTERSTITIAL_ID, which is the test unit when that was unset.
+    static var configuredUnitID: String {
+        #if DEBUG
+        return testUnitID
+        #else
+        let id = Bundle.main.object(forInfoDictionaryKey: "AdMobInterstitialUnitID") as? String
+        guard let id, !id.isEmpty else { return testUnitID }
+        return id
+        #endif
+    }
+
     /// Fewer lines than this and the analysis is over before the ad closes.
     static let minimumPendingLines = 5
     static let minimumGap: TimeInterval = 120
@@ -43,7 +123,7 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
     private var pending: (() -> Bool)?
     private(set) var isPresenting = false
 
-    init(unitID: String = AnalysisInterstitial.testUnitID) {
+    init(unitID: String = AnalysisInterstitial.configuredUnitID) {
         self.unitID = unitID
         // The SDK otherwise reconfigures the app's audio session when an ad
         // loads or plays, which interrupted the song's clip mid-way. The app
@@ -53,12 +133,13 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
 
     /// Fetches the next ad so it is ready when a song starts analysing.
     func preload() async {
-        guard ad == nil, !isLoading else { return }
+        // No ad is requested before the consent flow allows one.
+        guard ad == nil, !isLoading, AdsConsent.shared.canRequestAds else { return }
         isLoading = true
         defer { isLoading = false }
         // Nothing is said to the reader when an ad fails to arrive; an ad that
         // did not come is not their problem to hear about.
-        ad = try? await InterstitialAd.load(with: unitID, request: Request())
+        ad = try? await InterstitialAd.load(with: unitID, request: Self.nonPersonalizedRequest())
         ad?.fullScreenContentDelegate = self
         if let pending, pending() {
             self.pending = nil
@@ -86,6 +167,16 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
             pending = stillWaiting
             Task { await preload() }
         }
+    }
+
+    /// Every request asks for non-personalised ads (`npa=1`): the app does not
+    /// do personalised advertising, whatever the consent answer allows.
+    private static func nonPersonalizedRequest() -> Request {
+        let request = Request()
+        let extras = Extras()
+        extras.additionalParameters = ["npa": "1"]
+        request.register(extras)
+        return request
     }
 
     private func present() {

@@ -12,6 +12,7 @@
 ## 만드는 법
 
 ```bash
+tuist install    # Swift 패키지(Google Mobile Ads) 받기
 tuist generate
 ```
 
@@ -19,7 +20,9 @@ Xcode 26.6 이상(27 포함), iOS 26 SDK, Swift 6.3 기준입니다.
 
 ## 실행 전 준비
 
-계정도 권한 요청도 없습니다. 곡 정보는 Apple의 공개 iTunes 검색 API에서, 영상은
+계정이 없습니다. 권한 요청은 **복습 알림을 켤 때의 알림 권한** 하나뿐이고, 켜지
+않으면 묻지 않습니다. 광고 동의가 필요한 지역(EEA·영국)에서는 첫 실행 때 Google의
+광고 동의 화면이 뜹니다. 곡 정보는 Apple의 공개 iTunes 검색 API에서, 영상은
 YouTube에서 오므로 시뮬레이터에서도 그대로 동작합니다.
 
 하나만 준비하면 됩니다 — 곡의 영상을 찾는 **YouTube Data API 키**입니다.
@@ -31,9 +34,41 @@ YouTube Data API v3를 켜고 API 키를 만든 뒤, 프로젝트를 생성할 �
 TUIST_YOUTUBE_API_KEY=여기에_키 tuist generate --no-open
 ```
 
+매번 적기 싫으면 저장소 루트의 `.env`에 둡니다. `.mise.toml`이 이 파일을 읽으므로
+mise가 활성화된 셸(`mise activate`)에서는 `tuist generate`와 `Scripts/setup.sh`가
+그대로 받습니다. `.env`는 커밋되지 않습니다.
+
+```bash
+# .env
+TUIST_YOUTUBE_API_KEY=여기에_키
+# 출시 빌드에서만 필요합니다. 없으면 Google 테스트 ID가 들어갑니다.
+TUIST_ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+```
+
+`.env`가 없을 때의 동작은 mise 버전에 따라 다를 수 있으니, 키가 없어도 빈 파일
+하나는 만들어 두는 편이 안전합니다(`touch .env`). CI도 그렇게 합니다.
+
 키 없이 생성하면 앱은 그대로 돌지만 영상을 찾을 수 없어 **모든 곡을 30초
-미리듣기로** 재생합니다. 무료 할당량은 하루 검색 약 100회이고, 한 번 찾은 영상은
-기기에 남아 다시 묻지 않습니다.
+미리듣기로** 재생합니다.
+
+**할당량은 기기마다가 아니라 API 키 하나에 걸립니다.** 출시 빌드에는 키가 하나
+박혀 나가므로, 앱을 설치한 모든 사람이 하루 10,000단위를 나눠 씁니다. 검색 한 번이
+100단위라 전체 사용자를 합쳐 **하루 검색 약 100회**입니다(채널 업로드 목록은
+50개에 1단위라 훨씬 쌉니다). 한 번 찾은 영상은 기기에 남아 다시 묻지 않지만,
+사용자가 늘면 할당량이 먼저 바닥납니다 — 바닥나면 그날 남은 시간 동안 새 곡은
+30초 미리듣기로 재생됩니다.
+
+앱에 들어간 키는 앱 바이너리에서 꺼낼 수 있으므로, Cloud Console에서 반드시
+제한을 걸어 둡니다.
+
+- **API 제한**: YouTube Data API v3만 허용
+- **애플리케이션 제한**: iOS 앱, 번들 ID `com.coby.just`
+  (iOS 제한은 요청 헤더로 판별하는 것이라 완전한 방어는 아닙니다)
+- **할당량 알림**: Cloud Monitoring에서 일일 사용량 경보를 걸어 두기
+
+근본적인 해결은 키를 서버에 두고 검색 결과를 캐시해 모든 사용자가 나눠 쓰는
+프록시입니다. 아직 없고, 남은 일로 둡니다.
 
 ## 화면
 
@@ -157,11 +192,33 @@ Just (앱)
 **곡당 한 번**, 그리고 **2분 안에 두 번은 없습니다.** 그룹의 곡을 넘겨 보는 독자가
 매 곡 광고를 보는 일은 없어야 합니다.
 
-`GADApplicationIdentifier`와 광고 단위 ID는 **Google 공개 테스트 값**입니다.
-실제 수익에는 계정 보유자의 ID가 필요합니다. 맞춤 광고는 쓰지 않으므로 App
-Tracking Transparency 프롬프트도 띄우지 않습니다.
+`GADApplicationIdentifier`와 전면 광고 단위 ID(`AdMobInterstitialUnitID`)는
+`tuist generate` 때 환경 변수 `TUIST_ADMOB_APP_ID` / `TUIST_ADMOB_INTERSTITIAL_ID`에서
+Info.plist로 들어갑니다. 비워 두면 **Google 공개 테스트 값**이 들어가고, Debug
+빌드는 앱 ID와 상관없이 항상 테스트 광고 단위를 씁니다 — 개발 중에 실제 광고를
+띄우거나 누르는 일이 없도록. `fastlane beta`는 두 값이 비었거나 테스트 값이면
+빌드를 거부합니다.
+
+광고는 **Google UMP(User Messaging Platform) 동의 흐름을 거친 뒤에만** 요청합니다.
+앱을 켜면 동의 정보를 갱신하고, 필요한 지역이면 Google의 동의 화면을 띄우고,
+`canRequestAds`가 참일 때에만 SDK를 시작하고 광고를 불러옵니다(`AdsConsent`).
+EEA·영국 사용자는 나중에 답을 바꿀 수 있어야 하므로, 설정 화면에
+`AdsConsent.shared.isPrivacyOptionsRequired`일 때 `presentPrivacyOptions()`를 부르는
+행을 두어야 합니다.
+
+모든 요청은 **비맞춤 광고**(`npa=1`)로 보냅니다. 맞춤 광고는 쓰지 않으므로 App
+Tracking Transparency 프롬프트도 띄우지 않습니다. 광고 기여도는 추적 권한이 필요
+없는 SKAdNetwork(`SKAdNetworkItems`, Google의 `cstr6suwn9.skadnetwork`)로만
+잡힙니다.
 
 **iTunes도 YouTube도 가사를 제공하지 않습니다.** 싱크 가사는 LRCLIB에서 받습니다.
+
+**가사 저작권은 열린 문제입니다.** LRCLIB는 사용자들이 올린 가사를 모은 커뮤니티
+데이터베이스이고, 올라온 가사의 이용 허락을 LRCLIB가 받아 둔 것이 아닙니다. 이 앱은
+가사를 저장소에 담지 않고 실행 시 받아 기기에만 두지만, 화면에 가사 전문을 표시하는
+것은 사실입니다. 출처 표기(LRCLIB)를 화면에 두는지, 권리자 요청 시 내리는 절차를
+어떻게 할지는 출시 전에 정해 둘 일입니다 — 스토어 심사나 권리자 신고로 문제가 될 수
+있는 부분입니다.
 
 ### 가사 찾기
 
@@ -475,7 +532,7 @@ App Groups 기능에서 연결해 주세요.
 옆 프로젝트 `mana`와 같은 구성입니다.
 
 ```bash
-bash Scripts/setup.sh        # tuist generate
+bash Scripts/setup.sh        # tuist install + tuist generate
 bundle exec fastlane test    # 시뮬레이터 테스트
 bundle exec fastlane beta    # TestFlight 업로드
 ```
@@ -487,31 +544,85 @@ TestFlight는 App Store Connect API 키로 클라우드 서명합니다 — 인�
 갱신할 일이 없습니다. 인증 플래그는 `xcargs` 한 곳에만 둡니다(gym이 archive와
 export 양쪽에 그대로 넘기므로 `export_xcargs`로 중복하면 xcodebuild가 거부합니다).
 
-`v*` 태그를 밀면 `.github/workflows/deploy.yml`이 돌고, 필요한 시크릿은
-`APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID` / `APPSTORE_PRIVATE_KEY`입니다.
+`v*` 태그를 밀면 `.github/workflows/deploy.yml`이 돕니다. 먼저 `test.yml`의 테스트를
+돌리고, 통과해야 업로드합니다. 필요한 GitHub 시크릿은 다음과 같습니다.
+
+| 시크릿 | 쓰이는 곳 |
+|---|---|
+| `APPSTORE_KEY_ID` / `APPSTORE_ISSUER_ID` / `APPSTORE_PRIVATE_KEY` | App Store Connect API 키 (서명·업로드) |
+| `YOUTUBE_API_KEY` | `TUIST_YOUTUBE_API_KEY` — 없으면 모든 곡이 미리듣기 |
+| `ADMOB_APP_ID` | `TUIST_ADMOB_APP_ID` → `GADApplicationIdentifier` |
+| `ADMOB_INTERSTITIAL_ID` | `TUIST_ADMOB_INTERSTITIAL_ID` → `AdMobInterstitialUnitID` |
+
+`fastlane beta`는 YouTube 키와 AdMob ID 둘 중 하나라도 비었거나 Google 테스트 ID면
+빌드 전에 멈춥니다. 빠진 채로 올라가면 빌드는 성공하고 앱만 조용히 망가지기
+때문입니다.
 
 버전은 `MARKETING_VERSION`과 `CURRENT_PROJECT_VERSION`이 정합니다. Info.plist에
 값을 박아두면 fastlane이 넘기는 빌드 번호가 무시되어 업로드가 매번 충돌합니다.
 
-`App/Resources/PrivacyInfo.xcprivacy`는 필수입니다. 이 앱은 추적을 하지 않고
-수집 항목도 없으며, 필수 사유 API는 UserDefaults(CA92.1) 하나입니다.
+- **마케팅 버전**: `TUIST_MARKETING_VERSION` 환경 변수에서 오고, 없으면 `1.0.0`입니다.
+  태그 배포는 태그에서 가져옵니다(`v1.2.0` → `1.2.0`). 수동 실행은 워크플로 입력
+  `marketing_version`으로, 로컬에서는 `bundle exec fastlane beta version:1.2.0`으로
+  넘깁니다.
+- **빌드 번호**: 워크플로 입력 `build_number`를 준 경우에만 그 값을 쓰고, 아니면
+  fastlane이 TestFlight의 최신 빌드 번호에 1을 더합니다.
+
+CI는 `macos-26` 러너와 Xcode 26.6으로 고정합니다. 위의 기준 버전을 올리면 두
+워크플로의 `xcode-version`도 함께 올려 주세요. 액션은 메이저 태그(`@v4`, `@v2`)로
+고정되어 있으니, 공급망 위험을 더 줄이려면 커밋 SHA로 바꿉니다.
+
+### 개인정보 매니페스트
+
+`App/Resources/PrivacyInfo.xcprivacy`는 필수입니다. 앱이 직접 하는 통신은 iTunes
+조회, YouTube(Data API와 내장 플레이어), LRCLIB이고 어느 쪽에도 사용자 식별자를
+넘기지 않습니다. **광고 SDK(Google Mobile Ads)는 데이터를 수집합니다.** SDK는 자기
+매니페스트를 함께 싣고 Xcode가 합쳐 개인정보 보고서를 만들지만, 앱 매니페스트에도
+Google 안내에 따른 항목을 적어 두었습니다 — 기기 ID, 광고 데이터, 제품 상호작용,
+충돌·성능·기타 진단 데이터, 대략적 위치(IP 기반). 비맞춤 광고만 요청하고 ATT를
+띄우지 않으므로 추적(`NSPrivacyTracking`)은 거짓입니다.
+
+필수 사유 API는 UserDefaults(CA92.1)입니다. `JustSensei`와 `JustDesign`은 동적
+프레임워크라 앱 매니페스트가 그 안의 호출을 덮지 못하므로, 각자
+`Modules/<모듈>/Resources/PrivacyInfo.xcprivacy`를 갖습니다(ITMS-91053). 다른
+모듈에서 UserDefaults 같은 필수 사유 API를 쓰기 시작하면 그 모듈에도 매니페스트를
+추가하고 `Project.swift`에서 `hasResources: true`로 연결해야 합니다.
+
+### App Store Connect 개인정보 라벨 체크리스트
+
+라벨은 매니페스트에서 자동으로 채워지지 않습니다. 출시 전, 그리고 SDK를 올릴 때마다
+확인합니다.
+
+- [ ] Xcode Organizer에서 아카이브의 **Privacy Report**를 뽑아 SDK 매니페스트까지
+      합친 수집 항목을 확인
+- [ ] Google의 최신 [AdMob 데이터 공개 안내](https://developers.google.com/admob/ios/privacy/data-disclosure)와 대조
+- [ ] 「데이터 수집함」으로 답하고 다음 항목 입력: 기기 ID, 광고 데이터, 제품
+      상호작용, 충돌 데이터, 성능 데이터, 기타 진단 데이터, 대략적 위치
+- [ ] 용도: 제3자 광고, 분석, 앱 기능 — 항목별로 매니페스트와 같게
+- [ ] 「사용자에게 연결됨」·「추적에 사용됨」은 아니오 (비맞춤 광고, ATT 없음) — Google
+      안내가 바뀌면 여기와 매니페스트를 함께 고치기
+- [ ] 앱 자체는 계정·연락처·사용자 콘텐츠를 수집하지 않음 (가사·단어·복습 기록은 기기에만)
+- [ ] 개인정보 처리방침 URL에 광고 SDK와 동의 화면(UMP) 내용 반영
 
 ## 테스트
 
 ```bash
 xcodebuild -workspace Just.xcworkspace -scheme Just \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' test
 ```
 
 순수 로직만 덮습니다 — 파싱, 스케줄링, 문자열 처리. 지금까지 실제로 나온 버그가
 전부 그 영역이었고, 기기·계정·모델 없이 검증할 수 있는 부분도 거기까지입니다.
-62개 테스트가 있고, 그중 여러 개는 실제로 겪은 회귀를 그대로 고정해 둔 것입니다:
+테스트는 250개가 넘고, 그중 여러 개는 실제로 겪은 회귀를 그대로 고정해 둔 것입니다:
 CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 
 ## 남은 것
 
 - 번들 사전 6.9천 단어 중 등급·품사가 붙은 것은 손으로 확인한 149개뿐입니다.
 - 곡 난이도는 분석한 줄에서만 집계되므로, 일부만 분석한 곡은 표본이 작습니다.
+- YouTube 검색 할당량은 키 하나를 모든 설치가 나눠 씁니다. 키를 서버에 두는
+  프록시(검색 결과 공유 캐시)가 필요합니다.
+- 광고 동의를 다시 여는 설정 행(`AdsConsent.presentPrivacyOptions()`)을 화면에 연결해야 합니다.
 
 ## 라이선스
 

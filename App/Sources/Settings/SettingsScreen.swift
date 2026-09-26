@@ -96,7 +96,7 @@ struct SettingsScreen: View {
                             Text("\(count)개").tag(count)
                         }
                     }
-                    Toggle("매일 알림", isOn: Binding(
+                    Toggle("복습 알림", isOn: Binding(
                         get: { app.reminder.isEnabled },
                         set: { app.reminder.isEnabled = $0 }
                     ))
@@ -192,6 +192,18 @@ struct SettingsScreen: View {
                     Text("안내")
                 } footer: {
                     Text("화면마다 있는 안내 카드는 ✕로 닫을 수 있습니다. 닫은 안내는 여기서 되살립니다.")
+                }
+
+                // Required where Google's consent form applies (EEA, UK): the
+                // reader must be able to change the answer they gave at launch.
+                if AdsConsent.shared.isPrivacyOptionsRequired {
+                    Section {
+                        Button("광고 개인정보 설정") {
+                            Task { await AdsConsent.shared.presentPrivacyOptions() }
+                        }
+                    } header: {
+                        Text("광고")
+                    }
                 }
 
                 Section {

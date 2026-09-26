@@ -24,8 +24,7 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
-build/
-Gemfile.lock
 
-# Local secrets for `tuist generate` (YouTube API key). Never committed.
+# Local secrets for `tuist generate` (YouTube API key, AdMob ids), loaded by
+# mise through `.mise.toml`. Never committed.
 .env

@@ -23,12 +23,13 @@ let packageSettings = PackageSettings(
 let package = Package(
     name: "JustDependencies",
     dependencies: [
-        // Banner ads on the analysis wait screen. Pinned to a minor version:
-        // this SDK ships as a binary and its releases change API often enough
-        // that a floating major would break the build without a code change.
+        // The interstitial on the analysis wait screen. Pinned to a minor
+        // version: this SDK ships as a binary and its releases change API often
+        // enough that a floating major would break the build without a code
+        // change. Google's consent SDK (UMP) comes in as its dependency.
         .package(
             url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
-            from: "13.9.0"
+            .upToNextMinor(from: "13.9.0")
         ),
     ]
 )

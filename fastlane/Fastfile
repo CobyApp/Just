@@ -5,6 +5,41 @@ SCHEME = "Just"
 APP_IDENTIFIER = "com.coby.just"
 TEAM_ID = "3Y8YH8GWMM"
 
+# Google's public test publisher. Its ids always fill and never pay.
+GOOGLE_TEST_PUBLISHER = "ca-app-pub-3940256099942544"
+
+# `tuist generate` bakes these into Info.plist. A missing one does not fail the
+# build — it ships a build that quietly misbehaves (every song a 30-second
+# preview, or ads that earn nothing) — so the upload lane checks them first.
+def verify_release_environment!
+  problems = []
+
+  problems << "TUIST_YOUTUBE_API_KEY is not set" if ENV["TUIST_YOUTUBE_API_KEY"].to_s.strip.empty?
+
+  {
+    "TUIST_ADMOB_APP_ID" => /\Aca-app-pub-\d+~\d+\z/,
+    "TUIST_ADMOB_INTERSTITIAL_ID" => %r{\Aca-app-pub-\d+/\d+\z}
+  }.each do |name, format|
+    value = ENV[name].to_s.strip
+    if value.empty?
+      problems << "#{name} is not set"
+    elsif value.start_with?(GOOGLE_TEST_PUBLISHER)
+      problems << "#{name} is Google's test id"
+    elsif value !~ format
+      problems << "#{name} does not look like an AdMob id"
+    end
+  end
+
+  version = ENV["TUIST_MARKETING_VERSION"].to_s.strip
+  unless version.empty? || version.match?(/\A\d+(\.\d+){1,2}\z/)
+    problems << "TUIST_MARKETING_VERSION '#{version}' is not a version like 1.2.0"
+  end
+
+  return if problems.empty?
+
+  UI.user_error!("Refusing to build for TestFlight:\n  - #{problems.join("\n  - ")}")
+end
+
 platform :ios do
   before_all do
     setup_ci if ENV["CI"]
@@ -24,8 +59,12 @@ platform :ios do
     )
   end
 
-  desc "Build and upload to TestFlight"
-  lane :beta do
+  desc "Build and upload to TestFlight. Options: version:1.2.0 sets the marketing version (else TUIST_MARKETING_VERSION, else the manifest default)"
+  lane :beta do |options|
+    # Set before generation: the manifest reads it into MARKETING_VERSION.
+    ENV["TUIST_MARKETING_VERSION"] = options[:version].to_s if options[:version]
+    verify_release_environment!
+
     sh("cd .. && bash Scripts/setup.sh")
 
     api_key = app_store_connect_api_key(
