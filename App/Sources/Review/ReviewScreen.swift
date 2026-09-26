@@ -34,9 +34,9 @@ struct ReviewScreen: View {
         .navigationTitle("복습")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        // Only when there is no session yet: onAppear fires again on every
-        // switch back to this tab, and reloading there reset the progress.
-        .onAppear { if queue.isEmpty { reload() } }
+        // onAppear fires again on every switch back to this tab, so it
+        // resumes rather than restarts — reloading there reset the progress.
+        .onAppear(perform: resume)
     }
 
     // MARK: - Card
@@ -220,8 +220,30 @@ struct ReviewScreen: View {
 
     // MARK: - Actions
 
+    /// Picks the session back up after the screen was away.
+    ///
+    /// Words deleted from the word list meanwhile are dropped first: the queue
+    /// still held them, and touching a deleted model is a crash. A finished
+    /// session starts over only if new cards have come due since, so the
+    /// 「오늘 복습 끝」 summary is not wiped for nothing.
+    private func resume() {
+        if index < queue.count {
+            let remaining = queue[index...].filter { $0.modelContext != nil && !$0.isDeleted }
+            // The card on screen may be one of them; its successor starts hidden.
+            if remaining.count != queue.count - index { isRevealed = false }
+            queue = Array(queue[..<index]) + remaining
+        }
+        guard current == nil else { return }
+        let due = store.dueEntries()
+        if queue.isEmpty || !due.isEmpty { start(due) }
+    }
+
     private func reload() {
-        queue = store.dueEntries()
+        start(store.dueEntries())
+    }
+
+    private func start(_ due: [VocabEntry]) {
+        queue = due
         index = 0
         isRevealed = false
         completed = 0

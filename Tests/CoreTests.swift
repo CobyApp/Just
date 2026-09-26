@@ -25,6 +25,22 @@ struct FSRSTests {
         #expect(outcome.due.timeIntervalSince(now) == 600)
     }
 
+    /// Answering the 21:00 reminder at 21:05 used to leave the next due at
+    /// 21:05, after that day's reminder — so the reminder slid a day each round.
+    @Test("복습 날짜는 시각이 아니라 그날 새벽 4시에 올라온다")
+    func dueIsTheStartOfTheDay() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "Asia/Seoul"))
+        let evening = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 9, day: 26, hour: 21, minute: 5
+        )))
+        let outcome = scheduler.schedule(ReviewState(), grade: .good, now: evening, calendar: calendar)
+        let parts = calendar.dateComponents([.day, .hour, .minute], from: outcome.due)
+        #expect(parts.hour == FSRS.dayStartHour)
+        #expect(parts.minute == 0)
+        #expect(parts.day == 26 + Int(outcome.intervalDays))
+    }
+
     @Test("잘 맞히면 안정도가 커지고 간격이 늘어난다")
     func successGrowsStability() {
         let state = ReviewState()

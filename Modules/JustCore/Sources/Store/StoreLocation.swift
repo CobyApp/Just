@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SwiftData
 
 /// Where the SwiftData store lives on disk, and the one-time copy that put it
@@ -81,7 +82,16 @@ enum StoreLocation {
         }
 
         if fileManager.fileExists(atPath: destination.path(percentEncoded: false)) {
-            guard isEmptyStore(at: destination, schema: schema) else { return .keptExisting }
+            // In its own pool so the container that looked is closed before
+            // the files it looked at are removed and replaced.
+            let isEmpty = autoreleasepool { isEmptyStore(at: destination, schema: schema) }
+            guard isEmpty else {
+                // Two libraries; the group one wins and the old file stays on
+                // disk untouched. Logged, since those words are now unseen.
+                Logger(subsystem: "com.coby.just", category: "store")
+                    .notice("legacy store left in place: group store already has data")
+                return .keptExisting
+            }
             for name in storeFiles {
                 try? fileManager.removeItem(at: group.appending(path: name))
             }

@@ -97,16 +97,22 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
     ) -> [Date] {
         let end = date.addingTimeInterval(horizon)
         var dates = Set<Date>()
-        for due in upcomingDue ?? [] where due > date && due <= end {
+        var isCapped = false
+        for due in (upcomingDue ?? []).sorted() where due > date && due <= end {
             // Rounded up, so the entry never lands a moment before the card
             // it is meant to count.
             let minute = (due.timeIntervalSinceReferenceDate / 60).rounded(.up) * 60
             dates.insert(Date(timeIntervalSinceReferenceDate: minute))
-            if dates.count >= limit { break }
+            if dates.count >= limit { isCapped = true; break }
         }
+        // At the cap, the timeline stops at the last card it counted rather
+        // than running on to midnight: the widget reloads at its end, so the
+        // cards past the cap are counted then instead of never.
+        let cutoff = isCapped ? dates.max() ?? end : end
         let today = calendar.startOfDay(for: date)
         for offset in 1...2 {
-            if let midnight = calendar.date(byAdding: .day, value: offset, to: today) {
+            if let midnight = calendar.date(byAdding: .day, value: offset, to: today),
+               midnight <= cutoff || !isCapped {
                 dates.insert(midnight)
             }
         }

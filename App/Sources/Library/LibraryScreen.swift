@@ -64,12 +64,16 @@ struct LibraryScreen: View {
         }
         // A list screen, so bright. The player it opens stays dark.
         .environment(\.colorScheme, .light)
-        .task(id: words.count) { refresh() }
+        .task(id: words.count) {
+            refresh()
+            // Adding and grading publish on their own; deleting a word here
+            // does not, and the widget would go on counting it.
+            store.publishActivity(stats: stats)
+        }
     }
 
     private func refresh() {
         stats = store.stats()
-        store.publishActivity(stats: stats)
     }
 
     private var emptyState: some View {

@@ -108,7 +108,8 @@ public struct FSRS: Sendable {
     public func schedule(
         _ state: ReviewState,
         grade: ReviewGrade,
-        now: Date = .now
+        now: Date = .now,
+        calendar: Calendar = .current
     ) -> Outcome {
         let isFirstReview = state.phase == .new || state.stability <= 0
 
@@ -159,10 +160,25 @@ public struct FSRS: Sendable {
             stability: stability,
             difficulty: difficulty,
             intervalDays: days,
-            due: now.addingTimeInterval(days * 86_400),
+            due: Self.dueDay(now.addingTimeInterval(days * 86_400), calendar: calendar),
             phase: phase,
             isLapse: isLapse
         )
+    }
+
+    /// The hour a review day starts. Before it, it is still "last night".
+    public static let dayStartHour = 4
+
+    /// A due date moved to the start of its day.
+    ///
+    /// Intervals are whole days, but `now + N days` kept the clock time of the
+    /// review. Someone who answered the 21:00 reminder at 21:05 got cards due
+    /// at 21:05 N days later — after that day's reminder, which then slid to
+    /// the next day, one day later every round. A card is due on a *day*, so
+    /// it comes up at the start of it, as Anki does.
+    static func dueDay(_ date: Date, calendar: Calendar) -> Date {
+        let start = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .hour, value: dayStartHour, to: start) ?? date
     }
 
     /// Interval each grade would produce, for the "1일 / 4일 / 9일" hints on the

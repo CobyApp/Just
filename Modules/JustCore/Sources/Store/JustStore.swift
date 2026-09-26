@@ -353,10 +353,11 @@ public struct JustStore {
     /// Grading and saving call this themselves, debounced; screens that have
     /// just computed `stats()` can pass it in to save a second pass.
     public func publishActivity(stats: StudyStats? = nil, now: Date = .now) {
+        // An in-memory store is a preview or a test: it has no widget, and
+        // must not reach the real reminder or the app icon's badge either.
+        guard !isInMemory else { return }
         let outlook = self.outlook(now: now)
-        if !isInMemory {
-            publishWidgetSnapshot(stats ?? self.stats(), outlook: outlook, now: now)
-        }
+        publishWidgetSnapshot(stats ?? self.stats(), outlook: outlook, now: now)
         Self.onOutlookChange?(outlook)
     }
 

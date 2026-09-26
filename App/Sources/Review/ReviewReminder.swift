@@ -153,6 +153,9 @@ final class ReviewReminder {
             content: content,
             trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
         )
+        // Checked again: the switch may have been turned off while this was
+        // suspended above, and that reschedule's removal has already run.
+        guard isEnabled else { return }
         try? await center.add(request)
     }
 
