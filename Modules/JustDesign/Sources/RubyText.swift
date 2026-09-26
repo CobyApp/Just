@@ -9,8 +9,8 @@ import SwiftUI
 /// character spacing — it overhangs instead, which is how print sets it.
 public struct RubyText: View {
     private let segments: [RubySegment]
-    private let font: Font
-    private let rubyFont: Font
+    private let font: JustFontStyle
+    private let rubyFont: JustFontStyle
     private let color: Color
     private let rubyColor: Color
     private let showsRuby: Bool
@@ -18,21 +18,22 @@ public struct RubyText: View {
     /// Vertical room reserved above every segment so baselines stay aligned
     /// whether or not a given segment carries a reading.
     ///
-    /// Passed in rather than fixed: it has to track the ruby font, and `Font`
-    /// cannot be measured. A constant here left a visible gap between wrapped
-    /// rows once the lyric type was scaled up.
-    private let rubyHeight: CGFloat
+    /// Passed in at the default text size and scaled here alongside the ruby
+    /// font: it has to track that font, and `Font` cannot be measured. A
+    /// constant left the readings clipped or a gap between wrapped rows once
+    /// the type grew or shrank.
+    @ScaledMetric private var rubyHeight: CGFloat
 
     public init(
         segments: [RubySegment],
-        font: Font = JustTheme.Font.lyric,
-        rubyFont: Font = JustTheme.Font.ruby,
+        font: JustFontStyle = JustTheme.Font.lyric,
+        rubyFont: JustFontStyle = JustTheme.Font.ruby,
         color: Color = JustTheme.Ink.primary,
         rubyColor: Color = JustTheme.Ink.tertiary,
         showsRuby: Bool = true,
         rubyHeight: CGFloat = 13
     ) {
-        self.rubyHeight = rubyHeight
+        _rubyHeight = ScaledMetric(wrappedValue: rubyHeight, relativeTo: rubyFont.textStyle)
         self.segments = segments
         self.font = font
         self.rubyFont = rubyFont

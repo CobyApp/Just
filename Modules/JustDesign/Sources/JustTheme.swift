@@ -126,21 +126,21 @@ public enum JustTheme {
         public static let section: CGFloat = 36
     }
 
-    /// Every entry follows Dynamic Type — see `Font.just`. Computed rather than
-    /// stored because `UIFontMetrics` resolves against the *current* text-size
-    /// setting, and a `static let` would freeze whatever it was at first use.
+    /// Every entry follows Dynamic Type, live — see `JustFontStyle`. They are
+    /// descriptions, not `Font`s: `.font(_:)` resolves the size where the text
+    /// is drawn, so a change in the text-size setting reaches it at once.
     public enum Font {
         /// The lyric line being studied. Large, low contrast between kanji and
         /// kana, generous line height — this is what the eye lives on.
-        public static var lyricActive: SwiftUI.Font { .just(26, weight: .semibold, relativeTo: .title2) }
-        public static var lyric: SwiftUI.Font { .just(21, relativeTo: .title3) }
-        public static var ruby: SwiftUI.Font { .just(10, weight: .medium, relativeTo: .caption2) }
-        public static var translation: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
-        public static var title: SwiftUI.Font { .kawaii(22, weight: .bold, relativeTo: .title2) }
-        public static var sectionTitle: SwiftUI.Font { .kawaii(13, weight: .bold, relativeTo: .caption1) }
-        public static var body: SwiftUI.Font { .just(15, relativeTo: .subheadline) }
-        public static var caption: SwiftUI.Font { .just(12, weight: .medium, relativeTo: .caption1) }
-        public static var japanese: SwiftUI.Font { .just(19, weight: .medium, relativeTo: .body) }
+        public static var lyricActive: JustFontStyle { .just(26, weight: .semibold, relativeTo: .title2) }
+        public static var lyric: JustFontStyle { .just(21, relativeTo: .title3) }
+        public static var ruby: JustFontStyle { .just(10, weight: .medium, relativeTo: .caption2) }
+        public static var translation: JustFontStyle { .just(15, relativeTo: .subheadline) }
+        public static var title: JustFontStyle { .kawaii(22, weight: .bold, relativeTo: .title2) }
+        public static var sectionTitle: JustFontStyle { .kawaii(13, weight: .bold, relativeTo: .caption1) }
+        public static var body: JustFontStyle { .just(15, relativeTo: .subheadline) }
+        public static var caption: JustFontStyle { .just(12, weight: .medium, relativeTo: .caption1) }
+        public static var japanese: JustFontStyle { .just(19, weight: .medium, relativeTo: .body) }
     }
 }
 

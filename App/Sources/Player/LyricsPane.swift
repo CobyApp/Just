@@ -273,7 +273,7 @@ private struct LyricRow: View {
     }
 
     /// Scaled from the theme's sizes so the active/inactive contrast survives.
-    private var lyricFont: Font {
+    private var lyricFont: JustFontStyle {
         .just(
             (isActive ? 26 : 21) * scale,
             weight: isActive ? .semibold : .regular,
@@ -293,7 +293,7 @@ private struct LyricRow: View {
                     font: lyricFont,
                     rubyFont: .just(10 * scale, weight: .medium, relativeTo: .caption2),
                     color: isActive ? JustTheme.Ink.primary : JustTheme.Ink.secondary,
-                    rubyHeight: (13 * scale).scaledForText(.caption2)
+                    rubyHeight: 13 * scale
                 )
             } else {
                 Text(line.text)
