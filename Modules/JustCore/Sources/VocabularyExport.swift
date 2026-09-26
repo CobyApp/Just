@@ -36,6 +36,12 @@ public enum VocabularyExport {
         }
     }
 
+    /// Column names, in Korean because the person importing it is.
+    ///
+    /// Spreadsheets want this row. Anki does not know it is a header and will
+    /// import it as one extra note unless the first row is skipped in its
+    /// import dialog — a one-note cost worth paying for a file that opens
+    /// legibly everywhere else.
     public static let header = "단어,읽기,뜻,등급,품사,예문,곡"
 
     public static func csv(from rows: [Row]) -> String {
@@ -51,14 +57,31 @@ public enum VocabularyExport {
         .joined(separator: ",")
     }
 
-    /// Quotes a field when it contains anything that would break the row.
+    /// Characters that make a spreadsheet read a cell as a formula.
+    private static let formulaLeads: Set<Unicode.Scalar> = ["=", "+", "-", "@", "\t", "\r"]
+
+    /// Makes a field safe to put in a row.
     ///
-    /// Lyrics carry commas constantly and Korean glosses carry them almost as
-    /// often, so this is the common case rather than an edge one.
+    /// Quoted when it contains anything that would break the row — commas,
+    /// quotes, and either kind of line break. Lyrics carry commas constantly
+    /// and Korean glosses carry them almost as often, so this is the common
+    /// case rather than an edge one.
+    ///
+    /// A field that opens like a formula gets a leading apostrophe, the usual
+    /// guard against CSV injection: the text comes from lyrics and a language
+    /// model, and Excel or Numbers would otherwise evaluate `=HYPERLINK(…)`
+    /// found in either. The apostrophe does show up in Anki; fields that start
+    /// with one of these characters are rare enough in vocabulary to accept it.
     static func escaped(_ field: String) -> String {
-        let needsQuotes = field.contains(",")
-            || field.contains("\"")
-            || field.contains("\n")
+        var field = field
+        if let first = field.unicodeScalars.first, formulaLeads.contains(first) {
+            field = "'" + field
+        }
+        // Checked by scalar: "\r\n" is a single Character in Swift, so a
+        // Character-level search for "\n" would miss a Windows line break.
+        let needsQuotes = field.unicodeScalars.contains {
+            $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r"
+        }
         guard needsQuotes else { return field }
         return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
@@ -73,7 +96,11 @@ public enum VocabularyExport {
         // A BOM, so Excel opens the Korean and Japanese columns as UTF-8 rather
         // than as the system's legacy encoding.
         let bom = Data([0xEF, 0xBB, 0xBF])
-        try? (bom + data).write(to: url, options: .atomic)
+        do {
+            try (bom + data).write(to: url, options: .atomic)
+        } catch {
+            return nil
+        }
         return url
     }
 }

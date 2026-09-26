@@ -36,6 +36,13 @@ public struct FSRS: Sendable {
         public let intervalDays: Double
         public let due: Date
         public let phase: ReviewPhase
+        /// Whether this grade forgot a card that had graduated to review.
+        ///
+        /// Only that counts as a lapse. A new card answered 「다시」, or a
+        /// relearning card missed again, is still being learned — counting
+        /// those inflated `lapses` and pushed barely-seen words into the
+        /// 「어려운 단어」 list.
+        public let isLapse: Bool
     }
 
     /// Probability the item is still recalled `elapsedDays` after a review that
@@ -62,8 +69,9 @@ public struct FSRS: Sendable {
     private func nextDifficulty(_ difficulty: Double, _ grade: ReviewGrade) -> Double {
         let delta = difficulty - weights[6] * Double(grade.rawValue - 3)
         // Mean reversion pulls difficulty back toward the "good"-grade baseline
-        // so a single bad day doesn't permanently mark a word as hard.
-        let reverted = weights[7] * initialDifficulty(.easy) + (1 - weights[7]) * delta
+        // so a single bad day doesn't permanently mark a word as hard. FSRS-4.5
+        // reverts to D0(3) — `.good`; D0(4) is FSRS-5's target, not this one's.
+        let reverted = weights[7] * initialDifficulty(.good) + (1 - weights[7]) * delta
         return clampDifficulty(reverted)
     }
 
@@ -132,6 +140,7 @@ public struct FSRS: Sendable {
         }
 
         let phase: ReviewPhase = grade == .again ? .relearning : .review
+        let isLapse = state.phase == .review && grade == .again
 
         // "Again" comes back in the same session rather than tomorrow.
         if grade == .again {
@@ -140,7 +149,8 @@ public struct FSRS: Sendable {
                 difficulty: difficulty,
                 intervalDays: 0,
                 due: now.addingTimeInterval(10 * 60),
-                phase: phase
+                phase: phase,
+                isLapse: isLapse
             )
         }
 
@@ -150,7 +160,8 @@ public struct FSRS: Sendable {
             difficulty: difficulty,
             intervalDays: days,
             due: now.addingTimeInterval(days * 86_400),
-            phase: phase
+            phase: phase,
+            isLapse: isLapse
         )
     }
 
@@ -172,6 +183,6 @@ public extension ReviewState {
         phase = outcome.phase
         lastReview = now
         reps += 1
-        if outcome.phase == .relearning { lapses += 1 }
+        if outcome.isLapse { lapses += 1 }
     }
 }

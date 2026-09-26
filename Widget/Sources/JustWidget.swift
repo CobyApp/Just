@@ -22,17 +22,25 @@ struct JustWidgetProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<JustWidgetEntry>) -> Void) {
-        let entry = JustWidgetEntry(date: .now, snapshot: WidgetStore.read() ?? .placeholder)
-        // Cards come due on a schedule the widget cannot see, so it refreshes on
-        // the hour rather than trying to predict the next one.
-        let next = Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? .now
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        let snapshot = WidgetStore.read() ?? .placeholder
+        let now = Date.now
+        // One entry per moment the numbers change — each card coming due, and
+        // the midnights where the streak can lapse — worked out from the
+        // schedule the snapshot carries, so the counts stay right while the
+        // app is closed. The app reloads the timeline whenever it writes a
+        // new snapshot; `.atEnd` covers the stretch after the last entry.
+        let dates = [now] + snapshot.timelineDates(after: now)
+        let entries = dates.map { JustWidgetEntry(date: $0, snapshot: snapshot) }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
 struct JustWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: JustWidgetEntry
+
+    private var dueCount: Int { entry.snapshot.dueCount(at: entry.date) }
+    private var streak: Int { entry.snapshot.streak(at: entry.date) }
 
     var body: some View {
         switch family {
@@ -72,7 +80,7 @@ struct JustWidgetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 header
                 Spacer(minLength: 0)
-                Label("\(entry.snapshot.streak)일 연속", systemImage: "flame")
+                Label("\(streak)일 연속", systemImage: "flame")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Label("\(entry.snapshot.totalWords)개 모음", systemImage: "character.book.closed")
@@ -108,8 +116,8 @@ struct JustWidgetView: View {
         HStack(spacing: 6) {
             Image(systemName: "music.note")
                 .foregroundStyle(Color(red: 1.0, green: 0.37, blue: 0.56))
-            Text(entry.snapshot.dueCount > 0 ? "복습 \(entry.snapshot.dueCount)개" : "오늘 복습 완료")
-                .foregroundStyle(entry.snapshot.dueCount > 0 ? .primary : .secondary)
+            Text(dueCount > 0 ? "복습 \(dueCount)개" : "오늘 복습 완료")
+                .foregroundStyle(dueCount > 0 ? .primary : .secondary)
         }
         .font(.system(.caption, design: .rounded, weight: .bold))
     }
@@ -119,10 +127,15 @@ struct JustWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
             JustWidgetView(entry: entry)
+                // The background is a fixed cream, so the ink must be fixed
+                // too: left to follow the system, `.primary` and `.secondary`
+                // turned near-white in dark mode and the text vanished into
+                // the cream.
+                .environment(\.colorScheme, .light)
                 .containerBackground(Color(red: 1.0, green: 0.98, blue: 0.96), for: .widget)
                 // Tapping the widget lands on the cards, not on wherever the
                 // app happened to be left.
-                .widgetURL(URL(string: entry.snapshot.dueCount > 0 ? "just://review" : "just://words"))
+                .widgetURL(URL(string: entry.snapshot.dueCount(at: entry.date) > 0 ? "just://review" : "just://words"))
         }
         .configurationDisplayName("우타링")
         .description("복습할 단어 수와 오늘 볼 단어를 보여줍니다.")

@@ -19,7 +19,10 @@ struct PracticeScreen: View {
     private var store: JustStore { JustStore(context: context) }
 
     var body: some View {
-        NavigationStack {
+        @Bindable var app = app
+        // The path lives in `AppModel` so a notification or the widget can
+        // push the review cards — see `AppModel.go(to:)`.
+        NavigationStack(path: $app.practicePath) {
             ZStack {
                 JustBrandBackground()
                 content

@@ -58,6 +58,8 @@ public extension EnvironmentValues {
 private struct DismissibleGuide: ViewModifier {
     let id: String
 
+    private static let hitSize: CGFloat = 44
+
     func body(content: Content) -> some View {
         let store = GuideDismissals.shared
         if !store.isDismissed(id) {
@@ -72,9 +74,17 @@ private struct DismissibleGuide: ViewModifier {
                             .foregroundStyle(JustTheme.Ink.secondary)
                             .frame(width: 28, height: 28)
                             .background(JustTheme.Surface.panel, in: .circle)
+                            // Drawn at 28pt, tappable at 44 — the smallest
+                            // target the HIG allows. The circle alone was a
+                            // target most thumbs missed.
+                            .frame(width: Self.hitSize, height: Self.hitSize)
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .padding(6)
+                    // Keeps the circle where it was, 6pt in from the corner:
+                    // the wider frame centres it 8pt in, so the frame reaches
+                    // 2pt past the card's edge instead.
+                    .padding(6 - (Self.hitSize - 28) / 2)
                     .accessibilityLabel("안내 닫기")
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))

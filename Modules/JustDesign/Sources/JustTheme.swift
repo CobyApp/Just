@@ -238,7 +238,7 @@ public struct JustScreenHeader: View {
             if showsMark { UtaringMark(size: 46) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.kawaii(32, weight: .bold, relativeTo: .largeTitle))
+                    .kawaiiFont(32, weight: .bold, relativeTo: .largeTitle)
                     .foregroundStyle(JustTheme.Kawaii.ink)
                 Text(subtitle)
                     .font(JustTheme.Font.caption)
@@ -489,7 +489,7 @@ public struct JustChip: View {
 public extension View {
     /// Section heading on the bright screens.
     func kawaiiSectionTitle() -> some View {
-        font(.kawaii(20, relativeTo: .title3))
+        kawaiiFont(20, relativeTo: .title3)
             .foregroundStyle(JustTheme.Kawaii.ink)
             .padding(.horizontal, JustTheme.Space.regular)
             .frame(maxWidth: .infinity, alignment: .leading)

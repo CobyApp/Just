@@ -1,8 +1,10 @@
+import CoreTransferable
 import JustCore
 import JustDesign
 import JustSensei
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LibraryScreen: View {
     @Environment(\.modelContext) private var context
@@ -19,14 +21,6 @@ struct LibraryScreen: View {
     @State private var stats: StudyStats = .empty
 
     private var store: JustStore { JustStore(context: context) }
-
-    /// A CSV of every saved word, written when the toolbar is built.
-    ///
-    /// Anki and spreadsheets both read this; the header is Korean because the
-    /// person importing it is.
-    private var exportFile: URL? {
-        VocabularyExport.writeFile(rows: store.exportRows())
-    }
 
     private var filteredWords: [VocabEntry] {
         let matches = words.filter { entry in
@@ -60,20 +54,22 @@ struct LibraryScreen: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: VocabEntry.self) { VocabDetailView(entry: $0) }
             .navigationDestination(for: ReviewRoute.self) { _ in ReviewScreen() }
+            // Recomputed on appear rather than observed: the counts change
+            // only when the user grades or saves something, both of which
+            // leave and return to this screen. On the root content, not on the
+            // NavigationStack — the stack's own onAppear does not fire again
+            // when a pushed review screen is popped, which left the counts
+            // from before the review on screen.
+            .onAppear(perform: refresh)
         }
         // A list screen, so bright. The player it opens stays dark.
         .environment(\.colorScheme, .light)
-        // Recomputed on appear rather than observed: the counts change only
-        // when the user grades or saves something, both of which leave and
-        // return to this screen.
-        .onAppear(perform: refresh)
         .task(id: words.count) { refresh() }
     }
 
     private func refresh() {
         stats = store.stats()
-        store.publishWidgetSnapshot(stats)
-        Task { await app.reminder.updateBadge(dueCount: stats.dueCount) }
+        store.publishActivity(stats: stats)
     }
 
     private var emptyState: some View {
@@ -222,13 +218,14 @@ struct LibraryScreen: View {
             }
             .buttonStyle(.justSecondary)
 
-            if let file = exportFile {
-                ShareLink(item: file) {
-                    Label("내보내기", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.justSecondary)
+            ShareLink(
+                item: VocabularyCSV(container: context.container),
+                preview: SharePreview("단어장 CSV", image: Image(systemName: "tablecells"))
+            ) {
+                Label("내보내기", systemImage: "square.and.arrow.up")
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.justSecondary)
         }
     }
 
@@ -375,7 +372,7 @@ struct VocabDetailView: View {
                             color: JustTheme.Ink.primary
                         )
                         Text(entry.meaningKo)
-                            .font(.just(18, relativeTo: .body))
+                            .justFont(18, relativeTo: .body)
                             .foregroundStyle(JustTheme.Ink.primary)
                         HStack(spacing: 6) {
                             JustChip(entry.jlpt.label, tint: entry.jlpt.tint)
@@ -507,3 +504,27 @@ enum WordOrder: String, CaseIterable, Identifiable {
 
 /// Empty route value — the grammar list takes no parameters.
 struct GrammarRoute: Hashable {}
+
+/// Every saved word as a CSV file, built only when the share sheet asks for it.
+///
+/// Anki and spreadsheets both read this; the header is Korean because the
+/// person importing it is. It used to be a computed property that fetched the
+/// whole library and wrote the file on every render of the screen — typing one
+/// letter into the search field rewrote it. Carrying only the container keeps
+/// the value free to create; the work happens once, off the main actor, when
+/// the user actually shares.
+struct VocabularyCSV: Transferable {
+    let container: ModelContainer
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .commaSeparatedText) { csv in
+            // A context of its own: this runs off the main actor, where the
+            // view's context must not be touched.
+            let rows = JustStore.exportRows(in: ModelContext(csv.container))
+            guard let url = VocabularyExport.writeFile(rows: rows) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return SentTransferredFile(url)
+        }
+    }
+}

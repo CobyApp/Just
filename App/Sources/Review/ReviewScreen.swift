@@ -34,7 +34,9 @@ struct ReviewScreen: View {
         .navigationTitle("복습")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .onAppear(perform: reload)
+        // Only when there is no session yet: onAppear fires again on every
+        // switch back to this tab, and reloading there reset the progress.
+        .onAppear { if queue.isEmpty { reload() } }
     }
 
     // MARK: - Card
@@ -55,7 +57,7 @@ struct ReviewScreen: View {
                 // The prompt is the word alone; the reading is part of the
                 // answer, so it stays hidden until reveal.
                 Text(entry.lemma)
-                    .font(.just(44, weight: .semibold, relativeTo: .largeTitle))
+                    .justFont(44, weight: .semibold, relativeTo: .largeTitle)
                     .foregroundStyle(JustTheme.Ink.primary)
 
                 if isRevealed {
@@ -63,11 +65,11 @@ struct ReviewScreen: View {
                         SpeakButton(word: entry.lemma, reading: entry.reading, size: 36)
                         if entry.showsReading {
                             Text(entry.reading)
-                                .font(.just(18, relativeTo: .body))
+                                .justFont(18, relativeTo: .body)
                                 .foregroundStyle(JustTheme.Ink.secondary)
                         }
                         Text(entry.meaningKo)
-                            .font(.just(22, weight: .medium, relativeTo: .title3))
+                            .justFont(22, weight: .medium, relativeTo: .title3)
                             .foregroundStyle(JustTheme.Ink.primary)
                             .multilineTextAlignment(.center)
                         if !entry.note.isEmpty {
@@ -228,8 +230,18 @@ struct ReviewScreen: View {
     private func submit(_ grade: ReviewGrade, for entry: VocabEntry) {
         grade == .again ? Haptics.wrong() : Haptics.tick()
         store.grade(entry, grade)
-        completed += 1
         withAnimation(.snappy) {
+            if grade == .again {
+                // FSRS brings a forgotten card back in ten minutes so it is
+                // seen again this session — but the queue was fixed at start,
+                // so it never was. It goes to the back: by the time the rest
+                // are done it has had a moment to be forgotten properly.
+                queue.append(entry)
+            } else {
+                // Counts cards finished, not button presses, so a card that
+                // took three tries is still one card.
+                completed += 1
+            }
             isRevealed = false
             index += 1
         }

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 
 @testable import JustCore
@@ -65,6 +66,47 @@ struct FSRSTests {
         state.apply(scheduler.schedule(state, grade: .again))
         #expect(state.reps == 2)
         #expect(state.lapses == 1)
+    }
+
+    /// FSRS-4.5 reverts difficulty toward D0(3) = w4, the "good" baseline.
+    /// Reverting toward D0(4) (FSRS-5's target) drifts every word easier.
+    @Test("난이도 평균 회귀는 '알맞음' 기준값을 향한다")
+    func meanReversionTargetsGood() {
+        let start = Date(timeIntervalSince1970: 0)
+        let state = ReviewState()
+        state.phase = .review
+        state.stability = 10
+        state.difficulty = 5
+        state.lastReview = start
+
+        let outcome = scheduler.schedule(state, grade: .good, now: start.addingTimeInterval(86_400 * 10))
+        let w = FSRS.defaultWeights
+        // A "good" grade leaves the pre-reversion difficulty unchanged, so
+        // only the reversion moves it: 0.031 × 5.1618 + 0.969 × 5.
+        let expected = w[7] * w[4] + (1 - w[7]) * 5
+        #expect(abs(outcome.difficulty - expected) < 1e-9)
+        #expect(abs(outcome.difficulty - 5.0050158) < 1e-6)
+    }
+
+    @Test("새 카드를 모른다고 해도 실패 횟수는 늘지 않는다")
+    func newCardAgainIsNotALapse() {
+        let state = ReviewState()
+        state.apply(scheduler.schedule(state, grade: .again))
+        #expect(state.phase == .relearning)
+        #expect(state.lapses == 0)
+    }
+
+    @Test("복습 단계에서 잊었을 때만 실패로 센다")
+    func onlyForgettingAReviewCardIsALapse() {
+        let state = ReviewState()
+        state.apply(scheduler.schedule(state, grade: .good))          // new → review
+        state.apply(scheduler.schedule(state, grade: .again))         // review → relearning: lapse
+        #expect(state.lapses == 1)
+        state.apply(scheduler.schedule(state, grade: .again))         // still relearning: not another
+        #expect(state.lapses == 1)
+        state.apply(scheduler.schedule(state, grade: .good))          // relearning → review
+        state.apply(scheduler.schedule(state, grade: .again))         // review → relearning: lapse
+        #expect(state.lapses == 2)
     }
 }
 
@@ -255,7 +297,7 @@ struct VocabularyExportTests {
     private func row(
         lemma: String = "夢",
         meaning: String = "꿈",
-        example: String = "夢ならばどれほどよかったでしょう"
+        example: String = "夢の中でまた会えたらいいな"
     ) -> VocabularyExport.Row {
         .init(
             lemma: lemma,
@@ -293,35 +335,344 @@ struct VocabularyExportTests {
     func leavesPlainFieldsAlone() {
         #expect(VocabularyExport.escaped("ゆめ") == "ゆめ")
     }
+
+    @Test("캐리지 리턴이 든 필드도 인용부호로 감싼다")
+    func quotesCarriageReturns() {
+        #expect(VocabularyExport.escaped("a\rb") == "\"a\rb\"")
+        #expect(VocabularyExport.escaped("a\r\nb") == "\"a\r\nb\"")
+    }
+
+    /// A cell that starts with one of these is evaluated as a formula by
+    /// Excel and Numbers; the apostrophe makes it text.
+    @Test("수식으로 읽힐 수 있는 필드 앞에는 작은따옴표를 붙인다")
+    func neutralisesFormulas() {
+        #expect(VocabularyExport.escaped("=1+1") == "'=1+1")
+        #expect(VocabularyExport.escaped("+82") == "'+82")
+        #expect(VocabularyExport.escaped("-ない") == "'-ない")
+        #expect(VocabularyExport.escaped("@home") == "'@home")
+        // Both guards at once: the apostrophe goes inside the quotes.
+        #expect(VocabularyExport.escaped("=A1,B1") == "\"'=A1,B1\"")
+        // Only the first character matters.
+        #expect(VocabularyExport.escaped("1+1=2") == "1+1=2")
+    }
 }
 
-@Suite("어려운 단어 정렬")
-struct StruggleOrderTests {
-    /// Mirrors `JustStore.strugglingEntries`' comparator, which cannot be called
-    /// without a context. Lapses outrank difficulty because a repeated failure is
-    /// evidence, while difficulty also rises for a word merely answered slowly.
-    private func ordered(_ pairs: [(lapses: Int, difficulty: Double)]) -> [Int] {
-        pairs.enumerated()
-            .sorted {
-                if $0.element.lapses != $1.element.lapses {
-                    return $0.element.lapses > $1.element.lapses
-                }
-                return $0.element.difficulty > $1.element.difficulty
-            }
-            .map(\.offset)
+@Suite("복습 대기열과 어려운 단어")
+@MainActor
+struct ReviewQueueTests {
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func makeStore() throws -> (ModelContainer, JustStore) {
+        let container = try JustSchema.container(inMemory: true)
+        return (container, JustStore(context: container.mainContext))
     }
 
-    @Test("실패 횟수가 난이도를 앞선다")
-    func lapsesOutrankDifficulty() {
-        // Index 1 has fewer lapses but the highest difficulty; it must not win.
-        let order = ordered([(lapses: 3, difficulty: 4), (lapses: 1, difficulty: 9)])
-        #expect(order == [0, 1])
+    @discardableResult
+    private func insert(
+        _ store: JustStore,
+        _ index: Int,
+        due: Date,
+        lapses: Int = 0,
+        difficulty: Double = 5
+    ) -> VocabEntry {
+        let entry = VocabEntry(lemma: "語\(index)", reading: "ご\(index)", meaningKo: "단어 \(index)")
+        // Oldest first, so index order is creation order.
+        entry.createdAt = now.addingTimeInterval(Double(index) - 100_000)
+        let review = ReviewState()
+        review.due = due
+        review.lapses = lapses
+        review.difficulty = difficulty
+        review.phase = .review
+        entry.review = review
+        store.context.insert(entry)
+        return entry
     }
 
-    @Test("실패 횟수가 같으면 난이도로 가른다")
-    func difficultyBreaksTies() {
-        let order = ordered([(lapses: 2, difficulty: 3), (lapses: 2, difficulty: 8)])
-        #expect(order == [1, 0])
+    /// The old query took the 500 oldest words and filtered those, so words
+    /// saved after the 500th never came up at all.
+    @Test("500개가 넘어도 나중에 담은 단어가 복습에 올라온다")
+    func dueBeyondFiveHundred() throws {
+        let (container, store) = try makeStore()
+        _ = container
+        for index in 0..<550 {
+            insert(store, index, due: now.addingTimeInterval(86_400))
+        }
+        for index in 550..<600 {
+            // Due at different moments in the past, newest-saved most overdue.
+            insert(store, index, due: now.addingTimeInterval(-Double(index)))
+        }
+        try store.context.save()
+
+        let due = store.dueEntries(limit: 40, now: now)
+        #expect(due.count == 40)
+        #expect(due.allSatisfy { ($0.review?.due ?? .distantFuture) <= now })
+        let dates = due.compactMap { $0.review?.due }
+        #expect(dates == dates.sorted())
+        #expect(store.dueCount(now: now) == 50)
+    }
+
+    @Test("통계의 복습 수는 대기열 전체를 센다")
+    func statsCountsEveryDueCard() throws {
+        let (container, store) = try makeStore()
+        _ = container
+        for index in 0..<520 {
+            insert(store, index, due: .now.addingTimeInterval(86_400))
+        }
+        for index in 520..<530 {
+            insert(store, index, due: .now.addingTimeInterval(-60))
+        }
+        try store.context.save()
+        #expect(store.stats().dueCount == 10)
+    }
+
+    /// Lapses outrank difficulty because a repeated failure is evidence,
+    /// while difficulty also rises for a word merely answered slowly.
+    @Test("어려운 단어는 실패 횟수, 그다음 난이도 순이고 500개 밖에서도 찾는다")
+    func strugglingOrder() throws {
+        let (container, store) = try makeStore()
+        _ = container
+        for index in 0..<520 {
+            insert(store, index, due: now)
+        }
+        let fewLapsesHard = insert(store, 520, due: now, lapses: 1, difficulty: 9)
+        let manyLapses = insert(store, 521, due: now, lapses: 3, difficulty: 4)
+        let fewLapsesEasy = insert(store, 522, due: now, lapses: 1, difficulty: 2)
+        try store.context.save()
+
+        let keys = store.strugglingEntries().map(\.key)
+        #expect(keys == [manyLapses.key, fewLapsesHard.key, fewLapsesEasy.key])
+        #expect(store.strugglingEntries(limit: 1).map(\.key) == [manyLapses.key])
+    }
+
+    @Test("앞으로의 일정은 가까운 순서로 담긴다")
+    func outlookListsUpcoming() throws {
+        let (container, store) = try makeStore()
+        _ = container
+        insert(store, 0, due: now.addingTimeInterval(-10))
+        insert(store, 1, due: now.addingTimeInterval(-20))
+        insert(store, 2, due: now.addingTimeInterval(3_600 * 5))
+        insert(store, 3, due: now.addingTimeInterval(3_600))
+        try store.context.save()
+
+        let outlook = store.outlook(now: now)
+        #expect(outlook.dueCount == 2)
+        #expect(outlook.upcoming == [now.addingTimeInterval(3_600), now.addingTimeInterval(3_600 * 5)])
+        #expect(outlook.dueCount(at: now.addingTimeInterval(3_600 * 2)) == 3)
+    }
+}
+
+@Suite("복습 일정 전망")
+struct ReviewOutlookTests {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    /// 2023-11-14 10:00 UTC.
+    private var morning: Date {
+        calendar.date(from: DateComponents(year: 2023, month: 11, day: 14, hour: 10))!
+    }
+
+    private func at(day: Int, hour: Int, minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2023, month: 11, day: day, hour: hour, minute: minute))!
+    }
+
+    @Test("지금 복습할 카드가 있으면 오늘 알림 시각")
+    func dueNowFiresToday() {
+        let outlook = ReviewOutlook(asOf: morning, dueCount: 3, upcoming: [])
+        let date = outlook.reminderDate(hour: 21, minute: 0, now: morning, calendar: calendar)
+        #expect(date == at(day: 14, hour: 21))
+    }
+
+    @Test("오늘 알림 시각이 지났으면 내일")
+    func pastTodayFiresTomorrow() {
+        let late = at(day: 14, hour: 22)
+        let outlook = ReviewOutlook(asOf: late, dueCount: 1, upcoming: [])
+        let date = outlook.reminderDate(hour: 21, minute: 0, now: late, calendar: calendar)
+        #expect(date == at(day: 15, hour: 21))
+    }
+
+    @Test("다음 카드가 사흘 뒤면 그날 알림 시각")
+    func nextDueDayLater() {
+        let outlook = ReviewOutlook(asOf: morning, dueCount: 0, upcoming: [at(day: 17, hour: 9)])
+        #expect(outlook.reminderDate(hour: 21, minute: 0, now: morning, calendar: calendar) == at(day: 17, hour: 21))
+    }
+
+    @Test("알림 시각보다 늦게 올라오는 카드는 다음 날 알린다")
+    func dueAfterReminderTime() {
+        let outlook = ReviewOutlook(asOf: morning, dueCount: 0, upcoming: [at(day: 17, hour: 23)])
+        #expect(outlook.reminderDate(hour: 21, minute: 0, now: morning, calendar: calendar) == at(day: 18, hour: 21))
+    }
+
+    @Test("복습할 것이 없으면 알림도 없다")
+    func nothingScheduledNoReminder() {
+        let outlook = ReviewOutlook(asOf: morning, dueCount: 0, upcoming: [])
+        #expect(outlook.reminderDate(hour: 21, minute: 0, now: morning, calendar: calendar) == nil)
+    }
+}
+
+@Suite("위젯 스냅숏")
+struct WidgetSnapshotTests {
+    private let written = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    /// A file written by a build before the schedule fields existed must still
+    /// decode, and show exactly what it said.
+    @Test("예전 형식의 스냅숏도 읽힌다")
+    func decodesOldSnapshot() throws {
+        let json = #"{"dueCount":3,"streak":2,"totalWords":10,"updatedAt":721692800}"#
+        let snapshot = try JSONDecoder().decode(WidgetSnapshot.self, from: Data(json.utf8))
+        #expect(snapshot.upcomingDue == nil)
+        #expect(snapshot.lastStudyDay == nil)
+        #expect(snapshot.word == nil)
+        #expect(snapshot.dueCount(at: .distantFuture) == 3)
+        #expect(snapshot.streak(at: .distantFuture) == 2)
+    }
+
+    @Test("새 필드는 저장했다가 그대로 읽힌다")
+    func roundTrips() throws {
+        let snapshot = WidgetSnapshot(
+            dueCount: 1, streak: 4, totalWords: 9, word: nil,
+            updatedAt: written,
+            upcomingDue: [written.addingTimeInterval(60)],
+            lastStudyDay: written
+        )
+        let decoded = try JSONDecoder().decode(
+            WidgetSnapshot.self,
+            from: JSONEncoder().encode(snapshot)
+        )
+        #expect(decoded == snapshot)
+    }
+
+    @Test("시간이 지나면 올라온 카드가 더해진다")
+    func dueCountGrowsOverTime() {
+        let snapshot = WidgetSnapshot(
+            dueCount: 2, streak: 0, totalWords: 5, word: nil,
+            updatedAt: written,
+            upcomingDue: [written.addingTimeInterval(3_600), written.addingTimeInterval(7_200)]
+        )
+        #expect(snapshot.dueCount(at: written) == 2)
+        #expect(snapshot.dueCount(at: written.addingTimeInterval(3_600)) == 3)
+        #expect(snapshot.dueCount(at: written.addingTimeInterval(10_000)) == 4)
+    }
+
+    @Test("하루를 통째로 거르면 연속일수가 끊긴다")
+    func streakLapses() {
+        let studied = calendar.startOfDay(for: written)
+        let snapshot = WidgetSnapshot(
+            dueCount: 0, streak: 5, totalWords: 5, word: nil,
+            updatedAt: written, upcomingDue: [], lastStudyDay: studied
+        )
+        let day: TimeInterval = 86_400
+        #expect(snapshot.streak(at: studied.addingTimeInterval(day * 0.5), calendar: calendar) == 5)
+        // The next day, not yet studied, still counts.
+        #expect(snapshot.streak(at: studied.addingTimeInterval(day * 1.5), calendar: calendar) == 5)
+        #expect(snapshot.streak(at: studied.addingTimeInterval(day * 2.5), calendar: calendar) == 0)
+    }
+
+    @Test("타임라인은 카드가 올라오는 시각과 자정마다 갱신된다")
+    func timelineDates() {
+        let due = written.addingTimeInterval(3_600 + 30)
+        let snapshot = WidgetSnapshot(
+            dueCount: 0, streak: 0, totalWords: 1, word: nil,
+            updatedAt: written,
+            upcomingDue: [due, written.addingTimeInterval(86_400 * 3)]
+        )
+        let dates = snapshot.timelineDates(after: written, calendar: calendar)
+        #expect(dates == dates.sorted())
+        #expect(dates.allSatisfy { $0 > written })
+        // Rounded up to the minute, never before the card is due.
+        #expect(dates.contains { $0 >= due && $0.timeIntervalSince(due) < 60 })
+        let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: written))!
+        #expect(dates.contains(midnight))
+        // Three days out is past the horizon.
+        #expect(!dates.contains { $0 > written.addingTimeInterval(86_400 * 2 + 1) })
+    }
+}
+
+@Suite("저장소 위치 옮기기")
+struct StoreLocationTests {
+    private let fileManager = FileManager.default
+    private let schema = Schema(JustSchema.models)
+
+    private func temporaryDirectory() throws -> URL {
+        let url = fileManager.temporaryDirectory
+            .appending(path: "store-location-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    private func writeFakeStore(in directory: URL, marker: String) throws {
+        try Data(marker.utf8).write(to: directory.appending(path: "default.store"))
+        try Data((marker + "-wal").utf8).write(to: directory.appending(path: "default.store-wal"))
+    }
+
+    private func contents(_ url: URL) -> String? {
+        (try? Data(contentsOf: url)).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// Creates a real SwiftData store, releasing it before returning.
+    private func makeRealStore(at directory: URL, words: Int) throws {
+        let container = try ModelContainer(
+            for: schema,
+            configurations: ModelConfiguration(url: directory.appending(path: "default.store"))
+        )
+        let context = ModelContext(container)
+        for index in 0..<words {
+            context.insert(VocabEntry(lemma: "語\(index)", reading: "ご", meaningKo: "단어"))
+        }
+        try context.save()
+    }
+
+    @Test("옛 저장소만 있으면 그룹 컨테이너로 복사한다")
+    func copiesLegacyStore() throws {
+        let legacy = try temporaryDirectory()
+        let group = try temporaryDirectory().appending(path: "Library/Application Support")
+        try writeFakeStore(in: legacy, marker: "legacy")
+
+        #expect(StoreLocation.migrate(from: legacy, to: group, schema: schema) == .copied)
+        #expect(contents(group.appending(path: "default.store")) == "legacy")
+        #expect(contents(group.appending(path: "default.store-wal")) == "legacy-wal")
+        // Copied, not moved: the original stays as a fallback.
+        #expect(fileManager.fileExists(atPath: legacy.appending(path: "default.store").path(percentEncoded: false)))
+    }
+
+    @Test("옛 저장소가 없으면 아무것도 하지 않는다")
+    func nothingToCopy() throws {
+        let legacy = try temporaryDirectory()
+        let group = try temporaryDirectory()
+        #expect(StoreLocation.migrate(from: legacy, to: group, schema: schema) == .nothingToDo)
+        #expect(!fileManager.fileExists(atPath: group.appending(path: "default.store").path(percentEncoded: false)))
+    }
+
+    @Test("그룹 저장소에 단어가 있으면 덮어쓰지 않는다")
+    func keepsGroupStoreWithData() throws {
+        let legacy = try temporaryDirectory()
+        let group = try temporaryDirectory()
+        try writeFakeStore(in: legacy, marker: "legacy")
+        try makeRealStore(at: group, words: 1)
+
+        #expect(StoreLocation.migrate(from: legacy, to: group, schema: schema) == .keptExisting)
+        #expect(contents(group.appending(path: "default.store")) != "legacy")
+    }
+
+    /// The widget build created an empty store in the group container on
+    /// first launch; that file must not hide the user's real library.
+    @Test("그룹 저장소가 비어 있으면 옛 저장소로 바꾼다")
+    func replacesEmptyGroupStore() throws {
+        let legacy = try temporaryDirectory()
+        let group = try temporaryDirectory()
+        try writeFakeStore(in: legacy, marker: "legacy")
+        try makeRealStore(at: group, words: 0)
+
+        #expect(StoreLocation.migrate(from: legacy, to: group, schema: schema) == .copied)
+        #expect(contents(group.appending(path: "default.store")) == "legacy")
     }
 }
 
@@ -370,9 +721,9 @@ struct GrammarSightingTests {
 struct PlaybackPositionTests {
     private let lyrics = Lyrics(
         lines: [
-            LyricLine(id: 0, time: 0.9, text: "沈むように溶けてゆくように"),
-            LyricLine(id: 1, time: 8.0, text: "二人だけの空が広がる夜に"),
-            LyricLine(id: 2, time: 120.0, text: "「さよなら」だけだった"),
+            LyricLine(id: 0, time: 0.9, text: "ゆっくり歩いてゆく帰り道"),
+            LyricLine(id: 1, time: 8.0, text: "二人で見上げた空が広がる"),
+            LyricLine(id: 2, time: 120.0, text: "「またね」と言えなかった"),
         ],
         isSynced: true,
         source: "test"

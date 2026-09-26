@@ -3,11 +3,18 @@ import JustCore
 import Observation
 import UserNotifications
 
-/// A daily nudge when cards are waiting.
+/// A nudge when cards are waiting.
 ///
 /// Spaced repetition only works if the user comes back on the day the schedule
 /// asks for — an app that computes a perfect interval and then says nothing is
 /// relying on the user to remember, which defeats the point.
+///
+/// One notification, not a repeating one: it is set for the reminder time on
+/// or after the next card falls due, and set again every time the schedule is
+/// published (each grade, each save, each return to the app). The repeating
+/// version fired every evening whether or not anything was due — with no
+/// words at all, even — and a reminder that is usually wrong is one that gets
+/// switched off.
 @MainActor
 @Observable
 final class ReviewReminder {
@@ -17,9 +24,15 @@ final class ReviewReminder {
         static let minute = "reminder.minute"
     }
 
+    /// Kept from the repeating version on purpose: scheduling under the same
+    /// identifier replaces the daily request an older build left behind.
     private static let identifier = "just.review.daily"
 
     private let defaults: UserDefaults
+
+    /// The schedule as last published by the store; nil until the first
+    /// publish after launch.
+    @ObservationIgnored private var outlook: ReviewOutlook?
 
     var isEnabled: Bool {
         didSet {
@@ -64,18 +77,23 @@ final class ReviewReminder {
         time = DateComponents(hour: parts.hour, minute: parts.minute)
     }
 
+    /// Takes a freshly published schedule and re-plans around it.
+    func update(_ outlook: ReviewOutlook) {
+        self.outlook = outlook
+        Task { await reschedule() }
+    }
+
     /// Requests permission and schedules, or clears the schedule when off.
     func apply() async {
-        let center = UNUserNotificationCenter.current()
-
         guard isEnabled else {
-            center.removePendingNotificationRequests(withIdentifiers: [Self.identifier])
+            await reschedule()
             return
         }
 
         let granted: Bool
         do {
-            granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            granted = try await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
             granted = false
         }
@@ -83,32 +101,70 @@ final class ReviewReminder {
         guard granted else {
             isDenied = true
             // Reflect reality: the switch should not read as on when the system
-            // will never deliver anything.
+            // will never deliver anything. (Its didSet clears what is left.)
             isEnabled = false
             return
         }
 
         isDenied = false
+        await reschedule()
+    }
+
+    /// Replaces the pending reminder and the badge with ones that match the
+    /// current schedule.
+    private func reschedule() async {
+        let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [Self.identifier])
+
+        guard isEnabled else {
+            // Nothing else would ever take the number off the icon once
+            // reminders are off, so it goes now.
+            try? await center.setBadgeCount(0)
+            return
+        }
+        // Never prompts from here — only turning the switch on asks.
+        guard await Self.isAuthorized(), let outlook else { return }
+
+        // Keeps the badge honest about how many cards are actually due.
+        try? await center.setBadgeCount(outlook.dueCount)
+
+        // Nothing due and nothing coming: no reminder at all.
+        guard let fireDate = outlook.reminderDate(
+            hour: time.hour ?? 21,
+            minute: time.minute ?? 0
+        ) else { return }
 
         let content = UNMutableNotificationContent()
         content.title = "복습할 단어가 기다리고 있어요"
         content.body = "가사에서 담은 단어를 예문과 함께 다시 봅니다."
         content.sound = .default
+        // What the badge should read by then, since the app will not be
+        // running to update it.
+        content.badge = NSNumber(value: outlook.dueCount(at: fireDate))
         // Read by the notification delegate to route the tap.
         content.userInfo = ["route": "review"]
 
+        let parts = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: fireDate
+        )
         let request = UNNotificationRequest(
             identifier: Self.identifier,
             content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: time, repeats: true)
+            trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
         )
         try? await center.add(request)
     }
 
-    /// Keeps the badge honest about how many cards are actually due.
-    func updateBadge(dueCount: Int) async {
-        guard isEnabled else { return }
-        try? await UNUserNotificationCenter.current().setBadgeCount(dueCount)
+    /// Reads the permission without asking for it. Nonisolated so the
+    /// settings object never has to cross onto the main actor.
+    private nonisolated static func isAuthorized() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        default:
+            return false
+        }
     }
 }

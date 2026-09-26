@@ -84,7 +84,7 @@ struct StatsHeader: View {
     private func metric(value: String, label: String, emphasised: Bool) -> some View {
         VStack(spacing: 3) {
             Text(value)
-                .font(.just(20, weight: .semibold, relativeTo: .title3).monospacedDigit())
+                .justFont(20, weight: .semibold, relativeTo: .title3, monospacedDigits: true)
                 .foregroundStyle(emphasised ? JustTheme.Ink.primary : JustTheme.Ink.secondary)
             Text(label)
                 .font(JustTheme.Font.caption)

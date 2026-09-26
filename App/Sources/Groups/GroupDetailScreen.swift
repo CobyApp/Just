@@ -83,7 +83,7 @@ struct GroupDetailScreen: View {
             RowArtwork(url: store.artworkURL(for: group), seed: group.id, size: 72)
             VStack(alignment: .leading, spacing: 3) {
                 Text(group.name)
-                    .font(.kawaii(24, weight: .bold, relativeTo: .title2))
+                    .kawaiiFont(24, weight: .bold, relativeTo: .title2)
                     .foregroundStyle(JustTheme.Kawaii.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)

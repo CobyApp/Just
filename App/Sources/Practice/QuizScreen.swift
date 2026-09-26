@@ -50,7 +50,10 @@ struct QuizScreen: View {
         .navigationTitle(scope == .struggling ? "어려운 단어" : (kind?.title ?? "랜덤 믹스"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .onAppear(perform: start)
+        // Only when there is no round yet. onAppear fires again every time the
+        // tab is switched back to, and restarting there threw away a round in
+        // progress.
+        .onAppear { if questions.isEmpty { start() } }
         // Asked out loud as soon as it is on screen: a listening question that
         // waits to be tapped reads as a broken one. Keyed on the question so
         // moving to the next line asks the next line.
@@ -191,7 +194,7 @@ struct QuizScreen: View {
         VStack(spacing: JustTheme.Space.tight) {
             TextField("답 입력", text: $input)
                 .textFieldStyle(.plain)
-                .font(.just(26, weight: .medium, relativeTo: .title2))
+                .justFont(26, weight: .medium, relativeTo: .title2)
                 .multilineTextAlignment(.center)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -212,7 +215,7 @@ struct QuizScreen: View {
             // can see their input landing instead of trusting it blindly.
             if let preview = kanaPreview {
                 Text(preview)
-                    .font(.just(20, weight: .medium, relativeTo: .title3))
+                    .justFont(20, weight: .medium, relativeTo: .title3)
                     .foregroundStyle(JustTheme.Ink.secondary)
                     .transition(.opacity)
             } else {
@@ -352,7 +355,7 @@ struct QuizScreen: View {
         VStack(spacing: JustTheme.Space.regular) {
             JustIconBadge(correctCount == questions.count ? "checkmark" : "flag.checkered", size: 64)
             Text("\(correctCount) / \(questions.count)")
-                .font(.just(44, weight: .bold, relativeTo: .largeTitle).monospacedDigit())
+                .justFont(44, weight: .bold, relativeTo: .largeTitle, monospacedDigits: true)
                 .foregroundStyle(JustTheme.Ink.primary)
             Text("복습 일정에 반영했습니다")
                 .font(JustTheme.Font.body)

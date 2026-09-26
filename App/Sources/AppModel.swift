@@ -44,8 +44,8 @@ final class AppModel {
         /// The URL a notification or widget carries.
         var url: URL? { URL(string: "just://\(rawValue)") }
 
-        /// Which tab the route lands on. Both screens push further in
-        /// themselves, so the route only has to pick the tab.
+        /// Which tab the route lands on. `go(to:)` pushes anything beyond
+        /// the tab's root.
         var tab: Tab {
             switch self {
             case .review: .practice
@@ -90,6 +90,11 @@ final class AppModel {
         autoAnalysis = UserDefaults.standard.string(forKey: Self.autoAnalysisKey)
             .flatMap(AutoAnalysisPolicy.init(rawValue:)) ?? .unlessLowPower
         sensei.prewarm()
+
+        // The store publishes the schedule after every grade and save; the
+        // reminder and the badge are how it reaches the user outside the app.
+        let reminder = self.reminder
+        JustStore.onOutlookChange = { outlook in reminder.update(outlook) }
     }
 
     /// What is answering right now — the mode, not merely what the device can
@@ -113,8 +118,21 @@ final class AppModel {
     ///
     /// A reminder that opens the app to wherever the user last was is a reminder
     /// that failed — its whole job is to get them to the cards.
+    ///
+    /// Picking the tab alone was not enough: 「복습」 landed on the practice
+    /// root with the cards one more tap away, and a full-screen player left
+    /// open covered whichever tab it picked.
     func go(to route: Route) {
+        if openTrack != nil { closePlayer() }
         tab = route.tab
+        switch route {
+        case .review:
+            // Replaces whatever was pushed there: a half-finished quiz is not
+            // what a "cards are waiting" link asked to open.
+            practicePath = NavigationPath([ReviewRoute()])
+        case .words:
+            break
+        }
     }
 
     /// What the current song was opened from. Drives 이전곡/다음곡.
@@ -154,6 +172,17 @@ final class AppModel {
     /// above it can be rebuilt (see `MiniPlayerAccessory`), and a rebuilt
     /// `NavigationStack` with its own state starts over at the grid.
     var groupsPath = NavigationPath()
+
+    /// Where the practice tab is. Here rather than in the screen so a link
+    /// from a notification or the widget can push the review cards.
+    var practicePath = NavigationPath()
+
+    /// The groups' pictures, restored from disk on first use.
+    ///
+    /// Owned here rather than as `GroupsScreen`'s `@State`: a `@State`
+    /// initial value is evaluated on every init of the screen, and this one
+    /// reads the page cache from disk.
+    @ObservationIgnored private(set) lazy var groupArtwork = GroupArtworkStore()
 
     /// Hides the full-screen player, leaving playback alone.
     func closePlayer() {
