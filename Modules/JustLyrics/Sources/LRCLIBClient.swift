@@ -11,12 +11,18 @@ public struct LRCLIBClient: Sendable {
     public enum Failure: LocalizedError {
         case notFound
         case instrumental
+        /// LRCLIB itself is down or overloaded (5xx, 429) — nothing about the
+        /// song, and nothing another spelling would change.
+        case serverBusy(Int)
+        case offline
         case transport(String)
 
         public var errorDescription: String? {
             switch self {
             case .notFound: "가사를 찾지 못했습니다. 곡명이나 아티스트를 손봐서 다시 시도해 보세요."
             case .instrumental: "연주곡으로 등록된 트랙이라 가사가 없습니다."
+            case .serverBusy: "가사 서버가 잠시 응답하지 않습니다. 조금 뒤에 다시 찾아 주세요."
+            case .offline: "인터넷에 연결되어 있지 않아 가사를 찾지 못했습니다."
             case .transport(let message): message
             }
         }
@@ -37,8 +43,11 @@ public struct LRCLIBClient: Sendable {
     private static let userAgent = "Just/1.0 (https://github.com/CobyApp/Just; Japanese study app)"
 
     private let session: URLSession
+    /// How long to wait before asking a busy server once more.
+    private let retryDelay: Duration
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared, retryDelay: Duration = .seconds(1)) {
+        self.retryDelay = retryDelay
         self.session = session
     }
 
@@ -67,6 +76,8 @@ public struct LRCLIBClient: Sendable {
                 // The caller has gone — another song, a closed player. Carrying
                 // on through the search below would spend a dozen requests on an
                 // answer nobody is waiting for.
+                throw error
+            } catch let error as Failure where error.isServerWide {
                 throw error
             } catch {
                 // A miss here is ordinary; the search is the real attempt.
@@ -98,6 +109,11 @@ public struct LRCLIBClient: Sendable {
                     differentEdit = sheet
                 }
             } catch let error where error.isCancellation {
+                throw error
+            } catch let error as Failure where error.isServerWide {
+                // Down for every query alike. Going through the remaining
+                // spellings only piled more requests on a struggling server
+                // and kept the reader waiting for the same answer.
                 throw error
             } catch {
                 // Kept, not thrown: a later spelling may still succeed, and if
@@ -254,6 +270,18 @@ public struct LRCLIBClient: Sendable {
     }
 
     private func get<T: Decodable>(_ url: URL, as type: T.Type) async throws -> T {
+        do {
+            return try await getOnce(url, as: type)
+        } catch Failure.serverBusy {
+            // A 503 is often a moment's overload; one more try after a pause
+            // gets through more often than not. Only one — a server that is
+            // actually down should not be hammered.
+            try await Task.sleep(for: retryDelay)
+            return try await getOnce(url, as: type)
+        }
+    }
+
+    private func getOnce<T: Decodable>(_ url: URL, as type: T.Type) async throws -> T {
         var request = URLRequest(url: url)
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
@@ -267,6 +295,8 @@ public struct LRCLIBClient: Sendable {
             // spellings, and the reader was shown "cancelled" as the reason
             // there were no lyrics.
             throw error
+        } catch let error as URLError where Self.offlineCodes.contains(error.code) {
+            throw Failure.offline
         } catch {
             throw Failure.transport(error.localizedDescription)
         }
@@ -275,6 +305,9 @@ public struct LRCLIBClient: Sendable {
             throw Failure.transport("응답을 해석하지 못했습니다.")
         }
         guard http.statusCode != 404 else { throw Failure.notFound }
+        if http.statusCode == 429 || (500..<600).contains(http.statusCode) {
+            throw Failure.serverBusy(http.statusCode)
+        }
         guard (200..<300).contains(http.statusCode) else {
             throw Failure.transport("LRCLIB 오류 (\(http.statusCode))")
         }
@@ -285,6 +318,11 @@ public struct LRCLIBClient: Sendable {
             throw Failure.transport("가사 응답 형식이 예상과 다릅니다.")
         }
     }
+
+    private static let offlineCodes: Set<URLError.Code> = [
+        .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed,
+        .internationalRoamingOff, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+    ]
 
     /// Fraction of lyric lines written in Japanese.
     ///
@@ -416,5 +454,15 @@ public struct LRCLIBClient: Sendable {
             return .greatestFiniteMagnitude
         }
         return abs(recorded - duration)
+    }
+}
+
+extension LRCLIBClient.Failure {
+    /// True when the failure is LRCLIB's or the connection's, not the query's.
+    var isServerWide: Bool {
+        switch self {
+        case .serverBusy, .offline: true
+        default: false
+        }
     }
 }

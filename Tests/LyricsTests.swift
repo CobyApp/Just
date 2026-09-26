@@ -387,3 +387,71 @@ struct TitleBracketTests {
         #expect(LRCLIBClient.simplifiedTitle("Hello (World") == "Hello (World")
     }
 }
+
+/// Answers every request from a script, and counts them.
+private final class ScriptedLRCLIB: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var statuses: [Int] = []
+    nonisolated(unsafe) static var body = Data("[]".utf8)
+    nonisolated(unsafe) static var requests = 0
+
+    static func session(statuses: [Int], body: String) -> URLSession {
+        self.statuses = statuses
+        self.body = Data(body.utf8)
+        requests = 0
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ScriptedLRCLIB.self]
+        return URLSession(configuration: configuration)
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let status = Self.statuses.isEmpty ? 200 : Self.statuses.removeFirst()
+        Self.requests += 1
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: status == 200 ? Self.body : Data())
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Suite("가사 서버가 바쁠 때", .serialized)
+struct LyricsServerBusyTests {
+    private let sheet = #"[{"trackName":"テスト","artistName":"テスト","duration":200,"instrumental":false,"plainLyrics":"君と見た空","syncedLyrics":"[00:01.00]君と見た空"}]"#
+
+    /// A 503 is often a moment's overload: one retry gets through.
+    @Test("한 번 503이면 잠시 뒤 다시 물어 가사를 받는다")
+    func retriesOnce() async throws {
+        let session = ScriptedLRCLIB.session(statuses: [503, 200], body: sheet)
+        let client = LRCLIBClient(session: session, retryDelay: .zero)
+        let lyrics = try await client.lyrics(artist: "テスト", title: "テスト")
+        #expect(lyrics.lines.first?.text == "君と見た空")
+        #expect(ScriptedLRCLIB.requests == 2)
+    }
+
+    /// Every spelling hit the same dead server before; now the first answer
+    /// that says the server is down ends the lookup, with words a reader can
+    /// act on instead of 「LRCLIB 오류 (503)」.
+    @Test("계속 503이면 다른 표기를 더 묻지 않고 바쁘다고 알린다")
+    func stopsWhenTheServerIsDown() async {
+        let session = ScriptedLRCLIB.session(statuses: Array(repeating: 503, count: 20), body: "[]")
+        let client = LRCLIBClient(session: session, retryDelay: .zero)
+        do {
+            _ = try await client.lyrics(artist: "テスト", title: "テスト (feat. 誰か)")
+            Issue.record("서버가 죽어 있는데 가사를 돌려받았다")
+        } catch let failure as LRCLIBClient.Failure {
+            guard case .serverBusy(503) = failure else {
+                Issue.record("serverBusy가 아니라 \(failure)")
+                return
+            }
+            #expect(failure.localizedDescription.contains("가사 서버"))
+        } catch {
+            Issue.record("예상하지 못한 오류 \(error)")
+        }
+        // One search and its single retry — not one per spelling.
+        #expect(ScriptedLRCLIB.requests == 2)
+    }
+}
