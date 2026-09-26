@@ -49,6 +49,9 @@ struct MiniPlayer: View {
                 Button {
                     // A video plays only while it is on screen, so resuming
                     // from here opens the player rather than playing blind.
+                    // `play()` does not start it yet: the full screen opens on
+                    // its preparing view first, and the player holds the
+                    // request until the video's stage is actually on screen.
                     if app.player.hasVideo {
                         app.expandPlayer()
                         app.player.play()

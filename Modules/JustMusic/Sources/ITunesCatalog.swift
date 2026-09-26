@@ -47,9 +47,18 @@ public struct ITunesCatalog: Sendable {
     /// storefront is not missing from this one.
     private let country = "jp"
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = ITunesCatalog.defaultSession) {
         self.session = session
     }
+
+    /// Ten seconds per request, thirty for the whole transfer, rather than
+    /// the default sixty — a lookup that slow is not going to answer.
+    public static let defaultSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 30
+        return URLSession(configuration: configuration)
+    }()
 
     // MARK: - Artist
 
@@ -158,6 +167,10 @@ public struct ITunesCatalog: Sendable {
             return try JSONDecoder().decode(Payload.self, from: data)
         } catch let failure as Failure {
             throw failure
+        } catch let error where error.isCancellation {
+            // Not a network failure: whoever asked no longer wants the answer,
+            // and must be able to tell that apart from being offline.
+            throw error
         } catch {
             throw Failure.transport("곡 정보를 받지 못했습니다. 인터넷 연결을 확인해 주세요.")
         }

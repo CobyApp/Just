@@ -317,6 +317,11 @@ final class SongSession {
             )
             lyricsState = .ready(lyrics)
             song?.lyrics = lyrics
+        } catch is CancellationError {
+            // The player closed mid-lookup; "cancelled" is not a missing lyric.
+            return
+        } catch let error as URLError where error.code == .cancelled {
+            return
         } catch {
             lyricsState = .missing(error.localizedDescription)
         }

@@ -40,6 +40,13 @@ struct RootView: View {
             guard let route = AppModel.Route(url: url) else { return }
             app.go(to: route)
         }
+        // A YouTube video may not play where it cannot be seen, so going to
+        // the background pauses it. `.inactive` is not enough: pulling down
+        // Control Center passes through it while the video is still on screen.
+        // The 30-second clip is audio and carries on.
+        .onChange(of: scenePhase) { _, phase in
+            app.player.sceneDidChange(isActive: phase != .background)
+        }
     }
 }
 

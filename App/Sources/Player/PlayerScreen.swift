@@ -113,8 +113,12 @@ struct PlayerScreen: View {
             }
 
             // Only autoplays when this is a different song. Reopening a paused
-            // one from the mini player should not start it again.
-            await app.player.load(track, autoplay: app.player.trackID != track.id)
+            // one from the mini player should not start it again — but one
+            // that failed is loaded again, and reopening it is asking to play.
+            await app.player.load(
+                track,
+                autoplay: app.player.trackID != track.id || app.player.hasFailed
+            )
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
         // The app's one ad: a full-screen ad while this song is analysed. Asked

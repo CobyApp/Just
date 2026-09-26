@@ -49,10 +49,20 @@ public struct YouTubeClient: Sendable {
     private let key: String?
     private let session: URLSession
 
-    public init(key: String? = YouTubeClient.configuredKey, session: URLSession = .shared) {
+    public init(key: String? = YouTubeClient.configuredKey, session: URLSession = YouTubeClient.defaultSession) {
         self.key = key
         self.session = session
     }
+
+    /// Ten seconds per request, thirty for the whole transfer. The default
+    /// sixty left the player on its spinner for a minute on a dead network
+    /// before the clip could take over.
+    public static let defaultSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 30
+        return URLSession(configuration: configuration)
+    }()
 
     /// The videos for a song, best first — the official music video when
     /// there is one, then anything else on YouTube that is this song.
@@ -119,9 +129,11 @@ public struct YouTubeClient: Sendable {
 
     static func durations(from data: Data) throws -> [String: TimeInterval] {
         let payload = try JSONDecoder().decode(DurationsPayload.self, from: data)
-        return Dictionary(uniqueKeysWithValues: payload.items.compactMap { item in
+        // Not `uniqueKeysWithValues`: this is someone else's data, and a
+        // repeated id in it must not crash the app.
+        return Dictionary(payload.items.compactMap { item in
             parseDuration(item.contentDetails.duration).map { (item.id, $0) }
-        })
+        }, uniquingKeysWith: { first, _ in first })
     }
 
     /// 「PT3M28S」 → 208. Hours appear on concert films.
@@ -195,7 +207,7 @@ public struct YouTubeClient: Sendable {
         guard let http = response as? HTTPURLResponse else { return }
         if http.statusCode == 403 {
             let body = String(data: data, encoding: .utf8) ?? ""
-            throw body.contains("quota") ? Failure.quotaExceeded : Failure.transport("영상 검색이 거절되었습니다. 앱 설정의 YouTube 키를 확인해 주세요.")
+            throw body.contains("quota") ? Failure.quotaExceeded : Failure.transport("영상 검색을 잠시 사용할 수 없어 미리듣기로 재생합니다.")
         }
         if !(200..<300).contains(http.statusCode) {
             throw Failure.transport("영상을 찾지 못했습니다 (\(http.statusCode)). 잠시 뒤에 다시 시도해 주세요.")
@@ -362,9 +374,10 @@ public struct YouTubeClient: Sendable {
 ///
 /// In Caches, like the group pages: it can always be searched for again, and
 /// it stays out of backups. A song with no video is remembered too, so a
-/// song that has none is not searched for on every open.
+/// song that has none is not searched for on every open — for a week, after
+/// which it is looked for again, since groups do put new videos up.
 public struct VideoDirectory: Sendable {
-    public struct Snapshot: Codable, Equatable {
+    public struct Snapshot: Codable, Equatable, Sendable {
         /// Video id by song id; an empty string means 「searched, none found」.
         public var videos: [String: String] = [:]
         /// The other videos the search found, by song id, in order. When the
@@ -374,11 +387,21 @@ public struct VideoDirectory: Sendable {
         /// Refreshed after a day, so a new single's video is there the week
         /// it comes out.
         public var channels: [String: ChannelUploads] = [:]
+        /// When each 「none found」 in `videos` was decided, by song id. Kept
+        /// beside `videos` rather than in it, so the file an older build wrote
+        /// still reads, and an older build can still read this one.
+        public var misses: [String: Miss] = [:]
 
-        public init(videos: [String: String] = [:], alternates: [String: [String]] = [:], channels: [String: ChannelUploads] = [:]) {
+        public init(
+            videos: [String: String] = [:],
+            alternates: [String: [String]] = [:],
+            channels: [String: ChannelUploads] = [:],
+            misses: [String: Miss] = [:]
+        ) {
             self.videos = videos
             self.alternates = alternates
             self.channels = channels
+            self.misses = misses
         }
 
         // Older files have fewer fields.
@@ -387,6 +410,79 @@ public struct VideoDirectory: Sendable {
             videos = try c.decodeIfPresent([String: String].self, forKey: .videos) ?? [:]
             alternates = try c.decodeIfPresent([String: [String]].self, forKey: .alternates) ?? [:]
             channels = try c.decodeIfPresent([String: ChannelUploads].self, forKey: .channels) ?? [:]
+            misses = try c.decodeIfPresent([String: Miss].self, forKey: .misses) ?? [:]
+        }
+
+        /// What is known about a song's video.
+        public enum Lookup: Equatable, Sendable {
+            case video(String)
+            /// Looked for recently, or refused for good, and there is none.
+            case noVideo
+            /// Never looked for, or the 「none」 has expired: ask again.
+            case unknown
+        }
+
+        public func lookup(_ trackID: String, now: Date = .now) -> Lookup {
+            guard let known = videos[trackID] else { return .unknown }
+            guard known.isEmpty else { return .video(known) }
+            // A 「none」 an older build wrote has no date. It could have been
+            // a passing network error, so it is asked once more.
+            guard let miss = misses[trackID], !miss.isExpired(now: now) else { return .unknown }
+            return .noVideo
+        }
+
+        /// Remembers the song's video and the runners-up.
+        public mutating func record(_ videoID: String, alternates others: [String], for trackID: String) {
+            videos[trackID] = videoID
+            alternates[trackID] = others
+            misses[trackID] = nil
+        }
+
+        /// Remembers that the song has no video to play.
+        public mutating func recordMiss(for trackID: String, permanent: Bool, now: Date = .now) {
+            videos[trackID] = ""
+            alternates[trackID] = nil
+            misses[trackID] = Miss(at: now, permanent: permanent)
+        }
+
+        /// Moves the song to its next video after the current one failed
+        /// with the player's `code`, and returns it — or, when there is no
+        /// other, records the song as having none and returns nil.
+        public mutating func advance(_ trackID: String, afterError code: Int, now: Date = .now) -> String? {
+            var others = alternates[trackID] ?? []
+            guard !others.isEmpty else {
+                recordMiss(for: trackID, permanent: Miss.permanentErrorCodes.contains(code), now: now)
+                return nil
+            }
+            let next = others.removeFirst()
+            videos[trackID] = next
+            alternates[trackID] = others
+            return next
+        }
+    }
+
+    /// When a song was found to have no video, and whether that can change.
+    public struct Miss: Codable, Equatable, Sendable {
+        public var at: Date
+        /// The last video failed because it is gone or its owner refuses
+        /// embedding — an answer asking again will not change.
+        public var permanent: Bool
+
+        public init(at: Date, permanent: Bool) {
+            self.at = at
+            self.permanent = permanent
+        }
+
+        /// The embedded player's errors that are the video's owner speaking:
+        /// 100 removed or private, 101 and 150 embedding disallowed.
+        public static let permanentErrorCodes: Set<Int> = [100, 101, 150]
+
+        /// A week. Long enough not to spend the search quota on a song over
+        /// and over; short enough that a video put up later is found.
+        public static let freshFor: TimeInterval = 60 * 60 * 24 * 7
+
+        public func isExpired(now: Date = .now) -> Bool {
+            !permanent && now.timeIntervalSince(at) > Self.freshFor
         }
     }
 
@@ -422,5 +518,27 @@ public struct VideoDirectory: Sendable {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: file, options: .atomic)
+    }
+}
+
+/// Writes the directory off the main thread, one file at a time.
+///
+/// Every save is the whole directory, so only the newest matters. Each save
+/// carries a number that only grows, and one older than what is already on
+/// disk is dropped: tasks do not reach an actor in the order they were
+/// started, and a detached task per save let an old snapshot land last and
+/// undo the newer one.
+actor VideoDirectoryWriter {
+    private let directory: VideoDirectory
+    private var written = 0
+
+    init(directory: VideoDirectory) {
+        self.directory = directory
+    }
+
+    func write(_ snapshot: VideoDirectory.Snapshot, sequence: Int) {
+        guard sequence > written else { return }
+        written = sequence
+        directory.persist(snapshot)
     }
 }
