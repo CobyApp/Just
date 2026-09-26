@@ -15,6 +15,10 @@ struct ReviewScreen: View {
     @State private var queue: [VocabEntry] = []
     @State private var index = 0
     @State private var isRevealed = false
+    /// When the answer was shown. The grade buttons appear where 「뜻 확인하기」
+    /// was, so a double tap graded the card before the answer had been seen —
+    /// as 「바로 알았어요」, two weeks out, in the worst case.
+    @State private var revealedAt: Date?
     @State private var completed = 0
 
     private var scheduler = FSRS()
@@ -111,9 +115,7 @@ struct ReviewScreen: View {
             if isRevealed {
                 gradeButtons(entry)
             } else {
-                Button {
-                    withAnimation(.snappy) { isRevealed = true }
-                } label: {
+                Button(action: reveal) {
                     Text("뜻 확인하기").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.justPrimary)
@@ -123,7 +125,7 @@ struct ReviewScreen: View {
         .padding(JustTheme.Space.regular)
         .contentShape(.rect)
         .onTapGesture {
-            if !isRevealed { withAnimation(.snappy) { isRevealed = true } }
+            if !isRevealed { reveal() }
         }
     }
 
@@ -249,7 +251,14 @@ struct ReviewScreen: View {
         completed = 0
     }
 
+    private func reveal() {
+        revealedAt = .now
+        withAnimation(.snappy) { isRevealed = true }
+    }
+
     private func submit(_ grade: ReviewGrade, for entry: VocabEntry) {
+        // The second half of a double tap on 「뜻 확인하기」, not a choice.
+        if let revealedAt, Date.now.timeIntervalSince(revealedAt) < 0.4 { return }
         grade == .again ? Haptics.wrong() : Haptics.tick()
         store.grade(entry, grade)
         withAnimation(.snappy) {

@@ -281,6 +281,10 @@ public struct JustProgressHeader: View {
         self.total = max(total, 1)
     }
 
+    /// Cards finished, not the one on screen: the first card of one read
+    /// 「100%」 before it had been answered.
+    private var done: Int { min(max(current - 1, 0), total) }
+
     public var body: some View {
         VStack(spacing: 6) {
             HStack {
@@ -288,11 +292,11 @@ public struct JustProgressHeader: View {
                     .font(JustTheme.Font.caption.monospacedDigit())
                     .foregroundStyle(JustTheme.Ink.secondary)
                 Spacer()
-                Text("\(Int((Double(current) / Double(total) * 100).rounded()))%")
+                Text("\(Int((Double(done) / Double(total) * 100).rounded()))%")
                     .font(JustTheme.Font.caption.monospacedDigit())
                     .foregroundStyle(JustTheme.Ink.tertiary)
             }
-            ProgressView(value: Double(current), total: Double(total))
+            ProgressView(value: Double(done), total: Double(total))
                 .tint(JustTheme.Kawaii.accent)
         }
     }

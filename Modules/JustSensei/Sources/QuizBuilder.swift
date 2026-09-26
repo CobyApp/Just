@@ -17,8 +17,11 @@ public struct AnswerChecker: Sendable {
         let accepted = question.acceptedAnswers.map(Self.normalize)
         if accepted.contains(answer) { return .correct }
 
-        // Romaji in, kana out — then compare again.
-        let asKana = Self.normalize(input.romajiToHiragana())
+        // Romaji in, kana out — then compare again. Romaji typed with the
+        // Korean layout still on arrives as Hangul; its keystrokes are the
+        // romaji that was meant.
+        let romaji = input.dubeolsikKeystrokes() ?? input
+        let asKana = Self.normalize(romaji.romajiToHiragana())
         if accepted.contains(asKana) { return .correct }
 
         // Same word, different inflection or a missing okurigana.

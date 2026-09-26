@@ -131,6 +131,25 @@ struct AnswerCheckerTests {
         )
     }
 
+    /// Romaji typed with the Korean layout still on: 「aruku」 comes out as
+    /// Hangul. The keystrokes were right, so the answer is.
+    @Test("한/영 전환 없이 두벌식으로 친 로마자도 정답")
+    func acceptsRomajiTypedOnTheKoreanLayout() {
+        // a r u k u → ㅁ ㄱ ㅕ ㅏ ㅕ, which the IME composes into 「ㅁ가ㅕ」 … as it goes.
+        #expect(checker.check("ㅁㄱㅕㅏㅕ", against: question(accepted: ["歩く", "あるく"])) == .correct)
+        #expect(checker.check("ㅁ겨ㅏㅕ", against: question(accepted: ["歩く", "あるく"])) == .correct)
+    }
+
+    @Test("두벌식 글자를 친 키로 되돌린다")
+    func recoversDubeolsikKeystrokes() {
+        #expect("ㅛㅕㅡㄷ".dubeolsikKeystrokes() == "yume")
+        #expect("ㄴ마ㅕㄱㅁ".dubeolsikKeystrokes() == "sakura")
+        // Compound vowels and finals are two keys each.
+        #expect("ㅘ".dubeolsikKeystrokes() == "hk")
+        #expect("닭".dubeolsikKeystrokes() == "ekfr")
+        #expect("yume".dubeolsikKeystrokes() == nil)
+    }
+
     @Test("한자를 그대로 쓰면 정답")
     func acceptsKanji() {
         #expect(checker.check("歩く", against: question(accepted: ["歩く", "あるく"])) == .correct)

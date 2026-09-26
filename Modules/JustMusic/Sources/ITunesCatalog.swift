@@ -158,11 +158,16 @@ public struct ITunesCatalog: Sendable {
         do {
             let (data, response) = try await session.data(from: url)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                throw Failure.transport(
-                    http.statusCode == 403
-                        ? "곡 정보 요청이 너무 잦습니다. 잠시 뒤에 다시 시도해 주세요."
-                        : "곡 정보를 받지 못했습니다 (\(http.statusCode)). 잠시 뒤에 다시 시도해 주세요."
-                )
+                switch http.statusCode {
+                case 403:
+                    throw Failure.transport("곡 정보 요청이 너무 잦습니다. 잠시 뒤에 다시 시도해 주세요.")
+                case 400, 404:
+                    // The catalog does not know the id. A status code means
+                    // nothing to the reader; "not found" is what it says.
+                    throw Failure.notFound
+                default:
+                    throw Failure.transport("곡 정보를 받지 못했습니다. 잠시 뒤에 다시 시도해 주세요.")
+                }
             }
             return try JSONDecoder().decode(Payload.self, from: data)
         } catch let failure as Failure {
