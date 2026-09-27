@@ -137,6 +137,13 @@ struct LibraryScreen: View {
                 .onDelete { offsets in
                     for index in offsets { context.delete(filteredWords[index]) }
                 }
+                // A filter or a search that matches nothing left the list
+                // blank under the chips, which reads as the words having gone.
+                if filteredWords.isEmpty {
+                    noMatches
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -266,6 +273,30 @@ struct LibraryScreen: View {
                 NavigationLink(value: ReviewRoute()) { EmptyView() }.opacity(0)
             }
         .buttonStyle(.plain)
+    }
+
+    private var noMatches: some View {
+        VStack(spacing: JustTheme.Space.tight) {
+            Image(systemName: search.isEmpty ? "sparkle.magnifyingglass" : "magnifyingglass")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(JustTheme.Kawaii.accent.opacity(0.6))
+            Text(noMatchesTitle)
+                .font(JustTheme.Font.body.weight(.bold))
+                .foregroundStyle(JustTheme.Ink.secondary)
+            Button("모든 단어 보기") {
+                levelFilter = nil
+                search = ""
+            }
+            .buttonStyle(.justSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, JustTheme.Space.loose)
+    }
+
+    private var noMatchesTitle: String {
+        if !search.isEmpty { return "「\(search)」에 맞는 단어가 없어요" }
+        if let levelFilter { return "\(levelFilter.label) 단어는 아직 없어요" }
+        return "단어가 없어요"
     }
 
     private var levelFilterBar: some View {
