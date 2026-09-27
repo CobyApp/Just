@@ -515,12 +515,21 @@ public final class MusicPlayerController {
     /// Moves playback to a position in whatever is playing.
     ///
     /// Callers holding a *song* time must check `position.followsLyrics` first.
+    /// Moves within the current song — and only the current song.
+    ///
+    /// While the next song's video is still being looked up, the page holds
+    /// the previous one, stopped. Seeking it anyway — a lyric line tapped
+    /// mid-load — started it playing, under the new song's lyrics and art,
+    /// with nothing to stop it: its events belong to an old load and are
+    /// dropped. That was 「tapping a line changed the song」.
     public func seek(to time: TimeInterval) {
         let target = max(0, duration > 0 ? min(time, duration) : time)
         if isPreview {
             previewPlayer.seek(to: CMTime(seconds: target, preferredTimescale: 600))
-        } else {
+        } else if hasVideo, currentVideoID != nil {
             web.seek(to: target)
+        } else {
+            return
         }
         currentTime = target
     }
@@ -835,7 +844,9 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     }
 
     func seek(to time: TimeInterval) {
-        guard pageIsReady else { return }
+        // No video handed over since the last stop: whatever is in the page is
+        // a previous song's, and `seekTo` would start it.
+        guard pageIsReady, expected != nil else { return }
         run("player.seekTo(\(time), true);")
     }
 

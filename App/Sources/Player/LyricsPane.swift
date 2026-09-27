@@ -263,7 +263,11 @@ struct LyricsPane: View {
         if let looping = session.loopingLine, looping != line.id {
             session.loopingLine = nil
         }
-        if player.position.followsLyrics, let target = session.seekTarget(for: line.id) {
+        // And only when the player holds this song. Mid-load it still held
+        // the last one, and a tap there sent that song to this line's time.
+        if player.trackID == session.track.id,
+           player.position.followsLyrics,
+           let target = session.seekTarget(for: line.id) {
             player.seek(to: target)
         }
         // Choosing a line is choosing where the song is, so the list has no
