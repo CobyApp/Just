@@ -66,7 +66,7 @@ public extension IdolGroup {
     /// Ids were checked against the catalogue rather than typed from memory —
     /// MORE STAR was confirmed by its own song 「WITH KAWAII論」, which is how
     /// its label was settled too.
-    static let all: [IdolGroup] = [
+    public static let all: [IdolGroup] = [
         // KAWAII LAB. (ASOBISYSTEM)
         .init(id: "1617607581", name: "FRUITS ZIPPER", readingKo: "후룻파", label: .kawaiiLab, hue: 0.92,
               youtubeChannels: ["UCQG8tNnV4hKetLhMb4MopHQ", Channels.kawaiiLab, "UCB_jIxmkTjjAHyVZUD-kf4w"],

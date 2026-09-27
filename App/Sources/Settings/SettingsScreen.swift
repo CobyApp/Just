@@ -1,3 +1,4 @@
+import JustCore
 import JustDesign
 import JustMusic
 import JustSensei
@@ -89,6 +90,24 @@ struct SettingsScreen: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 12, trailing: 0))
                 }
+                Section {
+                    // Also picked with the heart on a group's page; here so
+                    // it can be changed or cleared without finding that page.
+                    NavigationLink {
+                        OshiPicker()
+                    } label: {
+                        LabeledContent {
+                            Text(app.oshi?.name ?? "없음")
+                        } label: {
+                            Label("최애 그룹", systemImage: "crown.fill")
+                        }
+                    }
+                } header: {
+                    Text("최애")
+                } footer: {
+                    Text("최애 그룹은 홈 맨 위에 걸리고, 탭과 위젯이 그 그룹 색으로 바뀝니다.")
+                }
+
                 Section("복습") {
                     Picker("하루 목표", selection: Binding(
                         get: { app.dailyGoal },
@@ -288,5 +307,53 @@ struct SettingsScreen: View {
             }
         }
         .presentationDetents([.large])
+    }
+}
+
+/// Every group under its label, with its colour — a plain list rather than a
+/// navigation-link `Picker`, which drew the section headers as more rows to
+/// pick.
+private struct OshiPicker: View {
+    @Environment(AppModel.self) private var app
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            Section {
+                row(title: "없음", color: nil, isSelected: app.oshiID == nil) { app.oshiID = nil }
+            }
+            ForEach(IdolGroup.Label.allCases, id: \.self) { label in
+                Section(label.rawValue) {
+                    ForEach(IdolGroup.all.filter { $0.label == label }) { group in
+                        row(title: group.name, color: group.memberColor, isSelected: app.isOshi(group)) {
+                            app.oshiID = group.id
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("최애 그룹")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func row(title: String, color: Color?, isSelected: Bool, pick: @escaping () -> Void) -> some View {
+        Button {
+            pick()
+            Haptics.tick()
+            dismiss()
+        } label: {
+            HStack(spacing: JustTheme.Space.snug) {
+                Circle()
+                    .fill(color ?? .clear)
+                    .overlay { Circle().strokeBorder(color == nil ? JustTheme.Ink.tertiary : .white, lineWidth: 2) }
+                    .frame(width: 18, height: 18)
+                Text(title).foregroundStyle(JustTheme.Ink.primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark").fontWeight(.bold).foregroundStyle(color ?? JustTheme.Kawaii.accent)
+                }
+            }
+        }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
