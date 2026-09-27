@@ -1,3 +1,4 @@
+import FoundationModels
 import Foundation
 import JustCore
 import JustLyrics
@@ -691,6 +692,25 @@ struct SenseiReportSuite {
             text += "| 표제어가 조사로 끝남 | \(headwordEndsInParticle) |\n"
             text += "| **표제어가 조사 한 글자** | \(particleOnlyWord) |\n"
             return text
+        }
+    }
+}
+
+@Suite("가드레일 비교")
+@MainActor
+struct GuardrailProbe {
+    @Test("기본 가드레일과 완화 가드레일에 같은 줄을 묻는다")
+    func compare() async {
+        for (name, model) in [("default", SystemLanguageModel.default),
+                              ("permissive", SystemLanguageModel(guardrails: .permissiveContentTransformations))] {
+            for prompt in ["Say hello.", "「君の笑顔が大好きだよ」を韓国語に訳してください。"] {
+                do {
+                    let reply = try await LanguageModelSession(model: model).respond(to: prompt)
+                    print("PROBE \(name) OK: \(reply.content.prefix(60))")
+                } catch {
+                    print("PROBE \(name) FAIL: \(String(describing: error).prefix(300))")
+                }
+            }
         }
     }
 }
