@@ -73,6 +73,8 @@ public final class MusicPlayerController {
     /// Whether the song should play once its video is ready — carried to the
     /// next video when one refuses.
     @ObservationIgnored private var pendingAutoplay = false
+    /// Video lookups in flight, by song id — see `video(for:)`.
+    @ObservationIgnored private var lookups: [String: Task<String, any Error>] = [:]
     /// The video the page was last told to play.
     @ObservationIgnored private var currentVideoID: String?
     /// Cancels the video if it never starts — see `watchForStall`.
@@ -229,7 +231,33 @@ public final class MusicPlayerController {
     /// The channels first because they are where the videos are, and a
     /// channel's list costs a hundredth of a search. Only a song the group
     /// has not put on its channels goes to search.
+    ///
+    /// One lookup per song at a time: a prefetch and the load that follows
+    /// it share the same task, so the channels are read once.
     private func video(for track: Track) async throws -> String {
+        if case .video(let id) = known.lookup(track.id) { return id }
+        if let running = lookups[track.id] { return try await running.value }
+        let lookup = Task { try await self.resolveVideo(for: track) }
+        lookups[track.id] = lookup
+        defer { lookups[track.id] = nil }
+        return try await lookup.value
+    }
+
+    /// Starts finding a song's video without playing anything.
+    ///
+    /// Called as soon as a song is opened, so the channels are read and the
+    /// video chosen while the lyrics are fetched, the reader picks a reading
+    /// and the ad runs — not after all of that. The answer lands in the
+    /// directory; the load that follows finds it there, or joins the lookup
+    /// if it is still running.
+    public func prefetchVideo(for track: Track) {
+        guard youtube.hasKey, lookups[track.id] == nil else { return }
+        if case .unknown = known.lookup(track.id) {
+            Task { _ = try? await self.video(for: track) }
+        }
+    }
+
+    private func resolveVideo(for track: Track) async throws -> String {
         switch known.lookup(track.id) {
         case .video(let id): return id
         case .noVideo: throw YouTubeClient.Failure.notFound
@@ -272,14 +300,23 @@ public final class MusicPlayerController {
     private func fromChannels(_ ids: [String], for track: Track) async throws -> [YouTubeClient.Candidate] {
         var published: [YouTubeClient.Candidate] = []
         for id in ids {
-            if let cached = known.channels[id], !cached.isStale {
+            let cached = known.channels[id]
+            if let cached, cached.isDeep, !cached.isStale {
                 published += cached.videos
                 continue
             }
             do {
-                let uploads = try await youtube.uploads(ofChannel: id)
-                known.channels[id] = .init(fetchedAt: .now, videos: uploads)
-                published += uploads
+                if let cached, cached.isDeep {
+                    // Topped up: the pages newer than what is already here,
+                    // usually one request.
+                    let newer = try await youtube.uploads(ofChannel: id, stoppingAt: Set(cached.videos.map(\.videoID)))
+                    known.channels[id] = cached.merging(newer: newer)
+                } else {
+                    // Missing, or read shallow by an earlier build: in full.
+                    let uploads = try await youtube.uploads(ofChannel: id)
+                    known.channels[id] = .init(fetchedAt: .now, videos: uploads)
+                }
+                published += known.channels[id]?.videos ?? []
             } catch YouTubeClient.Failure.noKey {
                 throw YouTubeClient.Failure.noKey
             } catch let error where error.isCancellation {

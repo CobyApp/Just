@@ -47,6 +47,9 @@ public struct YouTubeClient: Sendable {
     }
 
     private let key: String?
+
+    /// Whether a search can be made at all.
+    public var hasKey: Bool { key != nil }
     private let session: URLSession
 
     public init(key: String? = YouTubeClient.configuredKey, session: URLSession = YouTubeClient.defaultSession) {
@@ -162,7 +165,15 @@ public struct YouTubeClient: Sendable {
     /// One unit per fifty videos, against a hundred for a search. The
     /// group's own channels hold its music videos, so most songs are found
     /// here without searching at all, and the list is kept on the device.
-    public func uploads(ofChannel channelID: String, limit: Int = 200) async throws -> [Candidate] {
+    ///
+    /// - Parameters:
+    ///   - limit: how far back to read. Two thousand, not two hundred: the
+    ///     groups' channels post Shorts and behind-the-scenes clips daily, and
+    ///     at two hundred a 坂道 or 48 group's MVs from a year ago were already
+    ///     out of reach (乃木坂46: 11 of 40 songs found; at a thousand, 36).
+    ///   - known: ids already on the device. Reading stops at the first page
+    ///     that reaches one of them, so the daily refresh is one request.
+    public func uploads(ofChannel channelID: String, limit: Int = Self.uploadsDepth, stoppingAt known: Set<String> = []) async throws -> [Candidate] {
         guard let key else { throw Failure.noKey }
         var found: [Candidate] = []
         var page: String?
@@ -183,9 +194,12 @@ public struct YouTubeClient: Sendable {
             let (items, next) = try Self.playlistItems(from: data, channelID: channelID)
             found += items
             page = next
+            if !known.isEmpty, items.contains(where: { known.contains($0.videoID) }) { break }
         } while page != nil && found.count < limit
         return Array(found.prefix(limit))
     }
+
+    public static let uploadsDepth = 2000
 
     /// A channel's uploads playlist has the channel's id with 「UU」 in place
     /// of 「UC」 — a documented convention, and one request fewer.
@@ -224,7 +238,6 @@ public struct YouTubeClient: Sendable {
         components.queryItems = [
             .init(name: "part", value: "snippet"),
             .init(name: "type", value: "video"),
-            .init(name: "videoCategoryId", value: "10"),
             .init(name: "videoEmbeddable", value: "true"),
             .init(name: "maxResults", value: "10"),
             .init(name: "regionCode", value: "JP"),
@@ -264,12 +277,12 @@ public struct YouTubeClient: Sendable {
     ///   itself; false also admits the takes a strict pass would drop (live,
     ///   lyric videos), for when the strict pass found nothing at all.
     public static func rank(_ candidates: [Candidate], for track: Track, channels: [String] = [], strict: Bool) -> [Candidate] {
-        let wantedTitle = fold(track.title)
+        let wantedTitles = titleKeys(track.title)
         let wantedArtist = fold(track.artist)
         let scored: [(Candidate, Int)] = candidates.compactMap { candidate in
             let title = fold(candidate.title)
             let channel = fold(candidate.channelTitle)
-            guard title.contains(wantedTitle) else { return nil }
+            guard wantedTitles.contains(where: title.contains) else { return nil }
             // Nothing to study in an instrumental.
             if title.contains("instrumental") || title.contains("inst.") || title.contains("offvocal") { return nil }
             var score = 1
@@ -312,9 +325,37 @@ public struct YouTubeClient: Sendable {
 
     /// Lowercased, no spaces or punctuation, so 「わたしの一番かわいいところ / FRUITS ZIPPER」
     /// and 「FRUITS ZIPPER「わたしの一番かわいいところ」MV」 agree about the title.
+    ///
+    /// Width-folded first, so 「ＬＯＶＥ」 and 「LOVE」 agree, and the long-vowel
+    /// mark is dropped with the punctuation: the catalogue writes 「LOVEマシ-ン」
+    /// with a hyphen where the video says 「LOVEマシーン」.
     static func fold(_ text: String) -> String {
-        text.lowercased()
-            .replacingOccurrences(of: #"[\s\p{P}\p{S}]"#, with: "", options: .regularExpression)
+        text.precomposedStringWithCompatibilityMapping
+            .lowercased()
+            .replacingOccurrences(of: #"[\s\p{P}\p{S}ーｰ]"#, with: "", options: .regularExpression)
+    }
+
+    /// The ways a catalogue title may appear inside a video title.
+    ///
+    /// The whole title; the title without its edition or credit — 「(2024
+    /// ver.)」, 「 - TV size」, 「/亀井絵里・道重さゆみ」; and for a title the
+    /// catalogue shortened with 「・・・(略)」, the part before the cut. A key
+    /// under three characters is not used: 「I」 would match everything.
+    static func titleKeys(_ title: String) -> [String] {
+        var keys = [fold(title)]
+        var core = title.precomposedStringWithCompatibilityMapping
+        // 「 -ZZ ver.-」 has no space after its dash, 「 - TV size」 does; a
+        // dash with a space before it starts an edition either way, while
+        // 「LOVEマシ-ン」 has none and is left whole.
+        for pattern in [#"\s*[\(\[（【][^\)\]）】]*[\)\]）】]\s*$"#, #"\s+[-‐−–—~〜].*$"#, #"\s*/.*$"#, #"(・・・|…|\.\.\.).*$"#] {
+            core = core.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        keys.append(fold(core))
+        // Two characters of Japanese are a title (「走れ」); two Latin
+        // letters are not.
+        return Array(Set(keys))
+            .filter { $0.count >= ($0.unicodeScalars.contains { $0.value > 0x2E80 } ? 2 : 3) }
+            .sorted { $0.count > $1.count }
     }
 
     // MARK: - Decoding
@@ -411,7 +452,22 @@ public struct VideoDirectory: Sendable {
             alternates = try c.decodeIfPresent([String: [String]].self, forKey: .alternates) ?? [:]
             channels = try c.decodeIfPresent([String: ChannelUploads].self, forKey: .channels) ?? [:]
             misses = try c.decodeIfPresent([String: Miss].self, forKey: .misses) ?? [:]
+            // Files written before `matcher` was stored were matched against
+            // two hundred uploads with the exact title only. Their 「none
+            // found」 answers are forgotten — a refusal from YouTube itself
+            // (`permanent`) still stands.
+            let matcher = try c.decodeIfPresent(Int.self, forKey: .matcher) ?? 0
+            if matcher < Self.currentMatcher {
+                for (id, miss) in misses where !miss.permanent {
+                    misses[id] = nil
+                    if videos[id] == "" { videos[id] = nil }
+                }
+            }
         }
+
+        /// Bumped when finding improves enough that old misses deserve a retry.
+        public static let currentMatcher = 2
+        private var matcher = Self.currentMatcher
 
         /// What is known about a song's video.
         public enum Lookup: Equatable, Sendable {
@@ -489,10 +545,30 @@ public struct VideoDirectory: Sendable {
     public struct ChannelUploads: Codable, Equatable, Sendable {
         public var fetchedAt: Date
         public var videos: [YouTubeClient.Candidate]
+        /// Read to `uploadsDepth` (or the channel's end), rather than the two
+        /// hundred earlier builds stopped at. A shallow list is read again in
+        /// full; a deep one is only topped up.
+        public var isDeep: Bool
 
-        public init(fetchedAt: Date, videos: [YouTubeClient.Candidate]) {
+        public init(fetchedAt: Date, videos: [YouTubeClient.Candidate], isDeep: Bool = true) {
             self.fetchedAt = fetchedAt
             self.videos = videos
+            self.isDeep = isDeep
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            fetchedAt = try c.decode(Date.self, forKey: .fetchedAt)
+            videos = try c.decode([YouTubeClient.Candidate].self, forKey: .videos)
+            isDeep = try c.decodeIfPresent(Bool.self, forKey: .isDeep) ?? false
+        }
+
+        /// New uploads in front of the old, each video once, no deeper than
+        /// the channel is read.
+        public func merging(newer: [YouTubeClient.Candidate], at date: Date = .now) -> ChannelUploads {
+            var seen = Set<String>()
+            let merged = (newer + videos).filter { seen.insert($0.videoID).inserted }
+            return ChannelUploads(fetchedAt: date, videos: Array(merged.prefix(YouTubeClient.uploadsDepth)), isDeep: true)
         }
 
         /// A day. Groups release on a schedule of months; a day is generous.
