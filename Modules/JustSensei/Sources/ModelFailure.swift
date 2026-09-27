@@ -80,6 +80,12 @@ public extension ModelFailure {
             }
             return
         }
+        // `LanguageModelError` exists only in the iOS 27 SDK. `#available`
+        // is decided at run time, so on the Xcode 26 toolchain the type is not
+        // even there to name and the build fails; the compiler check keeps it
+        // out. Built with the older SDK, these errors still land below, on
+        // the NSError domain.
+        #if compiler(>=6.4)
         if #available(iOS 27.0, *), let error = error as? LanguageModelError {
             self = switch error {
             case .guardrailViolation: .guardrail
@@ -90,6 +96,7 @@ public extension ModelFailure {
             }
             return
         }
+        #endif
         let ns = error as NSError
         let description = String(describing: error)
         if ns.domain.contains("LanguageModelError") || description.contains("SensitiveContentAnalysis") || description.contains("ModelManager") {
