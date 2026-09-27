@@ -15,6 +15,10 @@ struct ReviewScreen: View {
     @State private var queue: [VocabEntry] = []
     @State private var index = 0
     @State private var isRevealed = false
+    /// Bumped on each reveal — the card turns over.
+    @State private var flips = 0
+    /// Bumped as the day's last card goes — confetti.
+    @State private var celebrations = 0
     /// When the answer was shown. The grade buttons appear where 「뜻 확인하기」
     /// was, so a double tap graded the card before the answer had been seen —
     /// as 「바로 알았어요」, two weeks out, in the worst case.
@@ -88,6 +92,20 @@ struct ReviewScreen: View {
             }
             .frame(maxWidth: .infinity, minHeight: 220)
             .justCard()
+            // Turned over like a flash card: out to edge-on, then back from
+            // the other side with the answer on it.
+            .keyframeAnimator(initialValue: 0.0, trigger: flips) { card, angle in
+                card.rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+            } keyframes: { _ in
+                KeyframeTrack {
+                    CubicKeyframe(90, duration: 0.14)
+                    MoveKeyframe(-90)
+                    SpringKeyframe(0, duration: 0.38, spring: .init(duration: 0.38, bounce: 0.35))
+                }
+            }
+            // A new card for each word, flicked on and off.
+            .id(entry.id)
+            .transition(.stickerFlick)
 
             if isRevealed, let occurrence = entry.occurrences.first {
                 VStack(alignment: .leading, spacing: 6) {
@@ -202,6 +220,15 @@ struct ReviewScreen: View {
     private var finishedState: some View {
         VStack(spacing: JustTheme.Space.regular) {
             JustIconBadge(completed > 0 ? "checkmark" : "clock", size: 64)
+                .kitschFloat()
+                .sparkleBurst(trigger: celebrations, count: 20, spread: 130)
+                .task {
+                    guard completed > 0 else { return }
+                    try? await Task.sleep(for: .seconds(0.25))
+                    celebrations += 1
+                    try? await Task.sleep(for: .seconds(0.45))
+                    celebrations += 1
+                }
             Text(completed > 0 ? "오늘 복습 끝" : "복습할 단어가 없습니다")
                 .font(JustTheme.Font.title)
                 .foregroundStyle(JustTheme.Ink.primary)
@@ -253,6 +280,7 @@ struct ReviewScreen: View {
 
     private func reveal() {
         revealedAt = .now
+        flips += 1
         withAnimation(.snappy) { isRevealed = true }
     }
 

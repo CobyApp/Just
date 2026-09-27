@@ -401,11 +401,14 @@ public struct JustProgressHeader: View {
                 Text("\(current) / \(total)")
                     .font(JustTheme.Font.caption.monospacedDigit())
                     .foregroundStyle(JustTheme.Ink.secondary)
+                    .contentTransition(.numericText(value: Double(current)))
                 Spacer()
                 Text("\(Int((Double(done) / Double(total) * 100).rounded()))%")
                     .font(JustTheme.Font.caption.monospacedDigit())
                     .foregroundStyle(JustTheme.Ink.tertiary)
+                    .contentTransition(.numericText(value: Double(done)))
             }
+            .animation(.snappy, value: current)
             CandyProgressBar(value: Double(done), total: Double(total))
         }
     }

@@ -124,7 +124,9 @@ let project = Project(
                 // TUIST_YOUTUBE_API_KEY before `tuist generate`; without it the
                 // app plays 30-second clips.
                 "YouTubeAPIKey": .string(Environment.youtubeAPIKey.getString(default: "")),
-                "UILaunchScreen": ["UIColorName": ""],
+                // The home's cream-pink with the icon in the middle, so the app does
+                // not open on a black screen and then turn pink.
+                "UILaunchScreen": ["UIColorName": "LaunchBackground", "UIImageName": "LaunchMark"],
                 "ITSAppUsesNonExemptEncryption": false,
                 "UISupportedInterfaceOrientations": [
                     "UIInterfaceOrientationPortrait",

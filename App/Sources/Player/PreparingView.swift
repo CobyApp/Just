@@ -161,7 +161,7 @@ struct PreparingView: View {
             EmptyView()
         case .loadingLyrics:
             VStack(spacing: JustTheme.Space.tight) {
-                ProgressView()
+                BouncingNotes()
                 Text("가사를 찾는 중")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Ink.tertiary)
@@ -169,14 +169,17 @@ struct PreparingView: View {
 
         case .analyzing(let done, let total, let remaining):
             VStack(spacing: JustTheme.Space.tight) {
-                ProgressView(value: Double(done), total: Double(max(total, 1)))
-                    .tint(JustTheme.Kawaii.accent)
+                // The candy bar from the bright screens: its stripes roll while
+                // the lines are being worked through.
+                CandyProgressBar(value: Double(done), total: Double(max(total, 1)))
 
                 HStack {
                     Text("해석 중")
                     Spacer()
                     Text("\(done)/\(total)")
                         .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(done)))
+                        .animation(.snappy, value: done)
                 }
                 .font(JustTheme.Font.caption)
                 .foregroundStyle(JustTheme.Ink.secondary)

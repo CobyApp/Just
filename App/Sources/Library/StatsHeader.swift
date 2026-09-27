@@ -85,6 +85,9 @@ struct StatsHeader: View {
                 .font(JustFontStyle.kawaii(24, weight: .black, relativeTo: .title2).monospacedDigit())
                 .foregroundStyle(emphasised ? JustTheme.Kawaii.accent : JustTheme.Kawaii.ink)
                 .shadow(color: JustTheme.Kitsch.bubblegum, radius: 0, x: 1.5, y: 2)
+                // Counts roll to their new value rather than jumping.
+                .contentTransition(.numericText())
+                .animation(.snappy, value: value)
             Text(label)
                 .font(JustTheme.Font.caption)
                 .foregroundStyle(JustTheme.Ink.tertiary)

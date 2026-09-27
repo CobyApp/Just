@@ -423,6 +423,7 @@ private struct TransportControls: View {
                     // The candy of the bright screens, with a penlight glow —
                     // the one bit of stage lighting the dark player allows.
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                        .contentTransition(.symbolEffect(.replace))
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 72, height: 72)
@@ -471,6 +472,7 @@ private struct CompactTransport: View {
         HStack(spacing: JustTheme.Space.regular) {
             Button { player.togglePlayback() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .contentTransition(.symbolEffect(.replace))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(JustTheme.Ink.primary)
             }

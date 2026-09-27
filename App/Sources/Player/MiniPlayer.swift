@@ -67,6 +67,7 @@ struct MiniPlayer: View {
                     Image(systemName: app.player.hasVideo
                         ? "play.rectangle.fill"
                         : (app.player.isPlaying ? "pause.fill" : "play.fill"))
+                            .contentTransition(.symbolEffect(.replace))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(JustTheme.Ink.primary)
                 }

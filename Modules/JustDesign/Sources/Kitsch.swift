@@ -40,15 +40,8 @@ public extension View {
         rim: CGFloat = 2.5,
         lift: CGFloat = 4
     ) -> some View {
-        overlay {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(.white, lineWidth: rim)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(tint.opacity(0.55))
-                .offset(x: lift * 0.6, y: lift)
-        }
+        // Presses flat onto its shadow inside a `KitschPressStyle` button.
+        modifier(KitschStickerModifier(cornerRadius: cornerRadius, tint: tint, rim: rim, lift: lift))
     }
 }
 
@@ -269,7 +262,7 @@ public struct HeartShape: Shape {
 
 /// A tiny deterministic generator; `SystemRandomNumberGenerator` would move
 /// the glitter on every redraw.
-private struct SeededRandom {
+struct SeededRandom {
     private var state: UInt64
 
     init(seed: UInt64) { state = seed }
@@ -286,6 +279,7 @@ private struct SeededRandom {
 /// A striped candy bar with a star riding its end.
 public struct CandyProgressBar: View {
     private let fraction: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(value: Double, total: Double) {
         fraction = total > 0 ? min(max(value / total, 0), 1) : 0
@@ -299,14 +293,21 @@ public struct CandyProgressBar: View {
                 Capsule()
                     .fill(JustTheme.Kitsch.candy)
                     .overlay {
-                        Canvas { context, size in
-                            var x: CGFloat = -size.height
-                            while x < size.width {
-                                var path = Path()
-                                path.move(to: CGPoint(x: x, y: size.height))
-                                path.addLine(to: CGPoint(x: x + size.height, y: 0))
-                                context.stroke(path, with: .color(.white.opacity(0.28)), lineWidth: 3)
-                                x += 10
+                        // The stripes roll, like a barber's pole or a candy
+                        // cane turning — the bar looks busy while work is
+                        // being done, and holds still when it is full.
+                        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion || fraction >= 1)) { timeline in
+                            let phase = CGFloat(timeline.date.timeIntervalSinceReferenceDate
+                                .truncatingRemainder(dividingBy: 1)) * 10
+                            Canvas { context, size in
+                                var x: CGFloat = -size.height - 10 + phase
+                                while x < size.width {
+                                    var path = Path()
+                                    path.move(to: CGPoint(x: x, y: size.height))
+                                    path.addLine(to: CGPoint(x: x + size.height, y: 0))
+                                    context.stroke(path, with: .color(.white.opacity(0.28)), lineWidth: 3)
+                                    x += 10
+                                }
                             }
                         }
                         .clipShape(.capsule)
@@ -316,6 +317,9 @@ public struct CandyProgressBar: View {
                     .fill(JustTheme.Kitsch.lemon)
                     .overlay { Twinkle().stroke(.white, lineWidth: 1.5) }
                     .frame(width: 18, height: 18)
+                    // The star turns a quarter each time it moves on, so a
+                    // step forward is felt as well as seen.
+                    .rotationEffect(.degrees(fraction * 360))
                     .offset(x: max(width * fraction - 9, -2))
             }
         }

@@ -254,6 +254,7 @@ struct LineStudySheet: View {
 struct WordCard: View {
     let word: StudyWord
     let isSaved: Bool
+    @State private var saves = 0
     let toggle: () -> Void
 
     var body: some View {
@@ -276,6 +277,8 @@ struct WordCard: View {
                     Image(systemName: isSaved ? "checkmark" : "plus")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(isSaved ? .white : JustTheme.Ink.primary)
+                        // + turns into ✓ rather than being swapped for it.
+                        .contentTransition(.symbolEffect(.replace))
                         .frame(
                             width: JustIconButtonStyle.minimumTapTarget,
                             height: JustIconButtonStyle.minimumTapTarget
@@ -289,6 +292,14 @@ struct WordCard: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .scaleEffect(isSaved ? 1 : 0.94)
+                .animation(.spring(duration: 0.35, bounce: 0.6), value: isSaved)
+                // A little glitter for each word kept.
+                .sparkleBurst(trigger: saves, count: 10, spread: 46)
+                .sensoryFeedback(.success, trigger: saves)
+                .onChange(of: isSaved) { _, saved in
+                    if saved { saves += 1 }
+                }
                 .accessibilityLabel(isSaved ? "단어장에서 빼기" : "단어장에 넣기")
             }
 

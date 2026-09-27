@@ -69,6 +69,10 @@ struct LyricsPane: View {
         }
     }
 
+    /// The highlight is one shape that travels from line to line, rather than
+    /// one per line fading in and out — the eye follows it down the page.
+    @Namespace private var penlight
+
     private func lyricsList(_ lyrics: Lyrics) -> some View {
         // Keyed to the song. The player swaps songs in place rather than
         // re-presenting, so without this the scroll view kept the previous
@@ -85,6 +89,8 @@ struct LyricsPane: View {
                         LyricRow(
                             line: line,
                             isActive: line.id == activeLine,
+                            isPast: activeLine.map { line.id < $0 } ?? false,
+                            penlight: penlight,
                             showsFurigana: session.showsFurigana,
                             scale: session.textSize.scale,
                             translation: session.translation(for: line.id),
@@ -260,6 +266,10 @@ private struct LineSelection: Identifiable {
 private struct LyricRow: View {
     let line: LyricLine
     let isActive: Bool
+    /// Already sung. Dimmed a step further than the lines still to come, so
+    /// the page shows where the song has been.
+    let isPast: Bool
+    let penlight: Namespace.ID
     let showsFurigana: Bool
     let scale: Double
     let translation: String?
@@ -309,6 +319,9 @@ private struct LyricRow: View {
                 Label("이 줄 반복 중", systemImage: "repeat")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Accent.end)
+                    // Breathing while the loop runs, so it reads as ongoing.
+                    .symbolEffect(.pulse, options: .repeating)
+                    .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
             }
 
             if isAnalyzing {
@@ -322,18 +335,26 @@ private struct LyricRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, JustTheme.Space.snug)
         .padding(.vertical, JustTheme.Space.tight)
-        .background(
-            isActive ? JustTheme.Kawaii.accent.opacity(0.10) : .clear,
-            in: .rect(cornerRadius: JustTheme.Radius.card)
-        )
-        .overlay(alignment: .leading) {
+        .opacity(isPast ? 0.62 : 1)
+        .background {
             if isActive {
-                Capsule()
-                    .fill(JustTheme.Kawaii.accent)
-                    .frame(width: 3, height: 34)
+                // The wash and the penlight bar are matched across rows, so
+                // they glide to the next line instead of blinking there.
+                RoundedRectangle(cornerRadius: JustTheme.Radius.card)
+                    .fill(JustTheme.Kawaii.accent.opacity(0.10))
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(JustTheme.Kawaii.accent)
+                            .frame(width: 3)
+                            .padding(.vertical, 10)
+                            .shadow(color: JustTheme.Kawaii.accent.opacity(0.8), radius: 6)
+                    }
+                    .matchedGeometryEffect(id: "penlight", in: penlight)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isActive)
+        .animation(.spring(duration: 0.45, bounce: 0.18), value: isActive)
+        .animation(.easeInOut(duration: 0.3), value: isPast)
+        .animation(.snappy, value: isLooping)
     }
 }
 

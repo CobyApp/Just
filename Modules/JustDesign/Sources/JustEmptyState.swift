@@ -38,6 +38,7 @@ public struct JustEmptyState: View {
     public var body: some View {
         VStack(spacing: JustTheme.Space.regular) {
             JustIconBadge(icon, size: 58)
+                .kitschFloat()
             VStack(spacing: 6) {
                 Text(title)
                     .font(JustTheme.Font.title)

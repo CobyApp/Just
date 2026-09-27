@@ -74,7 +74,10 @@ struct GroupsScreen: View {
                     .frame(width: 42, height: 42)
                     .background(JustTheme.Kitsch.bubblegum.opacity(0.5), in: .circle)
                     .kitschSticker(cornerRadius: 21, rim: 2.5, lift: 3)
+                    // A turn of the cog each time it is pressed.
+                    .symbolEffect(.rotate, value: showsSettings)
             }
+            .buttonStyle(.kitschPress)
             .accessibilityLabel("설정")
         }
         .padding(.horizontal, JustTheme.Space.regular)
@@ -101,7 +104,7 @@ struct GroupsScreen: View {
             Text("이어서 듣기").kawaiiSectionTitle()
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: JustTheme.Space.snug) {
-                    ForEach(songs.prefix(10)) { song in
+                    ForEach(Array(songs.prefix(10).enumerated()), id: \.element.id) { offset, song in
                         Button { app.open(song.track, in: songs.prefix(10).map(\.track)) } label: {
                             VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                                 ArtworkTile(track: song.track, width: 148)
@@ -110,7 +113,8 @@ struct GroupsScreen: View {
                                 }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.kitschPress)
+                        .kitschEntrance(index: offset)
                     }
                 }
                 .padding(.horizontal, JustTheme.Space.regular)
@@ -126,10 +130,12 @@ struct GroupsScreen: View {
             Text(label.rawValue).kawaiiSectionTitle()
             LazyVGrid(columns: columns, spacing: JustTheme.Space.snug) {
                 ForEach(IdolGroup.groups(in: label)) { group in
+                    let order = IdolGroup.all.firstIndex(of: group) ?? 0
                     NavigationLink(value: group) {
-                        GroupCard(group: group, artworkURL: artworkStore.artworkURL(for: group))
+                        GroupCard(group: group, artworkURL: artworkStore.artworkURL(for: group), order: order)
                     }
-                        .buttonStyle(.plain)
+                    .buttonStyle(.kitschPress)
+                    .kitschEntrance(index: order)
                 }
             }
             .padding(.horizontal, JustTheme.Space.regular)
@@ -146,6 +152,9 @@ struct GroupsScreen: View {
 private struct GroupCard: View {
     let group: IdolGroup
     let artworkURL: URL?
+    /// Place in the roster, so the foil sheens take turns instead of flashing
+    /// across every card at once.
+    let order: Int
 
     @State private var artwork = ArtworkLoader()
 
@@ -183,10 +192,11 @@ private struct GroupCard: View {
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1.0, contentMode: .fit)
+        // The foil catching the light, one card after another.
+        .holoSheen(delay: Double(order) * 0.9)
         .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
-        // A trading card: white rim, and a shadow printed in the group's own
-        // colour.
-        .kitschSticker(tint: Color(hue: group.hue, saturation: 0.55, brightness: 0.95), rim: 3.5, lift: 5)
+        // Before the sticker, so the twinkle moves with the card when it is
+        // pressed instead of hanging in the air above it.
         .overlay(alignment: .topTrailing) {
             Twinkle()
                 .fill(.white)
@@ -195,6 +205,9 @@ private struct GroupCard: View {
                 .padding(10)
                 .accessibilityHidden(true)
         }
+        // A trading card: white rim, and a shadow printed in the group's own
+        // colour.
+        .kitschSticker(tint: Color(hue: group.hue, saturation: 0.55, brightness: 0.95), rim: 3.5, lift: 5)
         .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
         .task(id: artworkURL) { await artwork.load(artworkURL) }
     }

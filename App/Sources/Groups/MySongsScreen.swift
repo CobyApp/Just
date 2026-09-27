@@ -52,9 +52,10 @@ struct MySongsScreen: View {
                     .padding(.horizontal, JustTheme.Space.regular)
 
                 LazyVStack(spacing: JustTheme.Space.tight) {
-                    ForEach(songs) { song in
+                    ForEach(Array(songs.enumerated()), id: \.element.id) { offset, song in
                         Button { app.open(song.track, in: songs.map(\.track)) } label: { row(song) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.kitschPress)
+                            .kitschEntrance(index: offset)
                             .contextMenu {
                                 Button("목록에서 빼기", systemImage: "trash", role: .destructive) {
                                     remove(song)

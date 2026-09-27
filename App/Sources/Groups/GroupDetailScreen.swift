@@ -66,7 +66,8 @@ struct GroupDetailScreen: View {
                             Button { app.open(track, in: tracks) } label: {
                                 SongRow(track: track, index: offset + 1)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.kitschPress)
+                            .kitschEntrance(index: offset)
                         }
                     }
 

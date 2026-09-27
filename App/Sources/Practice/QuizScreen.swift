@@ -23,6 +23,12 @@ struct QuizScreen: View {
     @State private var input = ""
     @State private var outcome: QuizOutcome?
     @State private var correctCount = 0
+    /// Bumped on a right answer — glitter out of the verdict.
+    @State private var cheers = 0
+    /// Bumped on a wrong or nearly-right answer — the answer shakes its head.
+    @State private var shakes = 0
+    /// Bumped when the last question is answered — confetti over the score.
+    @State private var finale = 0
     @FocusState private var isTyping: Bool
 
     private let checker = AnswerChecker()
@@ -74,13 +80,18 @@ struct QuizScreen: View {
                         JustProgressHeader(current: index + 1, total: questions.count)
                         JustActionHint(instruction(for: question), symbol: instructionSymbol(for: question.kind))
                         prompt(question).justCard()
-                        if question.kind.isTyped {
-                            typedField
-                        } else {
-                            choices(question)
+                        Group {
+                            if question.kind.isTyped {
+                                typedField
+                            } else {
+                                choices(question)
+                            }
                         }
+                        .kitschShake(trigger: shakes)
                         if let outcome {
                             feedback(question, outcome)
+                                .sparkleBurst(trigger: cheers, count: 16, spread: 110)
+                                .transition(.scale(scale: 0.85, anchor: .top).combined(with: .opacity))
                                 .id("feedback")
                         }
                     }
@@ -258,6 +269,7 @@ struct QuizScreen: View {
                         if outcome != nil, option == question.meaning {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(JustTheme.Feedback.success)
+                                .transition(.symbolEffect(.appear))
                         }
                     }
                     .padding(JustTheme.Space.snug)
@@ -271,7 +283,7 @@ struct QuizScreen: View {
                             .strokeBorder(JustTheme.Surface.border, lineWidth: 1)
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.kitschPress)
                 .disabled(outcome != nil)
             }
         }
@@ -354,6 +366,8 @@ struct QuizScreen: View {
     private var summary: some View {
         VStack(spacing: JustTheme.Space.regular) {
             JustIconBadge(correctCount == questions.count ? "checkmark" : "flag.checkered", size: 64)
+                .kitschFloat()
+                .sparkleBurst(trigger: finale, count: 20, spread: 130)
             Text("\(correctCount) / \(questions.count)")
                 .justFont(44, weight: .bold, relativeTo: .largeTitle, monospacedDigits: true)
                 .foregroundStyle(JustTheme.Ink.primary)
@@ -366,6 +380,13 @@ struct QuizScreen: View {
         }
         .justCard()
         .padding(JustTheme.Space.regular)
+        .task {
+            // Two waves of confetti, a beat apart, for finishing a set.
+            try? await Task.sleep(for: .seconds(0.25))
+            finale += 1
+            try? await Task.sleep(for: .seconds(0.45))
+            finale += 1
+        }
     }
 
     // MARK: - Flow
@@ -385,14 +406,20 @@ struct QuizScreen: View {
             ? (input == question.meaning ? QuizOutcome.correct : .wrong)
             : checker.check(input, against: question)
 
-        outcome = result
+        withAnimation(.spring(duration: 0.4, bounce: 0.4)) { outcome = result }
         if result == .correct { correctCount += 1 }
         isTyping = false
 
         switch result {
-        case .correct: Haptics.correct()
-        case .close: Haptics.nearMiss()
-        case .wrong: Haptics.wrong()
+        case .correct:
+            Haptics.correct()
+            cheers += 1
+        case .close:
+            Haptics.nearMiss()
+            shakes += 1
+        case .wrong:
+            Haptics.wrong()
+            shakes += 1
         }
 
         if let entry = store.vocab(key: question.entryKey) {

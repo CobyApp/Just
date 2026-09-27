@@ -116,7 +116,7 @@ struct PracticeScreen: View {
                     isProminent: false
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.kitschPress)
         }
     }
 
@@ -132,7 +132,7 @@ struct PracticeScreen: View {
                 isProminent: stats.dueCount > 0
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.kitschPress)
     }
 
     private func quizRow(_ kind: QuizKind?) -> some View {
@@ -145,7 +145,7 @@ struct PracticeScreen: View {
                 isProminent: false
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.kitschPress)
     }
 }
 
