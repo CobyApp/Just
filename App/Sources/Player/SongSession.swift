@@ -97,6 +97,9 @@ final class SongSession {
         // scope, so its work is saved before this song takes the cache over.
         // Re-opening the same song is a no-op and keeps everything cached.
         sensei.reset(for: track.id)
+        // Before the quick/AI question, which is only asked when the model
+        // can be used — read now, not as it was at launch.
+        sensei.refreshAvailability()
 
         // The song enters the library as soon as it is opened, so "recently
         // played" works without an explicit save step.

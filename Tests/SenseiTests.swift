@@ -1875,3 +1875,20 @@ struct RequestGateTests {
         #expect(order == [0, 1, 2])
     }
 }
+
+@Suite("모델 오류 분류")
+struct ModelFailureMappingTests {
+    @Test("iOS 27의 가드레일 검사기·모델 관리자 오류는 시스템 오류")
+    func systemFailures() {
+        let classifier = NSError(domain: "FoundationModels.LanguageModelError", code: -1, userInfo: [
+            NSLocalizedDescriptionKey: "작업을 완료할 수 없습니다.(com.apple.SensitiveContentAnalysisML 오류 15.)",
+        ])
+        #expect(ModelFailure(classifier) == .system)
+        #expect(ModelFailure(NSError(domain: "ModelManagerServices.ModelManagerError", code: 1026)) == .system)
+    }
+
+    @Test("그 밖의 오류는 기타")
+    func otherFailures() {
+        #expect(ModelFailure(URLError(.timedOut)) == .other)
+    }
+}

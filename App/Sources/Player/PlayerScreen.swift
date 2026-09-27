@@ -142,8 +142,15 @@ struct PlayerScreen: View {
         // once and whatever lines are left fill in behind the lyrics, the
         // same way 「지금 듣기」 hands over. Making them watch a progress bar
         // after an ad is what read as 「the analysis only starts after the ad」.
+        //
+        // Quick readings only. An AI reading runs for minutes; opened the
+        // moment a five-second ad closes, the song showed almost every line
+        // untranslated and read as the AI not working at all. It keeps its
+        // progress screen, its own early-open rule and 「지금 듣기」.
         .onChange(of: AnalysisInterstitial.shared.isPresenting) { wasPresenting, isPresenting in
-            guard wasPresenting, !isPresenting, let session, session.canSkipWaiting else { return }
+            guard wasPresenting, !isPresenting, let session, session.canSkipWaiting,
+                  app.sensei.depth == .quick
+            else { return }
             session.skipWaiting()
         }
         .sheet(isPresented: $showsSyncOffset) {

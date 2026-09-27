@@ -51,7 +51,12 @@ struct RootView: View {
         // The 30-second clip is audio and carries on.
         .onChange(of: scenePhase) { _, phase in
             app.player.sceneDidChange(isActive: phase != .background)
-            if phase == .active { JustStore(context: context).publishActivity() }
+            if phase == .active {
+                JustStore(context: context).publishActivity()
+                // The model may have finished downloading, or Apple
+                // Intelligence been switched on, while the app was away.
+                app.sensei.refreshAvailability()
+            }
         }
         // Cards fall due while the app is closed, and the reminder planned
         // last time may no longer fit, so the widget, the badge and the

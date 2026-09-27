@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 
 /// Why the model did not answer a line.
 ///
@@ -19,6 +20,10 @@ public enum ModelFailure: Sendable, Equatable {
     case rateLimited
     case concurrent
     case decoding
+    /// The system's model machinery failed, whatever the words: on iOS 27 a
+    /// safety classifier that errored out (SensitiveContentAnalysisML 15), or
+    /// a model the system could not load. Every line fails the same way.
+    case system
     case other
 
     /// Short label, for counting in the report.
@@ -31,6 +36,7 @@ public enum ModelFailure: Sendable, Equatable {
         case .rateLimited: "속도 제한"
         case .concurrent: "동시 요청"
         case .decoding: "응답 해석 실패"
+        case .system: "시스템 오류"
         case .other: "그 외 생성 오류"
         }
     }
@@ -48,8 +54,48 @@ public enum ModelFailure: Sendable, Equatable {
             "지금은 처리할 수 없었습니다. 잠시 뒤에 다시 눌러 보세요."
         case .assetsMissing:
             "지금은 AI 번역을 쓸 수 없습니다."
+        case .system:
+            "기기의 AI가 요청을 처리하지 못했습니다. 기기를 재시동하거나 Apple Intelligence 설정을 확인해 보세요."
         case .contextWindow, .decoding, .other:
             "지금은 이 줄을 번역하지 못했습니다."
         }
+    }
+}
+
+public extension ModelFailure {
+    /// The failure for any error the model throws — the iOS 26 error type,
+    /// the iOS 27 one, and the bare `NSError` the system sometimes passes up
+    /// without either.
+    init(_ error: any Error) {
+        if let error = error as? LanguageModelSession.GenerationError {
+            self = switch error {
+            case .guardrailViolation: .guardrail
+            case .refusal: .refused
+            case .exceededContextWindowSize: .contextWindow
+            case .assetsUnavailable: .assetsMissing
+            case .rateLimited: .rateLimited
+            case .concurrentRequests: .concurrent
+            case .decodingFailure: .decoding
+            default: .other
+            }
+            return
+        }
+        if #available(iOS 27.0, *), let error = error as? LanguageModelError {
+            self = switch error {
+            case .guardrailViolation: .guardrail
+            case .refusal: .refused
+            case .contextSizeExceeded: .contextWindow
+            case .rateLimited: .rateLimited
+            default: .other
+            }
+            return
+        }
+        let ns = error as NSError
+        let description = String(describing: error)
+        if ns.domain.contains("LanguageModelError") || description.contains("SensitiveContentAnalysis") || description.contains("ModelManager") {
+            self = .system
+            return
+        }
+        self = .other
     }
 }

@@ -20,6 +20,8 @@ struct SettingsScreen: View {
     @State private var plainTranslationOn = PlainTranslator.shared.isEnabled
     @State private var asksEveryTime = AnalysisDepthPreference.asksEveryTime
     @State private var packStatus: LanguageAvailability.Status?
+    @State private var modelCheck: Sensei.ModelCheck?
+    @State private var isCheckingModel = false
     /// Non-nil while a download is being asked for.
     @State private var download: TranslationSession.Configuration?
 
@@ -207,6 +209,38 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    // Asked of the model itself, so 「AI 번역이 안 돼요」 comes
+                    // with a reason the reader can act on — or the proof that
+                    // it works.
+                    Button {
+                        modelCheck = nil
+                        isCheckingModel = true
+                        Task {
+                            modelCheck = await app.sensei.checkModel()
+                            isCheckingModel = false
+                        }
+                    } label: {
+                        HStack {
+                            Text("AI 번역 확인")
+                            Spacer()
+                            if isCheckingModel { ProgressView() }
+                        }
+                    }
+                    .disabled(isCheckingModel)
+                    if let modelCheck {
+                        switch modelCheck {
+                        case .works(let sample):
+                            Label("AI 번역이 동작합니다 — 「君の笑顔が大好きだよ」 → \(sample)", systemImage: "checkmark.circle.fill")
+                                .font(JustTheme.Font.caption)
+                                .foregroundStyle(JustTheme.Feedback.success)
+                        case .unavailable(let reason), .failed(let reason):
+                            Label(reason, systemImage: "exclamationmark.triangle.fill")
+                                .font(JustTheme.Font.caption)
+                                .foregroundStyle(JustTheme.Feedback.warning)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
+                        }
+                    }
                     DisclosureGroup("정보") {
                         LabeledContent("번역 방식", value: app.engineLabel)
                         LabeledContent("곡 정보", value: "iTunes")

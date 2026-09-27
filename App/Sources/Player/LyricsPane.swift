@@ -85,6 +85,26 @@ struct LyricsPane: View {
                         symbol: "hand.tap.fill"
                     )
                         .dismissibleGuide("lyrics.tap")
+                    // Said, not hidden: the reader chose the AI reading and is
+                    // looking at the quick one.
+                    if app.sensei.modelFailedThroughout {
+                        Label {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("AI 번역이 동작하지 않아 빠른 번역으로 채웠어요.")
+                                    .font(JustTheme.Font.caption.weight(.semibold))
+                                Text((app.sensei.commonestFailure?.readerExplanation ?? "")
+                                     + " 설정 > AI 번역 확인에서 자세한 원인을 볼 수 있어요.")
+                                    .font(JustTheme.Font.caption)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                        }
+                        .foregroundStyle(JustTheme.Feedback.warning)
+                        .padding(JustTheme.Space.snug)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(JustTheme.Feedback.warning.opacity(0.12), in: .rect(cornerRadius: JustTheme.Radius.chip))
+                    }
                     ForEach(lyrics.lines) { line in
                         LyricRow(
                             line: line,

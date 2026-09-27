@@ -32,7 +32,7 @@ public final class Sensei {
     /// still discards what the first visit left running.
     private var scope = 0
 
-    private let onDevice: OnDeviceSensei?
+    private var onDevice: OnDeviceSensei?
     /// The system translator, injected so the rules around it can be tested
     /// without one.
     private let translate: @MainActor (String) async -> String?
@@ -61,7 +61,7 @@ public final class Sensei {
     /// model guessed it.
     private let tokenizer = JapaneseTokenizer()
     /// Whether the on-device model is there at all.
-    private let modelIsAvailable: Bool
+    private var modelIsAvailable: Bool
 
     /// Which of the two analyses runs.
     ///
@@ -117,6 +117,61 @@ public final class Sensei {
     }
 
     public var usesOnDeviceModel: Bool { modelIsAvailable }
+
+    /// Reads the model's availability again.
+    ///
+    /// It used to be read once, at launch. A phone that had just updated
+    /// iOS was still downloading the model then — 「modelNotReady」 — and the
+    /// app stayed without AI until it was killed, long after the model had
+    /// arrived; the same for Apple Intelligence switched on after launch.
+    /// Asked again whenever the app comes forward and before a song opens.
+    public func refreshAvailability() {
+        let reason = OnDeviceSensei.availability
+        guard reason != unavailability || (reason == nil) != modelIsAvailable else { return }
+        let becameAvailable = reason == nil && !modelIsAvailable
+        unavailability = reason
+        modelIsAvailable = reason == nil
+        if modelIsAvailable, onDevice == nil {
+            onDevice = OnDeviceSensei()
+            onDevice?.prewarm()
+        }
+        if becameAvailable {
+            depth = AnalysisDepthPreference.resolved(modelIsAvailable: true)
+        } else if !modelIsAvailable {
+            depth = .quick
+        }
+    }
+
+    /// What asking the model one line gives right now, for the settings
+    /// screen — so 「AI 번역이 안 된다」 can be answered with a reason.
+    public enum ModelCheck: Equatable, Sendable {
+        case unavailable(String)
+        case works(String)
+        case failed(String)
+    }
+
+    public func checkModel() async -> ModelCheck {
+        refreshAvailability()
+        await OnDeviceSensei.probe()
+        guard unavailability == nil, let onDevice else {
+            return .unavailable(unavailability?.message ?? OnDeviceSensei.Unavailability.unknown.message)
+        }
+        do {
+            let study = try await onDevice.analyze(
+                line: "君の笑顔が大好きだよ",
+                lineIndex: 0,
+                previous: nil,
+                next: nil,
+                songTitle: "テスト",
+                artist: "テスト"
+            )
+            let text = study.translationKo.trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? .failed("AI가 빈 번역을 돌려주었습니다.") : .works(text)
+        } catch {
+            let failure = ModelFailure(error)
+            return .failed("\(failure.readerExplanation)\n(\(failure.label): \(String(describing: error).prefix(200)))")
+        }
+    }
 
     public func prewarm() {
         onDevice?.prewarm()
@@ -372,33 +427,25 @@ public final class Sensei {
 
     /// Files why the model did not answer a line.
     private func noteFailure(_ error: any Error, text: String, lineIndex: Int) {
-        guard let error = error as? LanguageModelSession.GenerationError else {
-            lastFailure[lineIndex] = .other
-            return
-        }
-        // A refusal is about these words and will not change on a
-        // second asking. Anything else — a busy system, a moment's
-        // failure — is worth another attempt on the next pass.
-        switch error {
-        case .guardrailViolation:
-            refusedByModel.insert(text)
-            lastFailure[lineIndex] = .guardrail
-        case .refusal:
-            refusedByModel.insert(text)
-            lastFailure[lineIndex] = .refused
-        case .exceededContextWindowSize:
-            lastFailure[lineIndex] = .contextWindow
-        case .assetsUnavailable:
-            lastFailure[lineIndex] = .assetsMissing
-        case .rateLimited:
-            lastFailure[lineIndex] = .rateLimited
-        case .concurrentRequests:
-            lastFailure[lineIndex] = .concurrent
-        case .decodingFailure:
-            lastFailure[lineIndex] = .decoding
-        default:
-            lastFailure[lineIndex] = .other
-        }
+        let failure = ModelFailure(error)
+        // A refusal is about these words and will not change on a second
+        // asking. Anything else — a busy system, a moment's failure — is worth
+        // another attempt on the next pass.
+        if failure == .guardrail || failure == .refused { refusedByModel.insert(text) }
+        lastFailure[lineIndex] = failure
+    }
+
+    /// True when the model was asked for lines of this song and answered
+    /// none of them — the reader is looking at the quick reading and should
+    /// be told, not left to think the AI wrote it.
+    public var modelFailedThroughout: Bool {
+        usesModel && !lastFailure.isEmpty
+            && !entries.values.contains { $0.engine == .onDevice }
+    }
+
+    /// The failure most lines ran into, for saying why.
+    public var commonestFailure: ModelFailure? {
+        Dictionary(grouping: lastFailure.values, by: { $0 }).max { $0.value.count < $1.value.count }?.key
     }
 
     /// Whether a result is the best this device can produce.

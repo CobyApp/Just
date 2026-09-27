@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import os
 import JustCore
 
 // MARK: - Guided generation schema
@@ -160,6 +161,15 @@ public final class OnDeviceSensei {
         }
     }
 
+    /// The system model with the guardrails meant for transforming text the
+    /// user brought — here, lyrics to translate. The default guardrails run a
+    /// sensitive-content classifier over the input first; on iOS 27 that
+    /// classifier failed outright (SensitiveContentAnalysisML error 15) and
+    /// took every request with it, so no line was ever translated by the AI.
+    /// Lyrics are the reader's own content being translated for study, which
+    /// is exactly the case this setting exists for.
+    static let model = SystemLanguageModel(guardrails: .permissiveContentTransformations)
+
     private static let instructions = """
     당신은 J-POP 가사로 일본어를 가르치는 선생님입니다. 학습자는 한국인입니다.
 
@@ -203,11 +213,11 @@ public final class OnDeviceSensei {
     private static let generation = GenerationOptions(sampling: .greedy)
 
     public init() {
-        session = LanguageModelSession { Self.instructions }
+        session = LanguageModelSession(model: Self.model) { Self.instructions }
     }
 
     public static var availability: Unavailability? {
-        switch SystemLanguageModel.default.availability {
+        switch Self.model.availability {
         case .available:
             return nil
         case .unavailable(let reason):
@@ -223,6 +233,25 @@ public final class OnDeviceSensei {
     }
 
     public static var isAvailable: Bool { availability == nil }
+
+    /// Tries the smallest possible requests and logs every error in full
+    /// (subsystem com.coby.just, category model) — for telling a broken
+    /// model apart from a prompt the model dislikes.
+    public static func probe() async {
+        let log = Logger(subsystem: "com.coby.just", category: "model")
+        for (name, model) in [("default", SystemLanguageModel.default), ("permissive", SystemLanguageModel(guardrails: .permissiveContentTransformations))] {
+            log.info("probe \(name, privacy: .public): availability \(String(describing: model.availability), privacy: .public)")
+            for prompt in ["Say hello.", "「君の笑顔が大好きだよ」を韓国語に訳してください。"] {
+                do {
+                    let reply = try await LanguageModelSession(model: model).respond(to: prompt)
+                    log.info("probe \(name, privacy: .public) OK: \(reply.content.prefix(60), privacy: .public)")
+                } catch {
+                    let ns = error as NSError
+                    log.error("probe \(name, privacy: .public) FAIL: \(String(describing: error), privacy: .public) | \(ns.domain, privacy: .public) \(ns.code) | underlying \(String(describing: ns.userInfo[NSUnderlyingErrorKey]), privacy: .public)")
+                }
+            }
+        }
+    }
 
     /// Warms the model so the first tap isn't the slow one.
     public func prewarm() {
@@ -249,7 +278,7 @@ public final class OnDeviceSensei {
             guard case .exceededContextWindowSize = error else { throw error }
             recycler.startFresh()
             if recycler.claim() {
-                session = LanguageModelSession { Self.instructions }
+                session = LanguageModelSession(model: Self.model) { Self.instructions }
             }
             response = try await session.respond(
                 to: prompt,
@@ -353,7 +382,7 @@ public final class OnDeviceSensei {
         }
 
         if recycler.claim() {
-            session = LanguageModelSession { Self.instructions }
+            session = LanguageModelSession(model: Self.model) { Self.instructions }
         }
 
         if !LineScript.hasJapanese(line) {
@@ -373,7 +402,7 @@ public final class OnDeviceSensei {
             guard case .exceededContextWindowSize = error else { throw error }
             recycler.startFresh()
             if recycler.claim() {
-                session = LanguageModelSession { Self.instructions }
+                session = LanguageModelSession(model: Self.model) { Self.instructions }
             }
             // Once. A fresh session that still overflows is a line that does
             // not fit at all, and the caller's dictionary fallback is right.
