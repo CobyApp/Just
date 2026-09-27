@@ -58,6 +58,9 @@ struct RootView: View {
         // reminder are brought up to date whenever the app comes back — not
         // only after a grade. Here rather than in a tab, which may never load.
         .task { JustStore(context: context).publishActivity() }
+        // Fetched at launch, so the first song's ad is ready the moment its
+        // analysis starts instead of loading while the analysis runs alone.
+        .task { await AnalysisInterstitial.shared.preload() }
     }
 }
 

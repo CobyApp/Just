@@ -5,6 +5,7 @@ import JustSensei
 import Observation
 import SwiftData
 import SwiftUI
+import os
 
 /// Everything that belongs to the song currently open: its lyrics, its
 /// analysis progress, and the library record they get written back to.
@@ -233,6 +234,8 @@ final class SongSession {
     ///
     /// Exactly one. A line the model keeps failing on stays unsettled, so
     /// looping until nothing is pending would never let the song open.
+    private static let log = Logger(subsystem: "com.coby.just", category: "analysis")
+
     private func analyzeRemaining() async {
         guard let lyrics else { return }
         let pending = sensei.pendingLines(in: lyrics)
@@ -251,6 +254,7 @@ final class SongSession {
             pace.record(now.timeIntervalSince(lastTick))
             lastTick = now
             let remaining = pace.estimate(remaining: total - done)
+            Self.log.info("analysed \(done)/\(total)")
             self.phase = .analyzing(done: done, total: total, remaining: remaining)
 
             // Handed over rather than endured. Waiting for a finished song is

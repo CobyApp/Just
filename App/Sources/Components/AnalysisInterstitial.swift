@@ -2,6 +2,7 @@ import Foundation
 import GoogleMobileAds
 import Observation
 import UIKit
+import os
 import UserMessagingPlatform
 
 /// Google's consent flow (UMP), and the gate every ad request goes through.
@@ -113,6 +114,8 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
     static let minimumPendingLines = 5
     static let minimumGap: TimeInterval = 120
 
+    private static let log = Logger(subsystem: "com.coby.just", category: "analysis")
+
     private let unitID: String
     private var ad: InterstitialAd?
     private var isLoading = false
@@ -184,6 +187,7 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
         self.ad = nil
         isPresenting = true
         lastShown = .now
+        Self.log.info("ad presented")
         // The SDK finds the front-most controller when none is given, which is
         // the full-screen player cover here.
         ad.present(from: nil)
@@ -193,6 +197,7 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
 
     nonisolated func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         Task { @MainActor in
+            Self.log.info("ad dismissed")
             isPresenting = false
             await preload()
         }

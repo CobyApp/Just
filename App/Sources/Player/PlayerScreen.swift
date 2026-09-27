@@ -90,6 +90,10 @@ struct PlayerScreen: View {
             // own, so its analyses are saved before the new song claims it.
             session?.cancelBulk()
 
+            // The video is looked for now, alongside the lyrics and the
+            // analysis, instead of after them.
+            app.player.prefetchVideo(for: track)
+
             let session = SongSession(
                 track: track,
                 context: context,
@@ -132,6 +136,15 @@ struct PlayerScreen: View {
                 if case .analyzing = session.phase { return true }
                 return false
             }
+        }
+        // The ad is the wait. The analysis runs behind it the whole time, and
+        // once it is closed the reader has waited enough: the song opens at
+        // once and whatever lines are left fill in behind the lyrics, the
+        // same way 「지금 듣기」 hands over. Making them watch a progress bar
+        // after an ad is what read as 「the analysis only starts after the ad」.
+        .onChange(of: AnalysisInterstitial.shared.isPresenting) { wasPresenting, isPresenting in
+            guard wasPresenting, !isPresenting, let session, session.canSkipWaiting else { return }
+            session.skipWaiting()
         }
         .sheet(isPresented: $showsSyncOffset) {
             if let session {
