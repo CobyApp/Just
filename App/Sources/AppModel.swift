@@ -23,10 +23,18 @@ final class AppModel {
     /// the home screen and lends its colour to the tab bar, the way fans wear
     /// their member colour.
     var oshiID: String? = UserDefaults.standard.string(forKey: AppModel.oshiKey) {
-        didSet { UserDefaults.standard.set(oshiID, forKey: Self.oshiKey) }
+        didSet {
+            UserDefaults.standard.set(oshiID, forKey: Self.oshiKey)
+            JustStore.publish(oshi: widgetOshi)
+        }
     }
 
     var oshi: IdolGroup? { oshiID.flatMap(IdolGroup.group(id:)) }
+
+    /// The favourite as the widget carries it.
+    private var widgetOshi: WidgetSnapshot.Oshi? {
+        oshi.map { WidgetSnapshot.Oshi(name: $0.name, hue: $0.hue) }
+    }
 
     func isOshi(_ group: IdolGroup) -> Bool { oshiID == group.id }
 
@@ -116,6 +124,7 @@ final class AppModel {
         // reminder and the badge are how it reaches the user outside the app.
         let reminder = self.reminder
         JustStore.onOutlookChange = { outlook in reminder.update(outlook) }
+        JustStore.oshi = widgetOshi
     }
 
     /// What is answering right now — the mode, not merely what the device can

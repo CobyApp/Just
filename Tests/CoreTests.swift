@@ -548,6 +548,23 @@ struct ReviewOutlookTests {
 struct WidgetSnapshotTests {
     private let written = Date(timeIntervalSince1970: 1_700_000_000)
 
+    @Test("최애가 없던 옛 스냅숏도 읽힌다")
+    func decodesWithoutOshi() throws {
+        let old = #"{"dueCount":2,"streak":3,"totalWords":9,"updatedAt":0}"#
+        let snapshot = try JSONDecoder().decode(WidgetSnapshot.self, from: Data(old.utf8))
+        #expect(snapshot.oshi == nil)
+        #expect(snapshot.totalWords == 9)
+    }
+
+    @Test("최애만 바꾸고 나머지는 그대로")
+    func swapsOnlyTheOshi() {
+        let snapshot = WidgetSnapshot(dueCount: 4, streak: 2, totalWords: 30, word: nil, updatedAt: written)
+        let picked = snapshot.with(oshi: .init(name: "=LOVE", hue: 0.75))
+        #expect(picked.oshi?.name == "=LOVE")
+        #expect(picked.dueCount == 4 && picked.totalWords == 30 && picked.updatedAt == written)
+        #expect(picked.with(oshi: nil).oshi == nil)
+    }
+
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!

@@ -344,6 +344,22 @@ public struct JustStore {
 
     /// Receives the schedule every time it is published — the app hangs the
     /// review reminder and the badge off this. JustCore cannot see either.
+    /// The favourite group, set by the app, so every snapshot carries it.
+    /// Static for the same reason as `onOutlookChange`: the store is a value
+    /// made fresh per screen, and this belongs to the app, not to a screen.
+    @MainActor public static var oshi: WidgetSnapshot.Oshi?
+
+    /// Swaps the favourite in the snapshot already on disk, so the widget
+    /// follows a change straight away rather than at the next grade.
+    @MainActor public static func publish(oshi: WidgetSnapshot.Oshi?) {
+        self.oshi = oshi
+        guard let current = WidgetStore.read() else { return }
+        WidgetStore.write(current.with(oshi: oshi))
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+    }
+
     public static var onOutlookChange: (@MainActor (ReviewOutlook) -> Void)?
 
     /// Refreshes everything that shows the schedule outside the app: the
@@ -388,7 +404,8 @@ public struct JustStore {
                 },
                 updatedAt: now,
                 upcomingDue: outlook.upcoming,
-                lastStudyDay: lastStudyDay()
+                lastStudyDay: lastStudyDay(),
+                oshi: Self.oshi
             )
         )
         #if canImport(WidgetKit)

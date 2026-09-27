@@ -42,6 +42,12 @@ struct JustWidgetView: View {
     private var dueCount: Int { entry.snapshot.dueCount(at: entry.date) }
     private var streak: Int { entry.snapshot.streak(at: entry.date) }
 
+    /// The favourite's colour when there is one — the widget is the app on
+    /// the home screen, so it wears the same member colour as the tab bar.
+    private var accent: Color {
+        entry.snapshot.oshi.map { WidgetStyle.memberColor(hue: $0.hue) } ?? WidgetStyle.pink
+    }
+
     var body: some View {
         switch family {
         case .systemSmall:
@@ -56,70 +62,133 @@ struct JustWidgetView: View {
             header
             Spacer(minLength: 0)
             if let word = entry.snapshot.word {
-                Text(word.reading)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(word.lemma)
-                    .font(.system(size: 28, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(word.meaningKo)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                wordSticker(word, lemmaSize: 26, showsSong: false)
             } else {
-                Text("가사에서 단어를 담아 보세요")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                emptyWord
             }
         }
     }
 
     private var medium: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
                 header
                 Spacer(minLength: 0)
-                Label("\(streak)일 연속", systemImage: "flame")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Label("\(entry.snapshot.totalWords)개 모음", systemImage: "character.book.closed")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Label("\(streak)일 연속", systemImage: "flame.fill")
+                Label("\(entry.snapshot.totalWords)개 모음", systemImage: "heart.fill")
+                if let oshi = entry.snapshot.oshi {
+                    Label("최애 \(oshi.name)", systemImage: "crown.fill")
+                        .foregroundStyle(accent)
+                        .lineLimit(1)
+                }
             }
+            .font(.system(.caption, design: .rounded, weight: .bold))
+            .foregroundStyle(WidgetStyle.inkSoft)
+            .labelStyle(.titleAndIcon)
 
             if let word = entry.snapshot.word {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(word.reading)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(word.lemma)
-                        .font(.system(size: 32, weight: .semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text(word.meaningKo)
-                        .font(.footnote)
-                        .lineLimit(2)
-                    if let song = word.songLabel {
-                        Text(song)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                wordSticker(word, lemmaSize: 30, showsSong: true)
+            } else {
+                emptyWord
             }
         }
     }
 
+    /// The count, as a candy pill: filled when there is something to do.
     private var header: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "music.note")
-                .foregroundStyle(Color(red: 1.0, green: 0.37, blue: 0.56))
+        HStack(spacing: 5) {
+            Image(systemName: dueCount > 0 ? "sparkles" : "checkmark")
+                .font(.system(size: 11, weight: .black))
             Text(dueCount > 0 ? "복습 \(dueCount)개" : "오늘 복습 완료")
-                .foregroundStyle(dueCount > 0 ? .primary : .secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .font(.system(.caption, design: .rounded, weight: .bold))
+        .font(.system(.caption, design: .rounded, weight: .heavy))
+        .foregroundStyle(dueCount > 0 ? .white : accent)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(dueCount > 0 ? accent : .white, in: .capsule)
+        .overlay { Capsule().strokeBorder(dueCount > 0 ? .white : accent.opacity(0.45), lineWidth: 1.5) }
+    }
+
+    /// One word on a white sticker with a printed shadow.
+    private func wordSticker(_ word: WidgetSnapshot.Word, lemmaSize: CGFloat, showsSong: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(word.reading)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(accent)
+                .lineLimit(1)
+            Text(word.lemma)
+                .font(.system(size: lemmaSize, weight: .bold))
+                .foregroundStyle(WidgetStyle.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            Text(word.meaningKo)
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundStyle(WidgetStyle.inkSoft)
+                .lineLimit(showsSong ? 2 : 1)
+            if showsSong, let song = word.songLabel {
+                Text("♪ \(song)")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(WidgetStyle.inkSoft.opacity(0.75))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: .rect(cornerRadius: 14))
+        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(accent.opacity(0.35), lineWidth: 1.5) }
+        .background {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(accent.opacity(0.35))
+                .offset(x: 2, y: 3)
+        }
+    }
+
+    private var emptyWord: some View {
+        Text("가사에서 단어를 담아 보세요 ♡")
+            .font(.system(.caption, design: .rounded, weight: .semibold))
+            .foregroundStyle(WidgetStyle.inkSoft)
+    }
+}
+
+/// The app's colours, repeated here: the widget links JustCore only, and the
+/// design module brings UIKit and far more than four colours need.
+enum WidgetStyle {
+    static let pink = Color(red: 1.0, green: 0.37, blue: 0.56)
+    static let ink = Color(red: 0.22, green: 0.12, blue: 0.27)
+    static let inkSoft = Color(red: 0.47, green: 0.35, blue: 0.50)
+
+    /// Same rule as `IdolGroup.memberColor` in the app.
+    static func memberColor(hue: Double) -> Color {
+        let isYellowish = (0.08...0.24).contains(hue)
+        return Color(hue: hue, saturation: 0.75, brightness: isYellowish ? 0.68 : 0.82)
+    }
+}
+
+/// Pastel ground with a little glitter in the corners. Plain shapes and
+/// text only — no Canvas, which widgets do not draw.
+struct WidgetBackdrop: View {
+    let accent: Color
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(red: 1.0, green: 0.94, blue: 0.97), Color(red: 0.95, green: 0.94, blue: 1.0)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Text("✦").font(.system(size: 14)).foregroundStyle(accent.opacity(0.35))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(10)
+            Text("♡").font(.system(size: 12, weight: .bold)).foregroundStyle(Color(red: 0.6, green: 0.8, blue: 1.0).opacity(0.6))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(8)
+            Text("✧").font(.system(size: 10)).foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.4).opacity(0.8))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .padding(.trailing, 6)
+        }
     }
 }
 
@@ -127,12 +196,16 @@ struct JustWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
             JustWidgetView(entry: entry)
-                // The background is a fixed cream, so the ink must be fixed
+                // The background is a fixed pastel, so the ink must be fixed
                 // too: left to follow the system, `.primary` and `.secondary`
                 // turned near-white in dark mode and the text vanished into
                 // the cream.
                 .environment(\.colorScheme, .light)
-                .containerBackground(Color(red: 1.0, green: 0.98, blue: 0.96), for: .widget)
+                .containerBackground(for: .widget) {
+                    WidgetBackdrop(
+                        accent: entry.snapshot.oshi.map { WidgetStyle.memberColor(hue: $0.hue) } ?? WidgetStyle.pink
+                    )
+                }
                 // Tapping the widget lands on the cards, not on wherever the
                 // app happened to be left.
                 .widgetURL(URL(string: entry.snapshot.dueCount(at: entry.date) > 0 ? "just://review" : "just://words"))

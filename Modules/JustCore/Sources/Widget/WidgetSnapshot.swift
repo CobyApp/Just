@@ -24,6 +24,20 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
     /// The last day with any study activity, so the widget can tell when the
     /// streak has lapsed without the app running.
     public let lastStudyDay: Date?
+    /// The reader's favourite group, for the widget's colour and its
+    /// 「최애」 line. Nil when none is picked, or from an older build.
+    public let oshi: Oshi?
+
+    public struct Oshi: Codable, Sendable, Equatable {
+        public let name: String
+        /// The group's hue, 0–1.
+        public let hue: Double
+
+        public init(name: String, hue: Double) {
+            self.name = name
+            self.hue = hue
+        }
+    }
 
     public struct Word: Codable, Sendable, Equatable {
         public let lemma: String
@@ -46,7 +60,8 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
         word: Word?,
         updatedAt: Date = .now,
         upcomingDue: [Date]? = nil,
-        lastStudyDay: Date? = nil
+        lastStudyDay: Date? = nil,
+        oshi: Oshi? = nil
     ) {
         self.dueCount = dueCount
         self.streak = streak
@@ -55,6 +70,21 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
         self.updatedAt = updatedAt
         self.upcomingDue = upcomingDue
         self.lastStudyDay = lastStudyDay
+        self.oshi = oshi
+    }
+
+    /// The same snapshot with another favourite.
+    public func with(oshi: Oshi?) -> WidgetSnapshot {
+        WidgetSnapshot(
+            dueCount: dueCount,
+            streak: streak,
+            totalWords: totalWords,
+            word: word,
+            updatedAt: updatedAt,
+            upcomingDue: upcomingDue,
+            lastStudyDay: lastStudyDay,
+            oshi: oshi
+        )
     }
 
     /// The schedule this snapshot carries.
