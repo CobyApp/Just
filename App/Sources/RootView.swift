@@ -15,15 +15,19 @@ struct RootView: View {
         TabView(selection: $app.tab) {
             Tab("노래 찾기", systemImage: "music.mic", value: AppModel.Tab.groups) {
                 GroupsScreen()
+                    .modifier(MiniPlayerRoom(isShown: app.nowPlaying != nil))
             }
             Tab("내 노래", systemImage: "music.note.list", value: AppModel.Tab.mySongs) {
                 MySongsScreen()
+                    .modifier(MiniPlayerRoom(isShown: app.nowPlaying != nil))
             }
             Tab("단어장", systemImage: "character.book.closed.fill", value: AppModel.Tab.words) {
                 LibraryScreen()
+                    .modifier(MiniPlayerRoom(isShown: app.nowPlaying != nil))
             }
             Tab("연습", systemImage: "checkmark.circle.fill", value: AppModel.Tab.practice) {
                 PracticeScreen()
+                    .modifier(MiniPlayerRoom(isShown: app.nowPlaying != nil))
             }
         }
         .tabViewStyle(.sidebarAdaptable)
@@ -86,5 +90,21 @@ private struct MiniPlayerAccessory: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+/// Room at the bottom of a tab for the mini player.
+///
+/// The accessory floats over the tab's content without adding to its safe
+/// area, so anything pinned to the bottom of a screen — the review's grade
+/// buttons, a quiz's answer bar — sat half underneath it. Scrolling screens
+/// got away with it; fixed ones did not.
+private struct MiniPlayerRoom: ViewModifier {
+    let isShown: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .safeAreaPadding(.bottom, isShown ? 58 : 0)
+            .animation(.snappy, value: isShown)
     }
 }
