@@ -6,7 +6,10 @@ public extension IdolGroup {
     /// selected tab on white — the card gradient's own tones are too pale for
     /// a yellow or mint group to read.
     var memberColor: Color {
-        Color(hue: hue, saturation: 0.72, brightness: 0.82)
+        // Yellows and yellow-greens look bright at any brightness and carry
+        // white text poorly; they are taken down further than the rest.
+        let isYellowish = (0.08...0.24).contains(hue)
+        return Color(hue: hue, saturation: 0.75, brightness: isYellowish ? 0.68 : 0.82)
     }
 }
 

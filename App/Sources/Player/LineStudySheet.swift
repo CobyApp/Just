@@ -10,6 +10,7 @@ struct LineStudySheet: View {
 
     @Environment(AppModel.self) private var app
     @State private var savedWords: Set<String> = []
+    @State private var showsCard = false
 
     private var study: LineStudy? { app.sensei.cached(lineIndex) }
     private var lineText: String {
@@ -95,6 +96,25 @@ struct LineStudySheet: View {
                     .font(JustTheme.Font.body)
                     .foregroundStyle(JustTheme.Ink.secondary)
             }
+            if !lineText.isEmpty {
+                Button {
+                    showsCard = true
+                } label: {
+                    Label("가사 카드 만들기", systemImage: "sparkles.rectangle.stack")
+                }
+                .buttonStyle(.justSecondary)
+                .padding(.top, JustTheme.Space.hairline)
+            }
+        }
+        .sheet(isPresented: $showsCard) {
+            LyricCardSheet(card: LyricCard(
+                line: lineText,
+                translation: session.translation(for: lineIndex),
+                title: session.track.title,
+                artist: session.track.artist,
+                tint: IdolGroup.group(forArtist: session.track.artist)?.memberColor
+                    ?? JustTheme.Kawaii.accent
+            ))
         }
     }
 

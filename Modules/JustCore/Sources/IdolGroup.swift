@@ -188,7 +188,7 @@ public extension IdolGroup {
     /// romanised credit still finds its group. Short aliases are skipped for
     /// matching: 「東北産」 is safe, a two-letter nickname would catch other
     /// artists' names.
-    static func group(forArtist artist: String) -> IdolGroup? {
+    public static func group(forArtist artist: String) -> IdolGroup? {
         let wanted = fold(artist)
         if let byName = all.first(where: { wanted.contains(fold($0.name)) }) {
             return byName

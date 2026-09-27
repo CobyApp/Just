@@ -120,6 +120,9 @@ let project = Project(
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 // Keeps playback going while the screen locks during a song.
                 "UIBackgroundModes": ["audio"],
+                // 「이미지 저장」 in the share sheet for a lyric card. Without
+                // this key the system kills the app the moment it is tapped.
+                "NSPhotoLibraryAddUsageDescription": "가사 카드를 사진 앱에 저장합니다.",
                 // The YouTube Data API key, for finding a song's video. Set
                 // TUIST_YOUTUBE_API_KEY before `tuist generate`; without it the
                 // app plays 30-second clips.
