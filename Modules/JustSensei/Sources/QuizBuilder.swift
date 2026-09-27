@@ -33,16 +33,24 @@ public struct AnswerChecker: Sendable {
 
     /// Katakana folded to hiragana, long vowels and spacing dropped, so the
     /// comparison is about the word rather than how it was typed.
+    ///
+    /// ぢ and づ are folded into じ and ず. They sound the same, Japanese
+    /// people type them as "zi"/"zu" too, and without the fold 「kizuku」 for
+    /// 気付く (きづく) was marked wrong — the learner knew the word exactly.
     static func normalize(_ text: String) -> String {
         var result = ""
         for character in text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
             if character.isWhitespace || character == "ー" || character == "・" { continue }
+            var folded = character
             if character.isKatakana,
                let scalar = character.unicodeScalars.first,
                let shifted = Unicode.Scalar(scalar.value - 0x60) {
-                result.append(Character(shifted))
-            } else {
-                result.append(character)
+                folded = Character(shifted)
+            }
+            switch folded {
+            case "ぢ": result.append("じ")
+            case "づ": result.append("ず")
+            default: result.append(folded)
             }
         }
         return result

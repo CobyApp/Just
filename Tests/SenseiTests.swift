@@ -131,6 +131,18 @@ struct AnswerCheckerTests {
         )
     }
 
+    /// づ and ぢ sound like ず and じ and are typed that way; 「kizuku」 is
+    /// 気付く, not a spelling mistake.
+    @Test("zu로 친 づ, zi로 친 ぢ도 정답")
+    func foldsYotsugana() {
+        let kizuku = question(accepted: ["気付く", "きづく"], expected: "気付く", reading: "きづく")
+        #expect(checker.check("kizuku", against: kizuku) == .correct)
+        #expect(checker.check("きずく", against: kizuku) == .correct)
+        #expect(checker.check("キヅク", against: kizuku) == .correct)
+        let hanaji = question(accepted: ["鼻血", "はなぢ"], expected: "鼻血", reading: "はなぢ")
+        #expect(checker.check("hanaji", against: hanaji) == .correct)
+    }
+
     /// Romaji typed with the Korean layout still on: 「aruku」 comes out as
     /// Hangul. The keystrokes were right, so the answer is.
     @Test("한/영 전환 없이 두벌식으로 친 로마자도 정답")
