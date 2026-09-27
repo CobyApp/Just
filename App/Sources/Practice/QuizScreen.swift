@@ -78,6 +78,16 @@ struct QuizScreen: View {
                 ScrollView {
                     VStack(spacing: JustTheme.Space.loose) {
                         JustProgressHeader(current: index + 1, total: questions.count)
+                        if kind == .choice, question.kind != .choice {
+                            // The question stepped aside for want of three
+                            // other meanings — see `QuizBuilder.choice`. Said
+                            // here, or 「사지선다」 above a text field reads
+                            // as a bug.
+                            JustActionHint(
+                                "사지선다는 뜻이 서로 다른 단어가 4개 이상 있어야 만들 수 있어요. 그때까지는 쓰기 문제로 냅니다.",
+                                symbol: "info.circle.fill"
+                            )
+                        }
                         JustActionHint(instruction(for: question), symbol: instructionSymbol(for: question.kind))
                         prompt(question).justCard()
                         Group {
