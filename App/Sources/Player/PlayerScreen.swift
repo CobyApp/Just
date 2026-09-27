@@ -254,13 +254,17 @@ struct PlayerScreen: View {
                     }
                 }
 
-                Picker("가사 크기", selection: Binding(
+                // With a label of its own: a bare title was the one row in the
+                // menu with no icon, and sat out of line with the rest.
+                Picker(selection: Binding(
                     get: { session.textSize },
                     set: { session.textSize = $0 }
                 )) {
                     ForEach(LyricTextSize.allCases) { size in
                         Text(size.title).tag(size)
                     }
+                } label: {
+                    Label("가사 크기", systemImage: "textformat.size")
                 }
                 .pickerStyle(.menu)
 

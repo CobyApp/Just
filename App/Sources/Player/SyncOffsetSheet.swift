@@ -90,7 +90,7 @@ struct SyncOffsetSheet: View {
     }
 
     private func step(_ delta: TimeInterval) -> some View {
-        Button(String(format: "%+.1f", delta)) {
+        Button(String(format: "%+.1f초", delta)) {
             session.lyricsOffset = LyricSync.stepped(session.lyricsOffset, by: delta)
             Haptics.tick()
         }
