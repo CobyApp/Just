@@ -876,14 +876,42 @@ struct WaitBudgetTests {
 
 @Suite("아이돌 그룹 명단")
 struct IdolGroupTests {
-    @Test("일곱 그룹이 모두 있다")
+    @Test("원래 일곱 그룹이 그대로 있고, 새 그룹이 더해졌다")
     func hasEveryGroup() {
-        #expect(IdolGroup.all.count == 7)
         let names = Set(IdolGroup.all.map(\.name))
-        #expect(names == [
+        #expect(names.isSuperset(of: [
             "FRUITS ZIPPER", "CANDY TUNE", "SWEET STEADY", "CUTIE STREET",
             "MORE STAR", "iLiFE!", "=LOVE",
-        ])
+        ]))
+        #expect(names.isSuperset(of: ["≠ME", "≒JOY", "乃木坂46", "日向坂46", "AKB48", "モーニング娘。", "ももいろクローバーZ"]))
+        #expect(IdolGroup.all.count == 31)
+    }
+
+    @Test("모든 섹션에 그룹이 있고, 모든 그룹이 한 섹션에 있다")
+    func everySectionIsFilled() {
+        for label in IdolGroup.Label.allCases {
+            #expect(!IdolGroup.groups(in: label).isEmpty, "\(label.rawValue)")
+        }
+        #expect(IdolGroup.Label.allCases.map { IdolGroup.groups(in: $0).count }.reduce(0, +) == IdolGroup.all.count)
+    }
+
+    @Test("곡의 아티스트 표기로 그룹을 찾는다 — 협업·로마자 표기도")
+    func findsGroupsByCredit() {
+        #expect(IdolGroup.group(forArtist: "乃木坂46")?.name == "乃木坂46")
+        #expect(IdolGroup.group(forArtist: "モーニング娘。'17")?.name == "モーニング娘。")
+        #expect(IdolGroup.group(forArtist: "=LOVE & ≠ME")?.name == "=LOVE")
+        #expect(IdolGroup.group(forArtist: "≠ME")?.name == "≠ME")
+        #expect(IdolGroup.group(forArtist: "Hinatazaka46")?.name == "日向坂46")
+        #expect(IdolGroup.group(forArtist: "AKB48, SKE48, NMB48 & HKT48")?.name == "AKB48")
+        #expect(IdolGroup.group(forArtist: "椎名林檎と新しい学校のリーダーズ")?.name == "新しい学校のリーダーズ")
+    }
+
+    @Test("모든 그룹에 공식 채널이 있다")
+    func everyGroupHasAChannel() {
+        for group in IdolGroup.all {
+            #expect(!group.youtubeChannels.isEmpty, "\(group.name)")
+            #expect(group.youtubeChannels.allSatisfy { $0.hasPrefix("UC") && $0.count == 24 }, "\(group.name)")
+        }
     }
 
     @Test("아티스트 ID가 서로 다르다")

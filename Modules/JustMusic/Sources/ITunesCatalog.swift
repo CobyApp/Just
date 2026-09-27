@@ -127,8 +127,10 @@ public struct ITunesCatalog: Sendable {
             return nil
         }
         var address = String(tag[start.upperBound..<end])
-        // 「1200x630cw」 is the banner; 「800x800cc」 is the same picture cropped
-        // square from the centre.
+        // 「1200x630cw」 is Apple Music's share card — the portrait as a circle
+        // on a blurred banner, not the photo. 「800x800cc」 is the photo itself,
+        // cropped square. Some groups uploaded photos with black bars baked
+        // in; `ArtworkLoader` trims those when asked.
         address = address.replacingOccurrences(
             of: #"\d+x\d+[a-z]{2}(?=\.\w+$)"#, with: "800x800cc", options: .regularExpression
         )

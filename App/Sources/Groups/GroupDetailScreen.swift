@@ -81,14 +81,16 @@ struct GroupDetailScreen: View {
     /// The group's own picture, already fetched for its card.
     private var groupHeader: some View {
         HStack(spacing: JustTheme.Space.snug) {
-            RowArtwork(url: store.artworkURL(for: group), seed: group.id, size: 72)
+            RowArtwork(url: store.artworkURL(for: group), seed: group.id, size: 72, trimsLetterbox: true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(group.name)
                     .kawaiiFont(24, weight: .bold, relativeTo: .title2)
                     .foregroundStyle(JustTheme.Kawaii.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
-                Text("\(group.readingKo) · \(group.label.rawValue) · 노래 \(tracks.count)곡")
+                Text(group.label.namesAFamily
+                     ? "\(group.readingKo) · \(group.label.rawValue) · 노래 \(tracks.count)곡"
+                     : "\(group.readingKo) · 노래 \(tracks.count)곡")
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Kawaii.inkSoft)
             }

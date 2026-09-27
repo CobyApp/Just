@@ -3,7 +3,7 @@ import JustCore
 import JustMusic
 import Observation
 
-/// The seven groups' pictures and songs.
+/// Every group's picture and songs.
 ///
 /// Restored from disk at init, so the grid has faces on its first frame; then
 /// whatever is missing or a day old is refreshed in the background without
@@ -35,14 +35,31 @@ final class GroupArtworkStore {
     }
 
     /// Fills whatever is missing or stale. Safe to call on every appearance.
+    ///
+    /// In roster order, so the sections at the top fill first. The lookup
+    /// service allows about twenty requests a minute, and with thirty-odd
+    /// groups a first launch runs into that — a group that is turned away is
+    /// asked again after a pause rather than left blank until tomorrow.
     func loadAll() async {
-        for group in IdolGroup.all
-        where GroupPageCache.isStale(fetchedAt[group.id]) && !inFlight.contains(group.id) {
-            inFlight.insert(group.id)
-            defer { inFlight.remove(group.id) }
-            if let page = try? await client.artistPage(id: group.id) {
-                remember(page, for: group)
+        var waiting = IdolGroup.all.filter { GroupPageCache.isStale(fetchedAt[$0.id]) && !inFlight.contains($0.id) }
+        for attempt in 0..<3 where !waiting.isEmpty {
+            if attempt > 0 {
+                // The limit is per minute; half of one is usually enough.
+                try? await Task.sleep(for: .seconds(35))
+                guard !Task.isCancelled else { return }
             }
+            var refused: [IdolGroup] = []
+            for group in waiting {
+                guard !Task.isCancelled else { return }
+                inFlight.insert(group.id)
+                if let page = try? await client.artistPage(id: group.id) {
+                    remember(page, for: group)
+                } else {
+                    refused.append(group)
+                }
+                inFlight.remove(group.id)
+            }
+            waiting = refused
         }
     }
 

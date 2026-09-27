@@ -3,7 +3,7 @@ import Foundation
 /// The groups' pages, kept between launches.
 ///
 /// The pictures themselves were already on disk, but the *addresses* of the
-/// pictures were not — every launch asked the catalogue for all seven groups
+/// pictures were not — every launch asked the catalogue for every group
 /// again and showed gradients until the answers came. Offline, or before Apple
 /// Music was allowed, the grid had no faces at all. The page is a URL and a
 /// song list, small enough to keep as one JSON file.
@@ -26,7 +26,8 @@ public struct GroupPageCache: Sendable {
     public init(directory: URL? = nil) {
         let base = directory
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        file = base.appendingPathComponent("groups.json")
+        // v3: an interim build cached share-card addresses instead of photos.
+        file = base.appendingPathComponent("groups-v3.json")
     }
 
     public func restore() -> Snapshot {

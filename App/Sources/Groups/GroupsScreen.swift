@@ -3,7 +3,7 @@ import JustDesign
 import SwiftData
 import SwiftUI
 
-/// The home of the app: seven groups, and what you were in the middle of.
+/// The home of the app: the groups by family, and what you were in the middle of.
 ///
 /// This replaced search. The point of an idol app is not that you can find
 /// anything — it is that the group you love is on the first screen, two taps
@@ -163,9 +163,15 @@ private struct GroupCard: View {
             JustTheme.Kawaii.gradient(hue: group.hue)
 
             if let image = artwork.image {
-                image
-                    .resizable()
-                    .scaledToFill()
+                // Fills the square and no more. A picture that is not square
+                // otherwise widens the stack it sits in, and the card with it.
+                Color.clear
+                    .overlay {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    }
+                    .clipped()
                     .transition(.opacity)
             }
 
@@ -193,7 +199,9 @@ private struct GroupCard: View {
         .frame(maxWidth: .infinity)
         .aspectRatio(1.0, contentMode: .fit)
         // The foil catching the light, one card after another.
-        .holoSheen(delay: Double(order) * 0.9)
+        // Six turns, then round again — with thirty cards, spacing them all
+        // apart would leave the last ones waiting half a minute.
+        .holoSheen(delay: Double(order % 6) * 0.9)
         .clipShape(.rect(cornerRadius: JustTheme.Radius.card))
         // Before the sticker, so the twinkle moves with the card when it is
         // pressed instead of hanging in the air above it.
@@ -209,6 +217,6 @@ private struct GroupCard: View {
         // colour.
         .kitschSticker(tint: Color(hue: group.hue, saturation: 0.55, brightness: 0.95), rim: 3.5, lift: 5)
         .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
-        .task(id: artworkURL) { await artwork.load(artworkURL) }
+        .task(id: artworkURL) { await artwork.load(artworkURL, trimmingLetterbox: true) }
     }
 }

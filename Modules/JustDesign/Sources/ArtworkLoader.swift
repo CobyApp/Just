@@ -16,10 +16,16 @@ public final class ArtworkLoader {
     private static var memory: [URL: (Image, ArtworkPalette)] = [:]
     @ObservationIgnored
     private var currentURL: URL?
+    @ObservationIgnored
+    private var trimsLetterbox = false
 
     public init() {}
 
-    public func load(_ url: URL?) async {
+    /// - Parameter trimmingLetterbox: cut black bars off the edges before
+    ///   showing the picture — for artist photos, a few of which were
+    ///   uploaded with bars baked into the image.
+    public func load(_ url: URL?, trimmingLetterbox: Bool = false) async {
+        self.trimsLetterbox = trimmingLetterbox
         guard let url else {
             image = nil
             palette = .fallback
@@ -52,7 +58,8 @@ public final class ArtworkLoader {
         apply(uiImage, for: url)
     }
 
-    private func apply(_ uiImage: UIImage, for url: URL) {
+    private func apply(_ original: UIImage, for url: URL) {
+        let uiImage = trimsLetterbox ? Letterbox.trimmed(original) : original
         // Palette extraction touches a 64-pixel bitmap, so it is cheap enough
         // to stay on the main actor rather than pay for an actor hop.
         let extracted = ArtworkPalette.extract(from: uiImage)
@@ -174,5 +181,57 @@ public struct ArtworkView: View {
             hash = (hash &* 33) &+ UInt64(byte)
         }
         return Double(hash % 360) / 360
+    }
+}
+
+/// Black bars inside a picture, and cutting them off.
+enum Letterbox {
+    /// The picture without uniform black bands along its edges.
+    ///
+    /// A row or column counts as bar when its samples are dark and nearly
+    /// equal. Bars thicker than a third of the picture are left alone — that
+    /// is a dark photo, not a letterbox.
+    static func trimmed(_ image: UIImage) -> UIImage {
+        guard let cg = image.cgImage else { return image }
+        let width = cg.width, height = cg.height
+        guard width > 8, height > 8,
+              let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else { return image }
+        context.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let data = context.data?.assumingMemoryBound(to: UInt8.self) else { return image }
+
+        func brightness(_ x: Int, _ y: Int) -> Int {
+            let offset = (y * width + x) * 4
+            return Int(data[offset]) + Int(data[offset + 1]) + Int(data[offset + 2])
+        }
+        // A bar is dark and flat: every sample in the line close to the same
+        // dark value. Not only pure black — one group's photo has bars of a
+        // flat charcoal grey.
+        func isBar(_ samples: [Int]) -> Bool {
+            guard let high = samples.max(), let low = samples.min() else { return false }
+            return high < 200 && high - low < 24
+        }
+        let columnStep = max(1, width / 40), rowStep = max(1, height / 40)
+        func rowIsBar(_ y: Int) -> Bool { isBar(stride(from: 0, to: width, by: columnStep).map { brightness($0, y) }) }
+        func columnIsBar(_ x: Int) -> Bool { isBar(stride(from: 0, to: height, by: rowStep).map { brightness(x, $0) }) }
+
+        var top = 0; while top < height / 3, rowIsBar(top) { top += 1 }
+        var bottom = 0; while bottom < height / 3, rowIsBar(height - 1 - bottom) { bottom += 1 }
+        var left = 0; while left < width / 3, columnIsBar(left) { left += 1 }
+        var right = 0; while right < width / 3, columnIsBar(width - 1 - right) { right += 1 }
+
+        // Hitting the limit means a dark picture rather than a bar.
+        if top >= height / 3 || bottom >= height / 3 { top = 0; bottom = 0 }
+        if left >= width / 3 || right >= width / 3 { left = 0; right = 0 }
+        // A few pixels of dark edge is the photo, not a bar.
+        guard top + bottom + left + right > 6 else { return image }
+
+        let crop = CGRect(x: left, y: top, width: width - left - right, height: height - top - bottom)
+        guard let cropped = cg.cropping(to: crop) else { return image }
+        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }
 }

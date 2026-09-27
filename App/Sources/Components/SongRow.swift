@@ -72,12 +72,14 @@ struct RowArtwork: View {
     let url: URL?
     let seed: String
     var size: CGFloat = 56
+    /// For a group's photo, which may carry black bars.
+    var trimsLetterbox = false
     @State private var artwork = ArtworkLoader()
 
     var body: some View {
         ArtworkView(image: artwork.image, seed: seed)
             .frame(width: size, height: size)
             .clipShape(.rect(cornerRadius: 10))
-            .task(id: url) { await artwork.load(url) }
+            .task(id: url) { await artwork.load(url, trimmingLetterbox: trimsLetterbox) }
     }
 }
