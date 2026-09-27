@@ -419,9 +419,12 @@ final class SongSession {
         guard let song, let studies = sensei.cache(for: song.videoID) else { return }
         song.analyses = studies
 
+        // Each word once. A chorus sung four times used to count its words
+        // four times, so 「어려운 단어 18개」 was really eighteen sightings.
         var counts: [String: Int] = [:]
+        var seen: Set<String> = []
         for study in studies.values {
-            for word in study.words {
+            for word in study.words where seen.insert(word.id).inserted {
                 counts[word.jlpt.rawValue, default: 0] += 1
             }
         }

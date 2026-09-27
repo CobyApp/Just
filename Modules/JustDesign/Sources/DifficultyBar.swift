@@ -10,15 +10,26 @@ public struct DifficultyBar: View {
     private let difficulty: SongDifficulty
     private let height: CGFloat
     private let showsLegend: Bool
+    /// Share of the song's lines analysed so far. Under half, the level is
+    /// read off a few lines and says so.
+    private let sampled: Double
 
     public init(
         difficulty: SongDifficulty,
         height: CGFloat = 6,
-        showsLegend: Bool = true
+        showsLegend: Bool = true,
+        sampled: Double = 1
     ) {
         self.difficulty = difficulty
         self.height = height
         self.showsLegend = showsLegend
+        self.sampled = sampled
+    }
+
+    private var legend: String {
+        sampled < 0.5
+            ? "\(difficulty.summary) · 일부만 해석한 추정"
+            : difficulty.summary
     }
 
     public var body: some View {
@@ -26,7 +37,7 @@ public struct DifficultyBar: View {
             VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
                 bar
                 if showsLegend {
-                    Text(difficulty.summary)
+                    Text(legend)
                         .font(JustTheme.Font.caption)
                         .foregroundStyle(JustTheme.Ink.secondary)
                 }

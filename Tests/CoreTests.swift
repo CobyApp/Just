@@ -194,6 +194,22 @@ struct SongDifficultyTests {
         #expect(difficulty.advancedCount == 8)
     }
 
+    /// KAKUMEI, fully analysed, read 「JLPT 범위 밖」: its loanwords and names
+    /// were counted as harder than N1.
+    @Test("등급 없는 단어는 곡 등급을 끌어올리지 않는다")
+    func unratedWordsDoNotSetTheLevel() {
+        let difficulty = SongDifficulty(counts: [.n5: 6, .n4: 3, .n2: 1, .beyond: 14])
+        #expect(difficulty.comprehensionLevel == .n4)
+        #expect(difficulty.unratedCount == 14)
+        #expect(difficulty.advancedCount == 1)
+        #expect(difficulty.detail.contains("14개"))
+    }
+
+    @Test("등급 있는 단어가 하나도 없을 때만 범위 밖")
+    func onlyUnratedIsBeyond() {
+        #expect(SongDifficulty(counts: [.beyond: 5]).comprehensionLevel == .beyond)
+    }
+
     @Test("비어 있으면 등급이 없다")
     func emptyHasNoLevel() {
         let difficulty = SongDifficulty(counts: [:])

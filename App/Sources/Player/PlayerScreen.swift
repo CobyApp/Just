@@ -383,8 +383,8 @@ struct PlayerScreen: View {
             }
             .frame(maxWidth: .infinity)
 
-            if let difficulty = session?.song?.difficulty, !difficulty.isEmpty {
-                DifficultyBar(difficulty: difficulty)
+            if let song = session?.song, !song.difficulty.isEmpty {
+                DifficultyBar(difficulty: song.difficulty, sampled: song.studyProgress)
                     .frame(maxWidth: 260)
             }
 
