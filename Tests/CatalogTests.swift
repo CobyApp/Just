@@ -26,6 +26,33 @@ struct ITunesCatalogTests {
         #expect(tracks[0].duration == 266)
     }
 
+    /// =LOVE's page opened on its tour album: the newest release of every
+    /// song it played that night, plus a Korean version at the very top.
+    @Test("라이브·외국어 버전보다 스튜디오 원곡이 목록에 선다")
+    func prefersTheStudioRecording() throws {
+        let tour = """
+        {"resultCount":5,"results":[
+          {"wrapperType":"track","kind":"song","trackId":10,"trackName":"僕のヒロイン","collectionName":"僕のヒロイン - Single","trackTimeMillis":200000,"releaseDate":"2023-01-01T12:00:00Z"},
+          {"wrapperType":"track","kind":"song","trackId":11,"trackName":"僕のヒロイン (=LOVE 8th ANNIVERSARY PREMIUM TOUR)","collectionName":"=LOVE 8th ANNIVERSARY PREMIUM TOUR","trackTimeMillis":210000,"releaseDate":"2025-09-01T12:00:00Z"},
+          {"wrapperType":"track","kind":"song","trackId":12,"trackName":"恋、はじめました。","collectionName":"恋、はじめました。 - Single","trackTimeMillis":220000,"releaseDate":"2025-03-01T12:00:00Z"},
+          {"wrapperType":"track","kind":"song","trackId":13,"trackName":"恋、はじめました。 (Korean ver.)","collectionName":"恋、はじめました。 (Korean ver.) - Single","trackTimeMillis":220000,"releaseDate":"2025-10-01T12:00:00Z"},
+          {"wrapperType":"track","kind":"song","trackId":14,"trackName":"青春サブリミナル","collectionName":"=LOVE LIVE TOUR","trackTimeMillis":300000,"releaseDate":"2025-09-01T12:00:00Z"}
+        ]}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(ITunesCatalog.Payload.self, from: tour)
+        let tracks = ITunesCatalog.tracks(from: decoded, limit: 40)
+        // The live take stays only where it is the song's one recording.
+        #expect(tracks.map(\.id) == ["14", "12", "10"])
+        #expect(!tracks.contains { $0.title.contains("Korean") })
+    }
+
+    @Test("한국어·영어 버전은 일본어가 아니다")
+    func otherLanguages() {
+        #expect(ITunesCatalog.isOtherLanguage("恋、はじめました。 (Korean ver.)"))
+        #expect(ITunesCatalog.isOtherLanguage("Chu Chu - English Version"))
+        #expect(!ITunesCatalog.isOtherLanguage("恋、はじめました。"))
+    }
+
     @Test("Instrumental·off vocal은 공부할 게 없다")
     func unsingable() {
         #expect(ITunesCatalog.isUnsingable("かがみ (Instrumental)"))

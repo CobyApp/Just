@@ -186,29 +186,70 @@ public struct ITunesCatalog: Sendable {
     /// The songs worth listing, newest first.
     ///
     /// The lookup returns every recording — the instrumental, the off-vocal,
-    /// the same single on three albums. One row per song, and none that cannot
-    /// be studied because nobody sings on it.
+    /// the same single on three albums, the tour recording, the Korean
+    /// version. One row per song, and none that cannot be studied: nobody
+    /// sings on an instrumental, and a Korean version is not Japanese.
+    ///
+    /// Of a song's recordings the studio one is listed, and of those the
+    /// newest — a 「(2024 ver.)」 re-recording is the one fans hear now. Taking
+    /// the newest of *everything* used to put a group's latest tour album on
+    /// top of every song it played: =LOVE's page opened on six live takes.
     static func tracks(from payload: Payload, limit: Int) -> [Track] {
-        let songs = payload.results.filter { $0.wrapperType == "track" && $0.kind == "song" }
-        let sorted = songs.sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
-        var seen: Set<String> = []
-        var tracks: [Track] = []
-        for song in sorted {
-            guard let id = song.trackId, let title = song.trackName, !isUnsingable(title) else { continue }
-            let key = normalized(title)
-            guard !seen.contains(key) else { continue }
-            seen.insert(key)
-            tracks.append(Track(
-                id: String(id),
-                title: title,
-                artist: song.artistName ?? "",
-                album: song.collectionName,
-                artworkURL: song.artworkUrl100.map(Self.largeArtwork).flatMap(URL.init(string:)),
-                duration: TimeInterval(song.trackTimeMillis ?? 0) / 1000
-            ))
-            if tracks.count == limit { break }
+        let songs = payload.results.filter {
+            guard $0.wrapperType == "track", $0.kind == "song", let title = $0.trackName else { return false }
+            return !isUnsingable(title) && !isOtherLanguage(title)
         }
-        return tracks
+        // Per song, the recording to list.
+        var chosen: [String: Result] = [:]
+        for song in songs {
+            guard song.trackId != nil, let title = song.trackName else { continue }
+            let key = normalized(title)
+            guard let current = chosen[key] else { chosen[key] = song; continue }
+            if isPreferred(song, over: current) { chosen[key] = song }
+        }
+        return chosen.values
+            .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
+            .prefix(limit)
+            .compactMap { song in
+                guard let id = song.trackId, let title = song.trackName else { return nil }
+                return Track(
+                    id: String(id),
+                    title: title,
+                    artist: song.artistName ?? "",
+                    album: song.collectionName,
+                    artworkURL: song.artworkUrl100.map(Self.largeArtwork).flatMap(URL.init(string:)),
+                    duration: TimeInterval(song.trackTimeMillis ?? 0) / 1000
+                )
+            }
+    }
+
+    /// Studio before remix before live; among equals, the newer release.
+    private static func isPreferred(_ candidate: Result, over current: Result) -> Bool {
+        let a = variantRank(candidate), b = variantRank(current)
+        if a != b { return a < b }
+        return (candidate.releaseDate ?? "") > (current.releaseDate ?? "")
+    }
+
+    /// 0 for a studio recording, 1 for a remix or cut-down edit, 2 for a
+    /// concert recording. Read from the album name too: a tour album's tracks
+    /// often carry the tour in the album and nothing in the title.
+    static func variantRank(_ song: Result) -> Int {
+        let text = [song.trackName, song.collectionName].compactMap { $0 }.joined(separator: " ").lowercased()
+        let live = ["live", "tour", "concert", "ライブ", "ツアー", "コンサート", "武道館", "budokan", "arena", "dome"]
+        if live.contains(where: text.contains) { return 2 }
+        let edits = ["remix", " mix", "acoustic", "tv size", "tv ver", "short ver", "piano ver", "orchestra", "a cappella", "アコースティック"]
+        if edits.contains(where: text.contains) { return 1 }
+        return 0
+    }
+
+    /// A version sung in another language — a Korean or English release of a
+    /// Japanese song. Nothing in it to study as Japanese.
+    static func isOtherLanguage(_ title: String) -> Bool {
+        let lowered = title.lowercased()
+        return [
+            "korean ver", "korean version", "english ver", "english version",
+            "chinese ver", "chinese version", "thai ver", "韓国語", "英語ver", "中国語",
+        ].contains { lowered.contains($0) }
     }
 
     /// Recordings with no vocal — nothing to study in them.

@@ -27,7 +27,10 @@ public struct GroupPageCache: Sendable {
         let base = directory
             ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         // v3: an interim build cached share-card addresses instead of photos.
-        file = base.appendingPathComponent("groups-v3.json")
+        // v4: song lists chosen before live and foreign-language recordings
+        // gave way to the studio ones — the old lists would have stood until
+        // they aged out.
+        file = base.appendingPathComponent("groups-v4.json")
     }
 
     public func restore() -> Snapshot {
