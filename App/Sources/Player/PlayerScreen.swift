@@ -281,16 +281,18 @@ struct PlayerScreen: View {
                     }
                 }
 
-                Button(role: .destructive) {
-                    app.stopPlayback()
-                } label: {
-                    Label("재생 종료", systemImage: "stop.fill")
-                }
-
                 if let song = session.song, !song.occurrences.isEmpty {
                     Button { showsWords = true } label: {
                         Label("이 곡에서 담은 단어", systemImage: "character.book.closed")
                     }
+                }
+
+                // Last, and set apart: the one item that ends something.
+                Divider()
+                Button(role: .destructive) {
+                    app.stopPlayback()
+                } label: {
+                    Label("재생 종료", systemImage: "stop.fill")
                 }
             } label: {
                 Image(systemName: "ellipsis")

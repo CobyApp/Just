@@ -109,6 +109,11 @@ final class SongSession {
         // Everything generated for this song before is loaded back before any
         // work is scheduled, so a reopened song costs nothing.
         sensei.preload(record.analyses)
+        // The stored difficulty counts may predate the current way of
+        // counting (each word once, the unrated kept apart); recounted from
+        // the analyses just loaded, so a song analysed long ago does not
+        // show a stale level until something new is saved.
+        if record.analysedCount > 0 { flush() }
 
         if let cached = record.lyrics, !cached.isEmpty {
             lyricsState = .ready(cached)

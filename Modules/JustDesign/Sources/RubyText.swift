@@ -45,10 +45,25 @@ public struct RubyText: View {
     public var body: some View {
         RubyFlowLayout(spacing: 0, lineSpacing: lineSpacing, rubyHeight: rubyHeight) {
             ForEach(segments) { segment in
-                Text(segment.base)
-                    .font(font)
-                    .foregroundStyle(color)
-                    .fixedSize()
+                ZStack {
+                    // Room for the reading, less the overhang print allows.
+                    // Overhanging freely, two readings side by side ran into
+                    // each other — 梯子[はしご]登[のぼ] printed as 「はしのぼ」
+                    // wherever the reading was large against its base. In
+                    // the ZStack, not a background, so it counts toward the
+                    // segment's width.
+                    if showsRuby, let ruby = segment.ruby {
+                        Text(ruby)
+                            .font(rubyFont)
+                            .fixedSize()
+                            .padding(.horizontal, -rubyFont.size * 0.3)
+                            .hidden()
+                    }
+                    Text(segment.base)
+                        .font(font)
+                        .foregroundStyle(color)
+                        .fixedSize()
+                }
                     .overlay(alignment: .top) {
                         if showsRuby, let ruby = segment.ruby {
                             // Drawn *outside* the text's bounds — above it and

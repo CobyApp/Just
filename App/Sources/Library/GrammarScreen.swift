@@ -79,10 +79,15 @@ struct GrammarScreen: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 3) {
+                // Readings at about half the base size, as print sets them;
+                // the default ruby is sized for lyric type and was nearly as
+                // big as this caption.
                 RubyText(
                     segments: Furigana.segments(forLine: note.example),
-                    font: JustTheme.Font.caption,
-                    color: JustTheme.Ink.secondary
+                    font: .just(15, weight: .medium, relativeTo: .subheadline),
+                    rubyFont: .just(8, weight: .semibold, relativeTo: .caption2),
+                    color: JustTheme.Ink.secondary,
+                    rubyHeight: 10
                 )
                 if !note.exampleTranslation.isEmpty {
                     Text(note.exampleTranslation)
