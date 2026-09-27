@@ -17,6 +17,27 @@ final class AppModel {
     let music = ITunesCatalog()
     let reminder = ReviewReminder()
 
+    /// The reader's favourite group — 最推し, 「최애」 — if they have picked one.
+    ///
+    /// Stored as the catalogue id so a renamed group stays picked. It leads
+    /// the home screen and lends its colour to the tab bar, the way fans wear
+    /// their member colour.
+    var oshiID: String? = UserDefaults.standard.string(forKey: AppModel.oshiKey) {
+        didSet { UserDefaults.standard.set(oshiID, forKey: Self.oshiKey) }
+    }
+
+    var oshi: IdolGroup? { oshiID.flatMap(IdolGroup.group(id:)) }
+
+    func isOshi(_ group: IdolGroup) -> Bool { oshiID == group.id }
+
+    /// Picks the group, or un-picks it if it already was. One favourite:
+    /// picking another replaces it.
+    func toggleOshi(_ group: IdolGroup) {
+        oshiID = isOshi(group) ? nil : group.id
+    }
+
+    private static let oshiKey = "oshi.groupID"
+
     /// Which tab is showing.
     ///
     /// Held here rather than in `RootView`'s own state so a screen can send the

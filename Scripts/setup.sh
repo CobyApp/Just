@@ -11,6 +11,16 @@ cd "$(dirname "$0")/.."
 # Locally, mise loads them from `.env`; in CI they are GitHub secrets. Unset,
 # the project still generates, with no video search and Google's test ad ids.
 
+# Without mise (a plain Homebrew tuist), nothing else reads `.env`, so it is
+# loaded here. Values already in the environment win, which keeps CI's secrets
+# in charge there.
+if [[ -f .env ]]; then
+  while IFS='=' read -r name value; do
+    [[ -z "$name" || "$name" == \#* ]] && continue
+    [[ -z "${!name:-}" ]] && export "$name=$value"
+  done < .env
+fi
+
 # Fetches the Swift packages (Google Mobile Ads) into Tuist/.build, which is
 # not committed. Cheap when they are already there.
 tuist install

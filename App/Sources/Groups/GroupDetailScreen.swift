@@ -12,6 +12,7 @@ struct GroupDetailScreen: View {
     @State private var tracks: [Track] = []
     @State private var failure: String?
     @State private var isLoading = true
+    @State private var hearts = 0
 
     var body: some View {
         ZStack {
@@ -95,8 +96,38 @@ struct GroupDetailScreen: View {
                     .foregroundStyle(JustTheme.Kawaii.inkSoft)
             }
             Spacer(minLength: 0)
+            oshiButton
         }
         .justCard()
+    }
+
+    /// 「최애」 — a heart that fills in the group's own colour and bursts into
+    /// glitter when it is picked.
+    private var oshiButton: some View {
+        let isOshi = app.isOshi(group)
+        return Button {
+            withAnimation(.spring(duration: 0.35, bounce: 0.55)) { app.toggleOshi(group) }
+            if app.isOshi(group) {
+                hearts += 1
+                Haptics.correct()
+            } else {
+                Haptics.tick()
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: isOshi ? "heart.fill" : "heart")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(isOshi ? group.memberColor : JustTheme.Kawaii.inkSoft)
+                    .scaleEffect(isOshi ? 1.12 : 1)
+                    .sparkleBurst(trigger: hearts)
+                Text("최애")
+                    .font(JustTheme.Font.caption.weight(.bold))
+                    .foregroundStyle(isOshi ? group.memberColor : JustTheme.Kawaii.inkSoft)
+            }
+        }
+        .buttonStyle(.justIcon)
+        .accessibilityLabel(isOshi ? "최애에서 빼기" : "최애로 정하기")
+        .accessibilityAddTraits(isOshi ? .isSelected : [])
     }
 
     private func load() async {

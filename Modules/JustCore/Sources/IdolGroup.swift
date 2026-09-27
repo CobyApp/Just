@@ -202,7 +202,7 @@ public extension IdolGroup {
         text.lowercased().replacingOccurrences(of: " ", with: "")
     }
 
-    static func group(id: String) -> IdolGroup? {
+    public static func group(id: String) -> IdolGroup? {
         all.first { $0.id == id }
     }
 

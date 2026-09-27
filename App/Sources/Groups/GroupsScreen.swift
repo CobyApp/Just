@@ -33,6 +33,7 @@ struct GroupsScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
+                        if let oshi = app.oshi { oshiShelf(oshi) }
                         learningGuide
                         if !songs.isEmpty { continueShelf }
                         ForEach(IdolGroup.Label.allCases, id: \.self) { label in
@@ -123,6 +124,26 @@ struct GroupsScreen: View {
         }
     }
 
+    // MARK: - Oshi
+
+    /// The favourite group, first on the page and twice the size.
+    private func oshiShelf(_ group: IdolGroup) -> some View {
+        VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
+            Text("나의 최애").kawaiiSectionTitle()
+            NavigationLink(value: group) {
+                GroupCard(
+                    group: group,
+                    artworkURL: artworkStore.artworkURL(for: group),
+                    order: 0,
+                    isOshi: true,
+                    aspectRatio: 1.9
+                )
+            }
+            .buttonStyle(.kitschPress)
+            .padding(.horizontal, JustTheme.Space.regular)
+        }
+    }
+
     // MARK: - Groups
 
     private func groupSection(_ label: IdolGroup.Label) -> some View {
@@ -132,7 +153,12 @@ struct GroupsScreen: View {
                 ForEach(IdolGroup.groups(in: label)) { group in
                     let order = IdolGroup.all.firstIndex(of: group) ?? 0
                     NavigationLink(value: group) {
-                        GroupCard(group: group, artworkURL: artworkStore.artworkURL(for: group), order: order)
+                        GroupCard(
+                            group: group,
+                            artworkURL: artworkStore.artworkURL(for: group),
+                            order: order,
+                            isOshi: app.isOshi(group)
+                        )
                     }
                     .buttonStyle(.kitschPress)
                     .kitschEntrance(index: order)
@@ -155,6 +181,10 @@ private struct GroupCard: View {
     /// Place in the roster, so the foil sheens take turns instead of flashing
     /// across every card at once.
     let order: Int
+    /// The reader's favourite: a crown, and a 「최애」 badge.
+    var isOshi = false
+    /// Square in the grid; wide as the banner at the top of home.
+    var aspectRatio: CGFloat = 1.0
 
     @State private var artwork = ArtworkLoader()
 
@@ -197,7 +227,7 @@ private struct GroupCard: View {
             .padding(JustTheme.Space.snug)
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(1.0, contentMode: .fit)
+        .aspectRatio(aspectRatio, contentMode: .fit)
         // The foil catching the light, one card after another.
         // Six turns, then round again — with thirty cards, spacing them all
         // apart would leave the last ones waiting half a minute.
@@ -216,6 +246,23 @@ private struct GroupCard: View {
         // A trading card: white rim, and a shadow printed in the group's own
         // colour.
         .kitschSticker(tint: Color(hue: group.hue, saturation: 0.55, brightness: 0.95), rim: 3.5, lift: 5)
+        .overlay(alignment: .topLeading) {
+            if isOshi {
+                HStack(spacing: 4) {
+                    CrownSticker(size: 24)
+                    Text("최애")
+                        .kawaiiFont(12, weight: .black, relativeTo: .caption1)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(group.memberColor, in: .capsule)
+                        .overlay { Capsule().strokeBorder(.white, lineWidth: 2) }
+                }
+                .offset(x: -6, y: -12)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .accessibilityLabel(isOshi ? "\(group.name), 최애" : group.name)
         .animation(.easeInOut(duration: 0.25), value: artwork.image != nil)
         .task(id: artworkURL) { await artwork.load(artworkURL, trimmingLetterbox: true) }
     }
