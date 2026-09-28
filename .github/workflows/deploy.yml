@@ -97,8 +97,6 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           TUIST_YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          TUIST_ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
-          TUIST_ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: bundle exec fastlane beta
 
       # A release entry for the tag, with notes generated from the commits since

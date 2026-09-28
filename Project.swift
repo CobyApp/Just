@@ -23,17 +23,6 @@ private func environmentString(_ value: Environment.Value?, default fallback: St
 /// the default is what a plain local checkout builds as.
 private let marketingVersion = environmentString(Environment.marketingVersion, default: "1.0.0")
 
-/// AdMob ids, injected at generation time so the account holder's real ids
-/// never live in the repository. Unset, they fall back to Google's public test
-/// ids, which always fill and earn nothing — right for local builds, and
-/// fastlane refuses to upload a build that still carries them.
-private let adMobTestAppID = "ca-app-pub-3940256099942544~1458002511"
-private let adMobTestInterstitialID = "ca-app-pub-3940256099942544/4411468910"
-private let adMobAppID = environmentString(Environment.admobAppID, default: adMobTestAppID)
-private let adMobInterstitialID = environmentString(
-    Environment.admobInterstitialID,
-    default: adMobTestInterstitialID
-)
 
 private let baseSettings: SettingsDictionary = [
     "DEVELOPMENT_TEAM": .string(developmentTeam),
@@ -143,30 +132,6 @@ let project = Project(
                     "UIInterfaceOrientationLandscapeRight",
                 ],
                 "NSAppTransportSecurity": ["NSAllowsArbitraryLoads": false],
-                // AdMob refuses to start without this and takes the app down
-                // with it. Google's public test application id: real earnings
-                // need the account holder's own, and shipping someone else's
-                // placeholder would serve no ads at all.
-                // Set TUIST_ADMOB_APP_ID for a release; unset, this is
-                // Google's public test application id (see `adMobAppID`).
-                "GADApplicationIdentifier": .string(adMobAppID),
-                // Read by `AnalysisInterstitial` in Release builds. Debug builds
-                // always use the test unit, so development never touches real
-                // inventory. Set TUIST_ADMOB_INTERSTITIAL_ID for a release.
-                "AdMobInterstitialUnitID": .string(adMobInterstitialID),
-                // One interstitial, on the analysis wait screen. Ads are
-                // requested as non-personalised and only after Google's UMP
-                // consent flow allows it. Personalised advertising would need
-                // an App Tracking Transparency prompt and a tracking
-                // declaration; this app asks for neither.
-                "GADIsAdManagerApp": false,
-                // Lets ad networks attribute installs through Apple's
-                // SKAdNetwork, which needs no tracking permission. Google's
-                // own id is the minimum; the full list of third-party buyers
-                // Google publishes can be appended here.
-                "SKAdNetworkItems": [
-                    ["SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"],
-                ],
                 "UIUserInterfaceStyle": "Dark",
                 // Lets notifications and the widget deep-link into a screen.
                 "CFBundleURLTypes": [
@@ -186,10 +151,6 @@ let project = Project(
                 .target(name: "RingRingMusic"),
                 .target(name: "RingRingLyrics"),
                 .target(name: "RingRingSensei"),
-                .external(name: "GoogleMobileAds"),
-                // Google's consent SDK. Already resolved as a dependency of
-                // GoogleMobileAds; named here because the app imports it.
-                .external(name: "GoogleUserMessagingPlatform"),
             ],
             settings: .settings(base: baseSettings.merging([
                 "TARGETED_DEVICE_FAMILY": "1,2",

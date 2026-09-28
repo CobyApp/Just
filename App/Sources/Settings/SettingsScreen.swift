@@ -147,18 +147,6 @@ struct SettingsScreen: View {
                     Text("화면마다 있는 안내 카드는 ✕로 닫을 수 있습니다. 닫은 안내는 여기서 되살립니다.")
                 }
 
-                // Required where Google's consent form applies (EEA, UK): the
-                // reader must be able to change the answer they gave at launch.
-                if AdsConsent.shared.isPrivacyOptionsRequired {
-                    Section {
-                        Button("광고 개인정보 설정") {
-                            Task { await AdsConsent.shared.presentPrivacyOptions() }
-                        }
-                    } header: {
-                        Text("광고")
-                    }
-                }
-
                 Section {
                     DisclosureGroup("정보") {
                         LabeledContent("번역 방식", value: app.engineLabel)
@@ -168,12 +156,7 @@ struct SettingsScreen: View {
                         LabeledContent("재생", value: app.playbackLabel)
                     }
                 } footer: {
-                    // Reworded when ads arrived. The claim about lyrics and
-                    // study records is still exactly true, but "전부 기기
-                    // 안에서" as a blanket statement stopped being — the ad on
-                    // the wait screen reaches Google. Saying so is the point:
-                    // a privacy note that is quietly wrong is worse than none.
-                    Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생되고, 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.")
+                    Text("가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생됩니다.")
                 }
                 }
                 .scrollContentBackground(.hidden)

@@ -56,7 +56,6 @@ Set under Settings → Secrets and variables → Actions:
 |---|---|
 | `APPSTORE_KEY_ID`, `APPSTORE_ISSUER_ID`, `APPSTORE_PRIVATE_KEY` | App Store Connect API key (`.p8` contents) |
 | `YOUTUBE_API_KEY` | YouTube Data API key |
-| `ADMOB_APP_ID`, `ADMOB_INTERSTITIAL_ID` | Real AdMob ids (not Google's test ids) |
 
 ## Versioning
 

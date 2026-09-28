@@ -35,13 +35,6 @@ struct RingRingApp: App {
                 // on the pastel top-level screens. The lyric player opts back
                 // into dark explicitly for long-form reading.
                 .preferredColorScheme(.light)
-                // Consent is gathered at launch, and the ad SDK started as soon
-                // as it allows, rather than on the wait screen: the first
-                // request after start-up is slow, and the wait screen is
-                // exactly where that delay would be visible. A form, when one
-                // is required, needs a window to present from, hence a task on
-                // the root view rather than `init`.
-                .task { await AdsConsent.shared.gather() }
         }
         .modelContainer(container)
     }
