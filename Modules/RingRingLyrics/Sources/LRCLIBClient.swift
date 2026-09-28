@@ -41,7 +41,7 @@ public struct LRCLIBClient: Sendable {
 
     private static let host = "https://lrclib.net"
     /// lrclib asks clients to identify themselves.
-    private static let userAgent = "RingRing/1.1 (https://github.com/CobyApp/Just; Japanese study app)"
+    private static let userAgent = "RingRing/1.1 (https://github.com/CobyApp/ringring; Japanese study app)"
 
     private let session: URLSession
     /// How long to wait before asking a busy server once more.
