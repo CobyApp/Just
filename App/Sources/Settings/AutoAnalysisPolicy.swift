@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// When a song should analyse itself on open.
 ///
@@ -12,7 +12,7 @@ enum AutoAnalysisPolicy: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .always: "항상"
         case .unlessLowPower: "저전력 모드가 아닐 때"
@@ -20,7 +20,7 @@ enum AutoAnalysisPolicy: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var detail: String {
+    var detail: LocalizedStringKey {
         switch self {
         case .always:
             "곡을 열면 바로 전곡을 해석합니다."

@@ -202,7 +202,7 @@ struct SongDifficultyTests {
         #expect(difficulty.comprehensionLevel == .n4)
         #expect(difficulty.unratedCount == 14)
         #expect(difficulty.advancedCount == 1)
-        #expect(difficulty.detail.contains("14개"))
+        #expect(difficulty.detail.contains("14"))
     }
 
     @Test("등급 있는 단어가 하나도 없을 때만 범위 밖")

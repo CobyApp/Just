@@ -59,9 +59,13 @@ public struct DictionarySensei: Sendable {
         }
 
         /// The seed file in `bundle`, or an empty index when it cannot be read.
+        ///
+        /// One file per language — the English seed carries JMdict's own glosses
+        /// — so only the one the reader needs is decoded.
         convenience init(bundle: Bundle) {
+            let name = AppLanguage.current == .en ? "seed-dictionary-en" : "seed-dictionary"
             guard
-                let url = bundle.url(forResource: "seed-dictionary", withExtension: "json"),
+                let url = bundle.url(forResource: name, withExtension: "json"),
                 let data = try? Data(contentsOf: url),
                 let entries = try? JSONDecoder().decode([Entry].self, from: data)
             else {
@@ -272,6 +276,13 @@ public struct DictionarySensei: Sendable {
         return nil
     }
 
+    /// How the lyric bent the word, in the reader's language.
+    static func inflectionNote(_ surface: String) -> String {
+        AppLanguage.current == .en
+            ? "Written as 「\(surface)」 in the lyric."
+            : "가사에서는 「\(surface)」 형태로 쓰였습니다."
+    }
+
     public func analyze(line: String, lineIndex: Int) -> LineStudy {
         let words = tokenizer.studyCandidates(in: line).compactMap { token -> StudyWord? in
             guard let entry = lookup(lemma: token.lemma, reading: token.reading) else {
@@ -284,7 +295,7 @@ public struct DictionarySensei: Sendable {
                 meaningKo: entry.k,
                 partOfSpeech: entry.partOfSpeech ?? .other,
                 jlpt: entry.jlpt ?? .beyond,
-                note: token.surface == entry.l ? "" : "가사에서는 「\(token.surface)」 형태로 쓰였습니다."
+                note: token.surface == entry.l ? "" : Self.inflectionNote(token.surface)
             )
         }
 

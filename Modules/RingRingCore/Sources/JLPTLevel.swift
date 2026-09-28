@@ -27,7 +27,8 @@ public enum JLPTLevel: String, CaseIterable, Codable, Sendable, Comparable {
     }
 
     public var label: String {
-        self == .beyond ? "범위 밖" : rawValue
+        guard self == .beyond else { return rawValue }
+        return AppLanguage.current == .ko ? "범위 밖" : "Beyond"
     }
 
     public static func < (lhs: JLPTLevel, rhs: JLPTLevel) -> Bool {
@@ -47,5 +48,21 @@ public enum PartOfSpeech: String, CaseIterable, Codable, Sendable {
 
     public init(rawTag: String) {
         self = PartOfSpeech(rawValue: rawTag) ?? .other
+    }
+
+    /// The chip label, in the app's language. `rawValue` stays Korean because it
+    /// is the tag stored in the seed and in saved words; only the display moves.
+    public var displayName: String {
+        guard AppLanguage.current == .en else { return rawValue }
+        switch self {
+        case .noun: return "noun"
+        case .verb: return "verb"
+        case .iAdjective: return "i-adjective"
+        case .naAdjective: return "na-adjective"
+        case .adverb: return "adverb"
+        case .particle: return "particle"
+        case .expression: return "expression"
+        case .other: return "other"
+        }
     }
 }

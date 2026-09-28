@@ -209,6 +209,12 @@ struct WordCard: View {
     @State private var saves = 0
     let toggle: () -> Void
 
+    /// "the form the lyric uses", in the app's language. A String because the
+    /// surface is dynamic; `JustChip` renders it verbatim.
+    private func inflectedChip(_ surface: String) -> String {
+        AppLanguage.current == .en ? "lyric: \(surface)" : "가사: \(surface)"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: JustTheme.Space.tight) {
             HStack(alignment: .firstTextBaseline, spacing: JustTheme.Space.tight) {
@@ -261,9 +267,9 @@ struct WordCard: View {
 
             HStack(spacing: 6) {
                 JustChip(word.jlpt.label, tint: word.jlpt.tint)
-                JustChip(word.partOfSpeech.rawValue)
+                JustChip(word.partOfSpeech.displayName)
                 if word.isInflected {
-                    JustChip("가사: \(word.surface)", tint: JustTheme.Feedback.warning)
+                    JustChip(inflectedChip(word.surface), tint: JustTheme.Feedback.warning)
                 }
             }
 

@@ -16,7 +16,7 @@ struct SongRow: View {
     /// Study progress 0…1, when the song has been opened before.
     var progress: Double? = nil
     /// What tapping does, in one word.
-    var action: String = "열기"
+    var action: LocalizedStringKey = "열기"
 
     var body: some View {
         HStack(spacing: JustTheme.Space.snug) {

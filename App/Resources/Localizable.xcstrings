@@ -159,6 +159,16 @@
         }
       }
     },
+    "가사 줄을 누른 것만 해석합니다. 전곡 해석은 메뉴에서 직접 실행합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only analyzes lines you tap. Run a whole-song pass from the menu."
+          }
+        }
+      }
+    },
     "가사 줄을 눌러 단어 카드에서 + 를 누르면 여기에 모입니다.": {
       "localizations": {
         "en": {
@@ -365,6 +375,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't load the songs"
+          }
+        }
+      }
+    },
+    "곡을 열면 바로 전곡을 해석합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzes the whole song as soon as it opens."
           }
         }
       }
@@ -1339,6 +1359,16 @@
         }
       }
     },
+    "안 함": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
+          }
+        }
+      }
+    },
     "안내": {
       "localizations": {
         "en": {
@@ -1445,6 +1475,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No words to practice"
+          }
+        }
+      }
+    },
+    "열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
           }
         }
       }
@@ -1619,6 +1659,16 @@
         }
       }
     },
+    "이어서": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        }
+      }
+    },
     "이어서 듣기": {
       "localizations": {
         "en": {
@@ -1755,6 +1805,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Saved words keep their original lyric and are used automatically in quizzes and reviews."
+          }
+        }
+      }
+    },
+    "저전력 모드가 아닐 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unless in Low Power Mode"
           }
         }
       }
@@ -1959,6 +2019,16 @@
         }
       }
     },
+    "평소에는 자동으로 해석하고, 저전력 모드에서는 줄을 누를 때만 해석합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzes automatically as a rule; in Low Power Mode, only lines you tap."
+          }
+        }
+      }
+    },
     "플레이어 닫기": {
       "localizations": {
         "en": {
@@ -1995,6 +2065,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Once more"
+          }
+        }
+      }
+    },
+    "항상": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always"
           }
         }
       }

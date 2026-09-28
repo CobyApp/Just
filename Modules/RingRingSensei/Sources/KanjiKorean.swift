@@ -11,7 +11,8 @@ public struct KanjiGloss: Identifiable, Hashable, Sendable {
     public let meaning: String
 
     public var label: String {
-        meaning.isEmpty ? sound : "\(sound) · \(meaning)"
+        if sound.isEmpty { return meaning }
+        return meaning.isEmpty ? sound : "\(sound) · \(meaning)"
     }
 }
 
@@ -28,8 +29,12 @@ public struct KanjiKorean: Sendable {
     private let table: [Character: KanjiGloss]
 
     public init() {
+        // Korean readers get the Sino-Korean sound and meaning (음·훈); English
+        // readers get the kanji's English meanings, from kanjidic2. Each file
+        // stores [sound, meaning]; the English one leaves sound empty.
+        let resource = AppLanguage.current == .en ? "kanji-en" : "kanji-ko"
         guard
-            let url = Bundle.module.url(forResource: "kanji-ko", withExtension: "json"),
+            let url = Bundle.module.url(forResource: resource, withExtension: "json"),
             let data = try? Data(contentsOf: url),
             let raw = try? JSONDecoder().decode([String: [String]].self, from: data)
         else {
@@ -41,10 +46,11 @@ public struct KanjiKorean: Sendable {
         for (key, readings) in raw {
             guard let character = key.first, character.isKanji else { continue }
             let sound = readings.first?.trimmingCharacters(in: .whitespaces) ?? ""
-            guard !sound.isEmpty else { continue }
             let meaning = readings.count > 1
                 ? readings[1].trimmingCharacters(in: .whitespaces)
                 : ""
+            // Skip a character with nothing to say in this language.
+            guard !(sound.isEmpty && meaning.isEmpty) else { continue }
             parsed[character] = KanjiGloss(
                 character: key,
                 sound: sound,

@@ -468,8 +468,13 @@ public enum GrammarPatterns {
                 : pattern.forms.contains(where: text.contains)
             guard appears else { continue }
 
+            // The note carries the explanation in the app's language. The field
+            // keeps its historical name; only the text moves.
+            let explanation = AppLanguage.current == .en
+                ? (englishExplanations[pattern.display] ?? pattern.explanationKo)
+                : pattern.explanationKo
             notes.append(
-                GrammarNote(pattern: pattern.display, explanationKo: pattern.explanationKo)
+                GrammarNote(pattern: pattern.display, explanationKo: explanation)
             )
             claimed.insert(pattern.display)
             // A longer pattern that contains a shorter one reports only itself:

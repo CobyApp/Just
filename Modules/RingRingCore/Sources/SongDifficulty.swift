@@ -72,21 +72,32 @@ public struct SongDifficulty: Sendable, Equatable {
 
     public var summary: String {
         guard let comprehensionLevel else { return "" }
-        let level = comprehensionLevel == .beyond
-            ? "JLPT 범위 밖"
-            : "\(comprehensionLevel.rawValue) 수준"
-        return advancedCount > 0
-            ? "\(level) · 어려운 단어 \(advancedCount)개"
-            : level
+        let en = AppLanguage.current == .en
+        let level: String
+        if comprehensionLevel == .beyond {
+            level = en ? "Beyond JLPT" : "JLPT 범위 밖"
+        } else {
+            level = en ? "\(comprehensionLevel.rawValue) level" : "\(comprehensionLevel.rawValue) 수준"
+        }
+        guard advancedCount > 0 else { return level }
+        return en
+            ? "\(level) · \(advancedCount) hard words"
+            : "\(level) · 어려운 단어 \(advancedCount)개"
     }
 
     public var detail: String {
+        let en = AppLanguage.current == .en
         guard let comprehensionLevel, comprehensionLevel != .beyond else {
-            return "JLPT 등급 밖 단어가 많은 곡입니다."
+            return en
+                ? "A song with many words outside the JLPT levels."
+                : "JLPT 등급 밖 단어가 많은 곡입니다."
         }
-        let rated = "JLPT 단어의 75%가 \(comprehensionLevel.rawValue) 이하입니다."
-        return unratedCount > 0
-            ? rated + " 외래어·이름처럼 등급이 없는 단어 \(unratedCount)개는 따로 셉니다."
-            : rated
+        let rated = en
+            ? "75% of the JLPT words are \(comprehensionLevel.rawValue) or easier."
+            : "JLPT 단어의 75%가 \(comprehensionLevel.rawValue) 이하입니다."
+        guard unratedCount > 0 else { return rated }
+        return en
+            ? rated + " \(unratedCount) ungraded words (loanwords, names) are counted separately."
+            : rated + " 외래어·이름처럼 등급이 없는 단어 \(unratedCount)개는 따로 셉니다."
     }
 }
