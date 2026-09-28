@@ -72,7 +72,7 @@ struct GroupsScreen: View {
     /// white. Drawing it here also lets it look like the rest of this screen.
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            JustScreenHeader("우타링", subtitle: "최애의 노래가 오늘의 일본어", showsMark: true)
+            JustScreenHeader("링링", subtitle: "최애의 노래가 오늘의 일본어", showsMark: true)
             Spacer(minLength: 0)
             Button { showsSettings = true } label: {
                 Image(systemName: "gearshape.fill")
@@ -134,7 +134,7 @@ struct GroupsScreen: View {
         genre.map { $0.labels } ?? IdolGroup.Label.allCases
     }
 
-    /// Genre chips: a coarse filter over the ten fine sections.
+    /// Genre chips: a coarse filter over the many fine sections.
     private var genreBar: some View {
         ScrollView(.horizontal) {
             HStack(spacing: JustTheme.Space.tight) {

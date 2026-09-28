@@ -282,7 +282,7 @@ public struct JustBrandBackground: View {
 }
 
 /// A compact version of the app icon: one note and one beat.
-public struct UtaringMark: View {
+public struct RingRingMark: View {
     private let size: CGFloat
 
     public init(size: CGFloat = 44) { self.size = size }
@@ -320,7 +320,7 @@ public struct JustScreenHeader: View {
 
     public var body: some View {
         HStack(spacing: JustTheme.Space.snug) {
-            if showsMark { UtaringMark(size: 46) }
+            if showsMark { RingRingMark(size: 46) }
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 2) {
                     Text(title)

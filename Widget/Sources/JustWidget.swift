@@ -210,7 +210,7 @@ struct JustWidget: Widget {
                 // app happened to be left.
                 .widgetURL(URL(string: entry.snapshot.dueCount(at: entry.date) > 0 ? "just://review" : "just://words"))
         }
-        .configurationDisplayName("우타링")
+        .configurationDisplayName("링링")
         .description("복습할 단어 수와 오늘 볼 단어를 보여줍니다.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }

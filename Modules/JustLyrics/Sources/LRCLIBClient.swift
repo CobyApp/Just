@@ -41,7 +41,7 @@ public struct LRCLIBClient: Sendable {
 
     private static let host = "https://lrclib.net"
     /// lrclib asks clients to identify themselves.
-    private static let userAgent = "Just/1.0 (https://github.com/CobyApp/Just; Japanese study app)"
+    private static let userAgent = "RingRing/1.1 (https://github.com/CobyApp/Just; Japanese study app)"
 
     private let session: URLSession
     /// How long to wait before asking a busy server once more.
@@ -303,9 +303,23 @@ public struct LRCLIBClient: Sendable {
         synced: String?
     ) async throws {
         let challenge = try await requestChallenge()
-        let nonce = try await Task.detached(priority: .utility) {
+        // The hash search runs off the actor; `Task.detached` does not inherit
+        // cancellation, so it is forwarded by hand — otherwise closing the sheet
+        // would leave a core spinning until a nonce turned up.
+        let work = Task.detached(priority: .utility) {
             try Self.solveChallenge(prefix: challenge.prefix, target: challenge.target)
-        }.value
+        }
+        let nonce: String
+        do {
+            nonce = try await withTaskCancellationHandler {
+                try await work.value
+            } onCancel: {
+                work.cancel()
+            }
+        } catch {
+            work.cancel()
+            throw error
+        }
 
         var request = URLRequest(url: URL(string: "\(Self.host)/api/publish")!)
         request.httpMethod = "POST"

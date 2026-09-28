@@ -71,8 +71,8 @@ struct LyricCard: View {
             VStack {
                 Spacer()
                 HStack(spacing: 8) {
-                    UtaringMark(size: 26)
-                    Text("우타링 · 최애의 노래로 배우는 일본어")
+                    RingRingMark(size: 26)
+                    Text("링링 · 최애의 노래로 배우는 일본어")
                         .font(.just(12, weight: .bold, relativeTo: .caption1))
                         .foregroundStyle(JustTheme.Kawaii.inkSoft)
                 }

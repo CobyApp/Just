@@ -902,7 +902,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
         }
     }
 
-    static let origin = "https://utaring.app"
+    static let origin = "https://ringring.app"
 
     /// The player fills the page; the page's own controls are off because
     /// the app draws its own transport, and one set of controls is enough.
@@ -920,7 +920,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('p', {
         width: '100%', height: '100%',
-        playerVars: { playsinline: 1, controls: 0, rel: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: 'https://utaring.app' },
+        playerVars: { playsinline: 1, controls: 0, rel: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: 'https://ringring.app' },
         events: {
           onReady: function() { post({e: 'ready'}); startTick(); },
           onStateChange: function(ev) { post({e: 'state', g: gen, s: ev.data, t: player.getCurrentTime(), d: player.getDuration()}); },

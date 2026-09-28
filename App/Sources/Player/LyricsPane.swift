@@ -462,6 +462,7 @@ private struct PasteLyricsSheet: View {
     @State private var text = ""
     @State private var share = true
     @State private var shareStatus: ShareStatus = .idle
+    @State private var shareTask: Task<Void, Never>?
     @FocusState private var isEditing: Bool
 
     private enum ShareStatus: Equatable { case idle, sharing, shared, failed }
@@ -527,6 +528,7 @@ private struct PasteLyricsSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
             }
             .onAppear { isEditing = true }
+            .onDisappear { shareTask?.cancel() }
         }
         .presentationDetents([.large])
     }
@@ -538,7 +540,7 @@ private struct PasteLyricsSheet: View {
         Task { await session.useLyrics(lyrics) }
         guard share else { dismiss(); return }
         shareStatus = .sharing
-        Task {
+        shareTask = Task {
             do {
                 try await session.shareLyrics(lyrics)
                 shareStatus = .shared
@@ -546,7 +548,7 @@ private struct PasteLyricsSheet: View {
                 try? await Task.sleep(for: .seconds(0.8))
                 dismiss()
             } catch is CancellationError {
-                dismiss()
+                // Left the sheet mid-share; nothing to say.
             } catch {
                 shareStatus = .failed
             }
