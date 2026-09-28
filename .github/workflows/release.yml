@@ -1,0 +1,93 @@
+name: Release
+
+# One click to cut a release: pick a bump (or type an exact version), and this
+# tags it, writes the GitHub Release notes, and hands off to the TestFlight
+# deploy. Run it from the Actions tab.
+#
+# It exists because a tag pushed by the built-in GITHUB_TOKEN cannot trigger
+# another workflow's `on: push`, so this calls deploy.yml directly instead of
+# relying on the tag it just pushed to set the deploy off.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Which part to bump from the latest tag'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: 'Exact version instead of a bump, e.g. 1.2.0 (leave empty to use the bump)'
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Compute the next version
+        id: compute
+        env:
+          BUMP: ${{ github.event.inputs.bump }}
+          EXPLICIT: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$EXPLICIT" ]; then
+            new="${EXPLICIT#v}"
+          else
+            latest="$(git tag -l 'v*' --sort=-v:refname | head -1)"
+            latest="${latest:-v1.1.0}"        # the version at the time this was added
+            ver="${latest#v}"
+            IFS='.' read -r major minor patch <<< "$ver"
+            major="${major:-0}"; minor="${minor:-0}"; patch="${patch:-0}"
+            case "$BUMP" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              *)     patch=$((patch + 1)) ;;
+            esac
+            new="${major}.${minor}.${patch}"
+          fi
+          if ! echo "$new" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::'$new' is not a version like 1.2.0"; exit 1
+          fi
+          if git rev-parse "v$new" >/dev/null 2>&1; then
+            echo "::error::tag v$new already exists"; exit 1
+          fi
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$new"
+
+      - name: Tag and write release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.compute.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --latest \
+            --verify-tag
+
+  deploy:
+    needs: tag
+    uses: ./.github/workflows/deploy.yml
+    with:
+      marketing_version: ${{ needs.tag.outputs.version }}
+    secrets: inherit
