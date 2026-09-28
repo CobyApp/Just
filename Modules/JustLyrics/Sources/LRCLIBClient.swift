@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import JustCore
 
@@ -279,6 +280,120 @@ public struct LRCLIBClient: Sendable {
             try await Task.sleep(for: retryDelay)
             return try await getOnce(url, as: type)
         }
+    }
+
+    // MARK: - Contributing
+
+    /// Uploads lyrics for a song LRCLIB does not have, so the next reader —
+    /// this one on another device, or anyone — finds them without pasting.
+    ///
+    /// LRCLIB has no accounts; instead a publish must carry a proof-of-work
+    /// token, computed against a one-time challenge, which throttles spam. The
+    /// work is a hash search done off the main actor.
+    ///
+    /// The caller passes exactly what it is studying: `synced` when the pasted
+    /// text carried timestamps (so others get the synced version too), and
+    /// `plain` always, timestamps stripped.
+    public func publish(
+        title: String,
+        artist: String,
+        album: String?,
+        duration: TimeInterval,
+        plain: String,
+        synced: String?
+    ) async throws {
+        let challenge = try await requestChallenge()
+        let nonce = try await Task.detached(priority: .utility) {
+            try Self.solveChallenge(prefix: challenge.prefix, target: challenge.target)
+        }.value
+
+        var request = URLRequest(url: URL(string: "\(Self.host)/api/publish")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("\(challenge.prefix):\(nonce)", forHTTPHeaderField: "X-Publish-Token")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "trackName": title,
+            "artistName": artist,
+            "albumName": album ?? "",
+            "duration": Int(duration.rounded()),
+            "plainLyrics": plain,
+            "syncedLyrics": synced ?? "",
+        ])
+
+        let (_, response): (Data, URLResponse)
+        do {
+            (_, response) = try await session.data(for: request)
+        } catch let error as URLError where Self.offlineCodes.contains(error.code) {
+            throw Failure.offline
+        } catch {
+            throw Failure.transport(error.localizedDescription)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw Failure.transport("응답을 해석하지 못했습니다.")
+        }
+        if http.statusCode == 429 || (500..<600).contains(http.statusCode) {
+            throw Failure.serverBusy(http.statusCode)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw Failure.transport("LRCLIB 공유 오류 (\(http.statusCode))")
+        }
+    }
+
+    private struct Challenge: Decodable { let prefix: String; let target: String }
+
+    private func requestChallenge() async throws -> Challenge {
+        var request = URLRequest(url: URL(string: "\(Self.host)/api/request-challenge")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 15
+        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where Self.offlineCodes.contains(error.code) {
+            throw Failure.offline
+        } catch {
+            throw Failure.transport(error.localizedDescription)
+        }
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw Failure.transport("공유를 시작하지 못했습니다.")
+        }
+        return try JSONDecoder().decode(Challenge.self, from: data)
+    }
+
+    /// Finds a nonce whose SHA-256(prefix + nonce) is at or below the target.
+    ///
+    /// The target is 32 bytes as hex; a hash counts when, read big-endian, it
+    /// is no greater. Pure and static so it runs on a background thread with
+    /// nothing shared. Cancellable — a reader who backs out is not held.
+    static func solveChallenge(prefix: String, target: String) throws -> String {
+        let targetBytes = bytes(fromHex: target)
+        var nonce = 0
+        while true {
+            if nonce & 0x3FFF == 0 { try Task.checkCancellation() }
+            let digest = SHA256.hash(data: Data("\(prefix)\(nonce)".utf8))
+            if withinTarget(digest, targetBytes) { return String(nonce) }
+            nonce += 1
+        }
+    }
+
+    private static func withinTarget(_ digest: SHA256.Digest, _ target: [UInt8]) -> Bool {
+        for (byte, limit) in zip(digest, target) {
+            if byte < limit { return true }
+            if byte > limit { return false }
+        }
+        return true
+    }
+
+    private static func bytes(fromHex hex: String) -> [UInt8] {
+        var result: [UInt8] = []
+        var index = hex.startIndex
+        while index < hex.endIndex, let next = hex.index(index, offsetBy: 2, limitedBy: hex.endIndex) {
+            if let byte = UInt8(hex[index..<next], radix: 16) { result.append(byte) }
+            index = next
+        }
+        return result
     }
 
     private func getOnce<T: Decodable>(_ url: URL, as type: T.Type) async throws -> T {

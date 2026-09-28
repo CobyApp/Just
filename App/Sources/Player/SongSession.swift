@@ -318,6 +318,30 @@ final class SongSession {
         phase = .ready
     }
 
+    /// Sends pasted lyrics back to LRCLIB so the song is found automatically
+    /// next time — the only thing that grows coverage for songs no database has
+    /// yet. Explicit: the reader taps to share, because this puts their text in
+    /// a public database. Timestamped lines go up as synced too.
+    func shareLyrics(_ text: String) async throws {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let hasTimestamps = trimmed.range(of: #"\[\d{1,2}:\d{2}"#, options: .regularExpression) != nil
+        // Plain text drops every [..] tag — line timestamps and metadata alike.
+        let plain = trimmed
+            .replacingOccurrences(of: #"\[[^\]]*\]"#, with: "", options: .regularExpression)
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .joined(separator: "\n")
+        try await client.publish(
+            title: track.title,
+            artist: track.artist,
+            album: track.album,
+            duration: track.duration,
+            plain: plain,
+            synced: hasTimestamps ? trimmed : nil
+        )
+    }
+
     func fetchLyrics(artistOverride: String? = nil, titleOverride: String? = nil) async {
         lyricsState = .loading
         do {

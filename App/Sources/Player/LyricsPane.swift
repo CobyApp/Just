@@ -460,7 +460,11 @@ private struct PasteLyricsSheet: View {
     @Bindable var session: SongSession
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
+    @State private var share = true
+    @State private var shareStatus: ShareStatus = .idle
     @FocusState private var isEditing: Bool
+
+    private enum ShareStatus: Equatable { case idle, sharing, shared, failed }
 
     private var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
@@ -478,15 +482,43 @@ private struct PasteLyricsSheet: View {
                     .padding(JustTheme.Space.tight)
                     .background(JustTheme.Surface.sunken, in: .rect(cornerRadius: JustTheme.Radius.chip))
                     .autocorrectionDisabled()
-                Button {
-                    let lyrics = text
-                    dismiss()
-                    Task { await session.useLyrics(lyrics) }
-                } label: {
-                    Text("이 가사로 공부하기").frame(maxWidth: .infinity)
+
+                // Opt-in: pasted lyrics go to LRCLIB, the open database the app
+                // reads, so this song is found automatically next time — for
+                // this reader and everyone. Off would leave the gap in place.
+                Toggle(isOn: $share) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("LRCLIB에 공유").font(JustTheme.Font.caption.weight(.bold))
+                        Text("공개 가사 DB에 올려, 다음에 이 곡을 여는 사람이 자동으로 찾게 합니다.")
+                            .font(JustTheme.Font.caption)
+                            .foregroundStyle(JustTheme.Ink.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .tint(JustTheme.Kawaii.accent)
+                .disabled(shareStatus == .sharing)
+
+                if shareStatus == .failed {
+                    Text("공유에 실패했어요. 공부는 그대로 계속할 수 있어요.")
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(JustTheme.Feedback.warning)
+                }
+
+                Button(action: confirm) {
+                    Group {
+                        if shareStatus == .sharing {
+                            HStack(spacing: JustTheme.Space.tight) {
+                                ProgressView().tint(.white)
+                                Text("공유 중…")
+                            }
+                        } else {
+                            Text(share ? "공부 시작하고 공유하기" : "이 가사로 공부하기")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.justPrimary)
-                .disabled(isEmpty)
+                .disabled(isEmpty || shareStatus == .sharing)
             }
             .padding(JustTheme.Space.regular)
             .navigationTitle("가사 붙여넣기")
@@ -497,5 +529,27 @@ private struct PasteLyricsSheet: View {
             .onAppear { isEditing = true }
         }
         .presentationDetents([.large])
+    }
+
+    /// Studying starts either way; sharing, when asked, holds the sheet only
+    /// long enough to send — a failure never blocks the study that just began.
+    private func confirm() {
+        let lyrics = text
+        Task { await session.useLyrics(lyrics) }
+        guard share else { dismiss(); return }
+        shareStatus = .sharing
+        Task {
+            do {
+                try await session.shareLyrics(lyrics)
+                shareStatus = .shared
+                Haptics.tick()
+                try? await Task.sleep(for: .seconds(0.8))
+                dismiss()
+            } catch is CancellationError {
+                dismiss()
+            } catch {
+                shareStatus = .failed
+            }
+        }
     }
 }
