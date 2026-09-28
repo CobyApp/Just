@@ -106,6 +106,7 @@ struct QuizScreen: View {
                         }
                     }
                     .padding(JustTheme.Space.regular)
+                    .readableColumn(560)
                 }
                 .scrollIndicators(.hidden)
                 // The verdict lands below the answer, which on a phone is under
@@ -121,6 +122,7 @@ struct QuizScreen: View {
 
             actionBar(question)
                 .padding(JustTheme.Space.regular)
+                .readableColumn(560)
         }
     }
 

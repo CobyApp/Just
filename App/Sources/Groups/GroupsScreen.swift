@@ -47,6 +47,7 @@ struct GroupsScreen: View {
                         }
                     }
                     .padding(.vertical, JustTheme.Space.regular)
+                    .readableColumn(JustTheme.Width.grid)
                 }
                 .scrollIndicators(.hidden)
             }

@@ -74,6 +74,7 @@ struct GroupDetailScreen: View {
 
                 }
                 .padding(JustTheme.Space.regular)
+                .readableColumn()
             }
             .scrollIndicators(.hidden)
         }
