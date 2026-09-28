@@ -917,7 +917,8 @@ struct IdolGroupTests {
             "MORE STAR", "iLiFE!", "=LOVE",
         ]))
         #expect(names.isSuperset(of: ["≠ME", "≒JOY", "乃木坂46", "日向坂46", "AKB48", "モーニング娘。", "ももいろクローバーZ"]))
-        #expect(IdolGroup.all.count == 31)
+        #expect(names.isSuperset(of: ["Snow Man", "SixTONES", "YOASOBI", "Official髭男dism", "King Gnu"]))
+        #expect(IdolGroup.all.count >= 60)
     }
 
     @Test("모든 섹션에 그룹이 있고, 모든 그룹이 한 섹션에 있다")
@@ -939,10 +940,18 @@ struct IdolGroupTests {
         #expect(IdolGroup.group(forArtist: "椎名林檎と新しい学校のリーダーズ")?.name == "新しい学校のリーダーズ")
     }
 
-    @Test("모든 그룹에 공식 채널이 있다")
+    /// Idol groups carry their official channels, which cuts the video search
+    /// to a one-unit list call. Bands and boy groups are added without them —
+    /// they fall back to search — so the requirement holds only where set.
+    @Test("채널이 있으면 형식이 올바르고, 아이돌 계열엔 반드시 있다")
     func everyGroupHasAChannel() {
+        let withChannels: Set<IdolGroup.Label> = [
+            .kawaiiLab, .equalLove, .sakamichi, .fortyEight, .helloProject, .stardust, .more,
+        ]
         for group in IdolGroup.all {
-            #expect(!group.youtubeChannels.isEmpty, "\(group.name)")
+            if withChannels.contains(group.label) {
+                #expect(!group.youtubeChannels.isEmpty, "\(group.name)")
+            }
             #expect(group.youtubeChannels.allSatisfy { $0.hasPrefix("UC") && $0.count == 24 }, "\(group.name)")
         }
     }

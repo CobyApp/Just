@@ -4,7 +4,7 @@
 > 읽히고 무엇을 하는 앱인지 소리로 전합니다. 저장소 이름 `Just`와 번들 ID
 > `com.coby.just`는 그대로 둡니다 — 바꾸면 기기의 앱 데이터와 프로비저닝이 함께 끊깁니다.
 
-좋아하는 일본 아이돌 — KAWAII LAB. 다섯 그룹, iLiFE!, =LOVE — 의 노래 가사로 일본어를 공부하는 iPhone / iPad 앱.
+좋아하는 일본 아티스트 — 여자·남자 아이돌부터 밴드까지 — 의 노래 가사로 일본어를 공부하는 iPhone / iPad 앱.
 
 노래 한 곡이 학습 한 세트입니다. 가사 줄을 누르면 그 줄이 단어로 쪼개지고, 담은
 단어는 실제로 나온 가사를 예문 삼아 간격 반복 복습으로 넘어갑니다.
@@ -99,9 +99,9 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
           └─ 듣고 받아쓰기
 ```
 
-이 앱은 **명단에 있는 일본 여자 아이돌 31팀만** 다룹니다. 검색이 없는 것이 결함이
-아니라 정의입니다 — 좋아하는 그룹이 첫 화면에 있고 두 번 눌러 곡에 닿는 것이
-강점입니다. 홈은 소속·계열별 섹션으로 나뉩니다.
+이 앱은 **명단에 있는 일본 아티스트 60팀만** 다룹니다 — 여자 아이돌, 남자 아이돌,
+밴드·아티스트. 검색이 없는 것이 결함이 아니라 정의입니다 — 좋아하는 그룹이 첫
+화면에 있고 두 번 눌러 곡에 닿는 것이 강점입니다. 홈은 소속·계열별 섹션으로 나뉩니다.
 
 | 섹션 | 그룹 |
 |---|---|
@@ -112,9 +112,13 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 | Hello! Project | モーニング娘。 · アンジュルム · Juice=Juice · つばきファクトリー · BEYOOOOONDS |
 | STARDUST | ももいろクローバーZ · 私立恵比寿中学 · 超ときめき♡宣伝部 · いぎなり東北産 |
 | 그 밖의 인기 그룹 | iLiFE! · 高嶺のなでしこ · #ババババンビ · ME:I · NiziU · 新しい学校のリーダーズ |
+| 남자 아이돌 | Snow Man · SixTONES · なにわ男子 · King & Prince · Hey! Say! JUMP · BE:FIRST · JO1 · INI · Da-iCE |
+| 밴드 · 아티스트 | YOASOBI · Official髭男dism · Mrs. GREEN APPLE · King Gnu · Vaundy · back number · RADWIMPS · ONE OK ROCK · Ado · あいみょん · ヨルシカ · ずっと真夜中でいいのに。 · SEKAI NO OWARI · 緑黄色社会 · Saucy Dog · マカロニえんぴつ · 結束バンド · スピッツ · BUMP OF CHICKEN · サカナクション |
 
 카탈로그 ID·공식 YouTube 채널·일본어 별칭은 `IdolGroup.all`에 있습니다. ID는 이름으로
-추측하지 않고 iTunes 조회로, 채널은 YouTube 검색으로 확인한 값입니다. 곡의 아티스트
+추측하지 않고 iTunes 조회로, 채널은 YouTube 검색으로 확인한 값입니다. 아이돌 계열엔
+공식 채널을 넣어 영상 검색 비용을 아끼고, 남자 아이돌·밴드는 채널 없이 YouTube 검색으로
+찾습니다. 곡의 아티스트
 표기가 그룹 이름(또는 4자 이상의 별칭)을 포함하면 그 그룹의 곡으로 봅니다 —
 「=LOVE & ≠ME」, 「モーニング娘。'17」, 「椎名林檎と新しい学校のリーダーズ」도 제 그룹을
 찾습니다.

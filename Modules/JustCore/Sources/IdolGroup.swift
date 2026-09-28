@@ -41,6 +41,8 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
         case fortyEight = "48グループ"
         case helloProject = "Hello! Project"
         case stardust = "STARDUST"
+        case boyGroup = "남자 아이돌"
+        case band = "밴드 · 아티스트"
         case more = "그 밖의 인기 그룹"
 
         /// Whether the section names who the group belongs to, and so is
@@ -173,6 +175,67 @@ public extension IdolGroup {
         .init(id: "1231338664", name: "新しい学校のリーダーズ", readingKo: "아타라시이 각코", label: .more, hue: 0.03,
               youtubeChannels: ["UCp0iCvHGMwyfPHpYq7n2sPw", "UCGjPxZv5YraYh_EJk1sH8Tg"],
               aliases: ["ATARASHII GAKKO!"]),
+        // Boy idols and dance & vocal groups.
+        .init(id: "1772019148", name: "Snow Man", readingKo: "스노우맨", label: .boyGroup, hue: 0.58,
+              aliases: ["スノーマン", "スノ"]),
+        .init(id: "1808322699", name: "SixTONES", readingKo: "스톤즈", label: .boyGroup, hue: 0.02,
+              aliases: ["ストーンズ", "スト"]),
+        .init(id: "1758080234", name: "なにわ男子", readingKo: "나니와단시", label: .boyGroup, hue: 0.14,
+              aliases: ["Naniwa Danshi", "なにわ"]),
+        .init(id: "1745727874", name: "King & Prince", readingKo: "킹앤프린스", label: .boyGroup, hue: 0.72,
+              aliases: ["キング＆プリンス", "キンプリ"]),
+        .init(id: "555230743", name: "Hey! Say! JUMP", readingKo: "헤이세이점프", label: .boyGroup, hue: 0.50,
+              aliases: ["ヘイセイジャンプ"]),
+        .init(id: "1579021180", name: "BE:FIRST", readingKo: "비퍼스트", label: .boyGroup, hue: 0.66,
+              aliases: ["ビーファースト"]),
+        .init(id: "1500272115", name: "JO1", readingKo: "제이오원", label: .boyGroup, hue: 0.98,
+              aliases: ["ジェイオーワン"]),
+        .init(id: "1587161346", name: "INI", readingKo: "아이엔아이", label: .boyGroup, hue: 0.86,
+              aliases: ["アイエヌアイ"]),
+        .init(id: "786833865", name: "Da-iCE", readingKo: "다이스", label: .boyGroup, hue: 0.30,
+              aliases: ["ダイス"]),
+
+        // Bands and solo artists.
+        .init(id: "1490256993", name: "YOASOBI", readingKo: "요아소비", label: .band, hue: 0.62,
+              aliases: ["ヨアソビ", "よあそび"]),
+        .init(id: "960568308", name: "Official髭男dism", readingKo: "히게단", label: .band, hue: 0.55,
+              aliases: ["OFFICIAL HIGE DANDISM", "ヒゲダン", "髭男"]),
+        .init(id: "962221033", name: "Mrs. GREEN APPLE", readingKo: "미세스 그린 애플", label: .band, hue: 0.34,
+              aliases: ["ミセスグリーンアップル", "ミセス"]),
+        .init(id: "1258439196", name: "King Gnu", readingKo: "킹누", label: .band, hue: 0.00,
+              aliases: ["キングヌー"]),
+        .init(id: "1487570516", name: "Vaundy", readingKo: "바운디", label: .band, hue: 0.08,
+              aliases: ["バウンディ"]),
+        .init(id: "302361237", name: "back number", readingKo: "백넘버", label: .band, hue: 0.60,
+              aliases: ["バックナンバー", "バクナン"]),
+        .init(id: "91160335", name: "RADWIMPS", readingKo: "래드윔프스", label: .band, hue: 0.52,
+              aliases: ["ラッドウィンプス", "ラッド"]),
+        .init(id: "252239625", name: "ONE OK ROCK", readingKo: "원오크록", label: .band, hue: 0.03,
+              aliases: ["ワンオクロック", "ワンオク"]),
+        .init(id: "1492604670", name: "Ado", readingKo: "아도", label: .band, hue: 0.75,
+              aliases: ["アド"]),
+        .init(id: "1165017710", name: "あいみょん", readingKo: "아이묭", label: .band, hue: 0.95,
+              aliases: ["aimyon", "アイミョン"]),
+        .init(id: "1250709916", name: "ヨルシカ", readingKo: "요루시카", label: .band, hue: 0.48,
+              aliases: ["Yorushika", "よるしか"]),
+        .init(id: "1428083875", name: "ずっと真夜中でいいのに。", readingKo: "즈토마요", label: .band, hue: 0.70,
+              aliases: ["ZUTOMAYO", "ずとまよ", "ずっと真夜中でいいのに"]),
+        .init(id: "454694621", name: "SEKAI NO OWARI", readingKo: "세카오와", label: .band, hue: 0.40,
+              aliases: ["セカイノオワリ", "セカオワ"]),
+        .init(id: "747734869", name: "緑黄色社会", readingKo: "료쿠샤카", label: .band, hue: 0.28,
+              aliases: ["Ryokuoushoku Shakai", "リョクシャカ"]),
+        .init(id: "1229933633", name: "Saucy Dog", readingKo: "사우시독", label: .band, hue: 0.05,
+              aliases: ["サウシードッグ", "サウシー"]),
+        .init(id: "956011835", name: "マカロニえんぴつ", readingKo: "마카로니엔피츠", label: .band, hue: 0.13,
+              aliases: ["Macaroni Empitsu", "マカえんぴつ", "マカえん"]),
+        .init(id: "1646020674", name: "結束バンド", readingKo: "결속밴드", label: .band, hue: 0.92,
+              aliases: ["kessoku band", "けっそくバンド"]),
+        .init(id: "74456960", name: "スピッツ", readingKo: "스핏츠", label: .band, hue: 0.35,
+              aliases: ["Spitz"]),
+        .init(id: "185088141", name: "BUMP OF CHICKEN", readingKo: "범프 오브 치킨", label: .band, hue: 0.64,
+              aliases: ["バンプオブチキン", "バンプ"]),
+        .init(id: "252312257", name: "サカナクション", readingKo: "사카낙션", label: .band, hue: 0.56,
+              aliases: ["sakanaction", "サカナ"]),
     ]
 
     /// Channels shared by several groups.
