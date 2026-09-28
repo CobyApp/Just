@@ -53,9 +53,10 @@ struct RootView: View {
             app.player.sceneDidChange(isActive: phase != .background)
             if phase == .active {
                 JustStore(context: context).publishActivity()
-                // The model may have finished downloading, or Apple
-                // Intelligence been switched on, while the app was away.
-                app.sensei.refreshAvailability()
+                // The translation pack may have finished downloading, or the
+                // setting been changed, while the app was away — so lines left
+                // without a sentence can get one on the next pass.
+                Task { await app.sensei.refreshTranslator() }
             }
         }
         // Cards fall due while the app is closed, and the reminder planned

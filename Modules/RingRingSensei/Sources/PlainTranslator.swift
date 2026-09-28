@@ -4,18 +4,18 @@ import Foundation
 // boundary. The session is created and used only from this main-actor class,
 // one line at a time, so the checks are downgraded here — the same treatment
 @preconcurrency import Translation
+import RingRingCore
 
-/// The system translator, for lines the on-device model cannot answer.
+/// The system translator: the sentence half of the quick reading.
 ///
-/// Apple Intelligence needs recent hardware; Apple's translator does not. On an
-/// older device the analysis used to stop at dictionary meanings and no
-/// translation at all, which for a reader working through a song is the half
-/// that mattered. A literal sentence is not what the model gives — no nuance,
-/// no grammar notes, no reading of the singer's tone — but it is a translation,
-/// and it is what that device can do.
+/// Apple's translator runs on any recent device and, once its language pack is
+/// installed, offline. It gives a literal sentence — no nuance, no reading of the
+/// singer's tone — but it is a translation, and paired with the dictionary's
+/// words and the matched grammar it is the whole of what a line study shows.
 ///
-/// Also used on capable devices as the last resort, for the handful of lines the
-/// model never manages. See `Sensei.analyzeAll`.
+/// The target follows the app's language: Japanese to Korean for a Korean
+/// interface, Japanese to English for an English one, so the sentence is in the
+/// same language as everything around it.
 @MainActor
 public final class PlainTranslator {
     public static let shared = PlainTranslator()
@@ -49,7 +49,8 @@ public final class PlainTranslator {
     }
 
     private static let source = Locale.Language(identifier: "ja")
-    private static let target = Locale.Language(identifier: "ko")
+    /// Japanese into whatever the app is speaking.
+    private static let target = Locale.Language(identifier: AppLanguage.current.translationCode)
 
     private var session: TranslationSession?
     /// Set once the pair is known to be unusable, so a song's worth of lines
@@ -61,12 +62,20 @@ public final class PlainTranslator {
 
     private init() {}
 
-    /// Whether Japanese to Korean can be translated on this device right now.
+    /// Whether the pair can be translated on this device right now.
     ///
     /// `.installed` means yes. `.supported` means the pack has to be downloaded
     /// first, and that cannot be started from here — see `configuration`.
     public func availability() async -> LanguageAvailability.Status {
         await LanguageAvailability().status(from: Self.source, to: Self.target)
+    }
+
+    /// Whether a sentence can actually be produced right now: the setting is on
+    /// and the language pack is installed. Used to decide whether a line without
+    /// a translation is finished or still waiting for one.
+    public func isReady() async -> Bool {
+        guard isEnabled else { return false }
+        return await availability() == .installed
     }
 
     /// What a view passes to `.translationTask` to download the pack.

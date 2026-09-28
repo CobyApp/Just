@@ -19,65 +19,28 @@ struct SettingsScreen: View {
     @Environment(\.openURL) private var openURL
 
     @State private var plainTranslationOn = PlainTranslator.shared.isEnabled
-    @State private var asksEveryTime = AnalysisDepthPreference.asksEveryTime
     @State private var packStatus: LanguageAvailability.Status?
-    @State private var modelCheck: Sensei.ModelCheck?
-    @State private var isCheckingModel = false
     /// Non-nil while a download is being asked for.
     @State private var download: TranslationSession.Configuration?
 
-    /// Says what the fallback will actually do on this device, which depends on
-    /// both the model and the language pack.
+    /// Says what the line study will show on this device, which depends on the
+    /// switch and the language pack.
     private var translationFooter: String {
         guard plainTranslationOn else {
-            return "AI가 번역하지 못한 줄은 번역 없이 단어만 남습니다."
+            return "문장 번역을 끄면 각 줄에 단어 뜻과 문법만 표시됩니다."
         }
         switch packStatus {
         case .installed:
-            return "AI가 번역하지 못한 줄은 간단 번역으로 채웁니다. 직역에 가깝고 문법 설명은 없습니다."
+            return "각 줄을 단어 뜻·문법과 함께 문장으로 번역합니다."
         case .supported:
-            return "간단 번역을 쓰려면 한국어 번역 파일을 한 번 받아야 합니다."
+            return "문장 번역을 보려면 번역 파일을 한 번 받아야 합니다."
         case .unsupported:
-            return "이 기기에서는 간단 번역을 쓸 수 없습니다."
+            return "이 기기에서는 문장 번역을 쓸 수 없어 단어 뜻만 표시됩니다."
         case nil:
-            return "간단 번역을 쓸 수 있는지 확인하고 있습니다."
+            return "문장 번역을 쓸 수 있는지 확인하고 있습니다."
         @unknown default:
-            return "간단 번역을 쓸 수 있는지 확인하고 있습니다."
+            return "문장 번역을 쓸 수 있는지 확인하고 있습니다."
         }
-    }
-
-    /// What the chosen mode will do, or why the choice is not on offer.
-    private var depthFooter: String {
-        guard app.sensei.usesOnDeviceModel else {
-            return "이 기기에서는 AI 번역을 쓸 수 없어 빠른 번역으로만 동작합니다."
-                + " \(AnalysisDepth.quick.detail)\(translationCaveat)"
-        }
-        return app.sensei.depth.detail + translationCaveat
-    }
-
-    /// Said where the choice is made, because the two settings depend on each
-    /// other and sit in the same section without knowing it.
-    ///
-    /// Quick analysis gets its sentences from the system translator and nowhere
-    /// else. With the switch off or the pack missing it produces dictionary
-    /// meanings and no translation at all — while the text above promises to
-    /// 「곡 전체를 몇 초 안에 채웁니다」. Deep analysis is unaffected: the model
-    /// writes its own.
-    private var translationCaveat: String {
-        let usesTranslatorForSentences = !app.sensei.usesOnDeviceModel
-            || app.sensei.depth == .quick
-        guard usesTranslatorForSentences else { return "" }
-
-        if !plainTranslationOn {
-            return "\n\n지금은 「간단 번역으로 채우기」가 꺼져 있어 문장 번역이 나오지 않습니다."
-        }
-        if packStatus == .supported {
-            return "\n\n문장 번역을 보려면 아래에서 한국어 번역 파일을 받아 주세요."
-        }
-        if packStatus == .unsupported {
-            return "\n\n이 기기에서는 간단 번역을 쓸 수 없어 문장 번역이 나오지 않습니다."
-        }
-        return ""
     }
 
     var body: some View {
@@ -139,30 +102,6 @@ struct SettingsScreen: View {
                 }
 
                 Section {
-                    // The choice worth putting first, and the only one on this
-                    // screen the reader will feel immediately: it is the
-                    // difference between a song being ready in seconds and in
-                    // minutes.
-                    Picker("번역 방식", selection: Binding(
-                        get: { app.sensei.depth },
-                        set: {
-                            app.sensei.depth = $0
-                            AnalysisDepthPreference.chosen = $0
-                        }
-                    )) {
-                        ForEach(AnalysisDepth.allCases) { depth in
-                            Text(depth.title).tag(depth)
-                        }
-                    }
-                    .disabled(!app.sensei.usesOnDeviceModel)
-
-                    if app.sensei.usesOnDeviceModel {
-                        Toggle("곡을 열 때마다 묻기", isOn: Binding(
-                            get: { asksEveryTime },
-                            set: { asksEveryTime = $0; AnalysisDepthPreference.asksEveryTime = $0 }
-                        ))
-                    }
-
                     Picker("자동 해석", selection: Binding(
                         get: { app.autoAnalysis },
                         set: { app.autoAnalysis = $0 }
@@ -171,7 +110,7 @@ struct SettingsScreen: View {
                             Text(policy.title).tag(policy)
                         }
                     }
-                    Toggle("간단 번역으로 채우기", isOn: Binding(
+                    Toggle("문장 번역", isOn: Binding(
                         get: { plainTranslationOn },
                         set: {
                             plainTranslationOn = $0
@@ -185,9 +124,8 @@ struct SettingsScreen: View {
                     if plainTranslationOn, packStatus == .supported {
                         // The pack can only be fetched from a view, and it puts
                         // a system prompt on screen — so it is asked for here,
-                        // by someone who opened this screen, rather than in the
-                        // middle of an analysis run.
-                        Button("한국어 번역 파일 받기") {
+                        // by someone who opened this screen.
+                        Button("번역 파일 받기") {
                             download = PlainTranslator.configuration
                         }
                     }
@@ -195,14 +133,8 @@ struct SettingsScreen: View {
                     Text("가사 해석")
                 } footer: {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(depthFooter)
                         Text(app.autoAnalysis.detail)
-                        // Quick mode *is* the system translator, so a note
-                        // about what happens when the model falls back to it
-                        // would be describing a fallback that cannot occur.
-                        if app.sensei.depth == .deep {
-                            Text(translationFooter)
-                        }
+                        Text(translationFooter)
                     }
                 }
 
@@ -228,49 +160,12 @@ struct SettingsScreen: View {
                 }
 
                 Section {
-                    // Asked of the model itself, so 「AI 번역이 안 돼요」 comes
-                    // with a reason the reader can act on — or the proof that
-                    // it works.
-                    Button {
-                        modelCheck = nil
-                        isCheckingModel = true
-                        Task {
-                            modelCheck = await app.sensei.checkModel()
-                            isCheckingModel = false
-                        }
-                    } label: {
-                        HStack {
-                            Text("AI 번역 확인")
-                            Spacer()
-                            if isCheckingModel { ProgressView() }
-                        }
-                    }
-                    .disabled(isCheckingModel)
-                    if let modelCheck {
-                        switch modelCheck {
-                        case .works(let sample):
-                            Label("AI 번역이 동작합니다 — 「君の笑顔が大好きだよ」 → \(sample)", systemImage: "checkmark.circle.fill")
-                                .font(JustTheme.Font.caption)
-                                .foregroundStyle(JustTheme.Feedback.success)
-                        case .unavailable(let reason), .failed(let reason):
-                            Label(reason, systemImage: "exclamationmark.triangle.fill")
-                                .font(JustTheme.Font.caption)
-                                .foregroundStyle(JustTheme.Feedback.warning)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .textSelection(.enabled)
-                        }
-                    }
                     DisclosureGroup("정보") {
                         LabeledContent("번역 방식", value: app.engineLabel)
                         LabeledContent("곡 정보", value: "iTunes")
                         LabeledContent("영상", value: "YouTube")
                         LabeledContent("가사", value: "LRCLIB")
                         LabeledContent("재생", value: app.playbackLabel)
-                        if let unavailability = app.sensei.unavailability {
-                            Text(unavailability.message)
-                                .font(JustTheme.Font.caption)
-                                .foregroundStyle(JustTheme.Ink.secondary)
-                        }
                     }
                 } footer: {
                     // Reworded when ads arrived. The claim about lyrics and

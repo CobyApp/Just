@@ -306,7 +306,7 @@ struct QuizBuilderTests {
 
 @Suite("노트 정리")
 struct NoteSanitizerTests {
-    /// Exercised through the public surface: `Sensei.refine` is private, so the
+    /// Exercised through the public surface: the old model-cleanup rules are gone, so the
     /// checks below assert the rules those filters exist to enforce.
     @Test("한글이 없는 노트는 한국어가 아니다")
     func detectsNonKorean() {
@@ -383,7 +383,7 @@ struct SenseiScopeTests {
     }
 }
 
-@Suite("모델 실패로 사전 대체된 줄")
+@Suite("번역을 기다리는 줄")
 @MainActor
 struct DictionaryFallbackTests {
     private let lyrics = Lyrics(
@@ -392,9 +392,9 @@ struct DictionaryFallbackTests {
         source: "test"
     )
 
-    /// What `analyze` produces when the on-device call throws: real words, no
+    /// What `analyze` produces before the sentence arrives: real words, no
     /// translation, engine `.dictionary`.
-    private var fallback: LineStudy {
+    private var wordsOnly: LineStudy {
         LineStudy(
             lineIndex: 0,
             original: "夢を見た",
@@ -405,11 +405,11 @@ struct DictionaryFallbackTests {
         )
     }
 
-    @Test("Apple Intelligence가 있는 기기에서는 다시 시도할 줄로 남는다")
-    func staysPendingWhenTheModelExists() {
-        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+    @Test("번역기가 준비된 기기에서는 번역 없는 줄로 다시 시도한다")
+    func staysPendingWhenTranslatorReady() {
+        let sensei = Sensei(dictionary: DictionarySensei(), translatorReady: true)
         sensei.reset(for: "songA")
-        sensei.preload([0: fallback])
+        sensei.preload([0: wordsOnly])
 
         // Shown to the user now...
         #expect(sensei.cached(0) != nil)
@@ -418,11 +418,11 @@ struct DictionaryFallbackTests {
         #expect(sensei.cache(for: "songA")?.isEmpty == true)
     }
 
-    @Test("Apple Intelligence가 없는 기기에서는 사전 결과가 최종 답이다")
-    func isFinalWithoutTheModel() {
-        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: false)
+    @Test("번역기가 없는 기기에서는 단어만 있는 줄이 최종 답이다")
+    func isFinalWithoutTranslator() {
+        let sensei = Sensei(dictionary: DictionarySensei(), translatorReady: false)
         sensei.reset(for: "songA")
-        sensei.preload([0: fallback])
+        sensei.preload([0: wordsOnly])
 
         #expect(sensei.pendingLines(in: lyrics).isEmpty)
         #expect(sensei.cache(for: "songA")?.count == 1)
@@ -436,57 +436,14 @@ struct DictionaryFallbackTests {
             translationKo: "꿈을 꿨다",
             words: [],
             grammar: [],
-            engine: .onDevice
+            engine: .plainTranslation
         )
-        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+        let sensei = Sensei(dictionary: DictionarySensei(), translatorReady: true)
         sensei.reset(for: "songA")
         sensei.preload([0: translated])
 
         #expect(sensei.pendingLines(in: lyrics).isEmpty)
         #expect(sensei.cache(for: "songA")?.count == 1)
-    }
-}
-
-@Suite("가사에 없는 것 걸러내기")
-@MainActor
-struct WordPresenceTests {
-    private let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
-
-    private func word(_ surface: String, _ dictionaryForm: String) -> StudyWord {
-        StudyWord(
-            surface: surface,
-            dictionaryForm: dictionaryForm,
-            reading: "",
-            meaningKo: "뜻"
-        )
-    }
-
-    @Test("줄을 통째로 단어라고 내놓으면 버린다")
-    func rejectsAnEntireLine() {
-        // Seen from the on-device model: the whole line came back as one word,
-        // with the line's translation as its meaning and nonsense furigana.
-        let line = "その一言で全てが分かった"
-        #expect(!sensei.appears(word(line, line), in: line))
-    }
-
-    @Test("줄 안의 긴 절도 단어가 아니다")
-    func rejectsALongClause() {
-        #expect(!sensei.appears(word("全てが分かった", "全てが分かる"), in: "その一言で全てが分かった"))
-    }
-
-    @Test("줄에 그대로 있는 단어는 남는다")
-    func keepsAWordThatIsThere() {
-        #expect(sensei.appears(word("一言", "一言"), in: "その一言で全てが分かった"))
-    }
-
-    @Test("활용형은 한자 어간으로 찾아낸다")
-    func matchesAConjugatedFormByItsStem() {
-        #expect(sensei.appears(word("忘れた", "忘れる"), in: "君を忘れた夜"))
-    }
-
-    @Test("줄에 없는 단어는 버린다")
-    func rejectsAWordThatIsNotThere() {
-        #expect(!sensei.appears(word("走る", "走る"), in: "その一言で全てが分かった"))
     }
 }
 
@@ -502,35 +459,14 @@ struct AnalyzeAllSinglePassTests {
         source: "test"
     )
 
-    @Test("해결되지 않는 줄이 있으면 진전이 없으므로 멈춘다")
-    func stopsWhenAPassSettlesNothing() async {
-        // A device that has the model but cannot reach it: every line falls
-        // back to the dictionary and stays unsettled. The run now repeats while
-        // it is getting somewhere, so what has to be true is that a pass which
-        // settles nothing ends it — otherwise this never returns.
-        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: true)
+    @Test("번역기가 답하면 한 바퀴에 모두 채운다")
+    func fillsEverythingInOnePass() async {
+        let sensei = Sensei(
+            dictionary: DictionarySensei(),
+            translatorReady: true,
+            translate: { _ in "번역" }
+        )
         sensei.reset(for: "songA")
-
-        var reported: [Int] = []
-        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, _ in
-            reported.append(done)
-        }
-
-        // Nothing settled, so the count stays at zero rather than counting
-        // attempts. Progress means lines that now have an answer — a bar that
-        // fills while every line is failing says the opposite of the truth.
-        #expect(reported == [0, 0])
-        // Still pending, so opening the song again tries them once more.
-        #expect(sensei.pendingLines(in: lyrics).count == 2)
-    }
-
-    @Test("모델이 없는 기기에서는 한 바퀴에 모두 끝난다")
-    func settlesEverythingWithoutAModel() async {
-        // The dictionary is the best this device can do, so its answers are
-        // final and nothing is left pending. The loop must notice that and stop
-        // rather than run a second pass over an empty list.
-        let sensei = Sensei(dictionary: DictionarySensei(), modelIsAvailable: false)
-        sensei.reset(for: "songB")
 
         var reported: [Int] = []
         await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, total in
@@ -541,76 +477,41 @@ struct AnalyzeAllSinglePassTests {
         #expect(reported == [1, 2])
         #expect(sensei.pendingLines(in: lyrics).isEmpty)
     }
-}
 
-@Suite("문법 노트도 가사에 있어야 한다")
-struct GrammarPresenceTests {
-    @Test("가사에 없는 패턴은 버린다")
-    func rejectsAFabricatedPattern() {
-        // Observed: 〜てしまう came back for six different lines, none of which
-        // contained it, with the line's translation as its explanation.
-        #expect(!Sensei.grammarAppears("〜てしまう", in: "本当は僕も言いたいんだ"))
-    }
-
-    @Test("가사에 있는 패턴은 남긴다")
-    func keepsAPatternThatIsThere() {
-        #expect(Sensei.grammarAppears("〜んだ", in: "本当は僕も言いたいんだ"))
-        #expect(Sensei.grammarAppears("〜ように", in: "眠るように揺れてゆくように"))
-        #expect(Sensei.grammarAppears("だって", in: "もう無理だって 疲れたよなんて"))
-    }
-
-    @Test("물결만 남는 패턴은 버린다")
-    func rejectsAnEmptyPattern() {
-        #expect(!Sensei.grammarAppears("〜", in: "本当は僕も言いたいんだ"))
-        #expect(!Sensei.grammarAppears("  ", in: "本当は僕も言いたいんだ"))
-    }
-}
-
-@Suite("가사의 분절로 단어를 바로잡기")
-struct GroundingTests {
-    private let tokenizer = JapaneseTokenizer()
-
-    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
-        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
-    }
-
-    @Test("꼬리에 붙은 조사를 떼고 읽기를 가사에서 가져온다")
-    func trimsTrailingGlue() {
-        // 본 것: 「本当は」가 표제어로, 읽기는 「ほんとうは」로 왔다.
-        // 가사에 보이는 형태는 그대로 두고, 표제어만 다듬는다.
-        #expect(
-            ground("本当は", in: "本当は僕も言いたいんだ")
-                == .word(surface: "本当は", headword: "本当", reading: "ほんとう")
+    @Test("번역기가 답하지 못하면 한 바퀴만 돌고 줄은 남는다")
+    func onePassThenLeavesLinesPending() async {
+        // A translator that is ready but cannot render these lines: each is
+        // attempted exactly once, so the pass ends rather than looping, and the
+        // lines stay askable for when a pack arrives.
+        let sensei = Sensei(
+            dictionary: DictionarySensei(),
+            translatorReady: true,
+            translate: { _ in nil }
         )
-        #expect(
-            ground("僕も", in: "本当は僕も言いたいんだ")
-                == .word(surface: "僕も", headword: "僕", reading: "ぼく")
-        )
+        sensei.reset(for: "songA")
+
+        var reported: [Int] = []
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, _ in
+            reported.append(done)
+        }
+
+        #expect(reported == [1, 2])
+        #expect(sensei.pendingLines(in: lyrics).count == 2)
     }
 
-    @Test("조사뿐인 후보는 버린다")
-    func rejectsPureGlue() {
-        #expect(ground("んだ", in: "本当は僕も言いたいんだ") == .glue)
-        #expect(ground("で", in: "その一言で全てが分かった") == .glue)
-        #expect(ground("も", in: "本当は僕も言いたいんだ") == .glue)
-    }
+    @Test("번역기가 없는 기기에서는 단어만 채우고 한 바퀴에 끝난다")
+    func settlesWithWordsOnlyWithoutTranslator() async {
+        let sensei = Sensei(dictionary: DictionarySensei(), translatorReady: false)
+        sensei.reset(for: "songB")
 
-    @Test("문맥을 아는 읽기로 모델의 오독을 덮는다")
-    func takesTheReadingFromTheLine() {
-        // 모델은 「その一言」의 읽기를 「そのいかん」이라고 했다.
-        #expect(
-            ground("その一言", in: "その一言で全てが分かった")
-                == .word(surface: "その一言", headword: "その一言", reading: "そのひとこと")
-        )
-        #expect(
-            ground("空", in: "君だけの空が広がる朝に")
-                == .word(surface: "空", headword: "空", reading: "そら")
-        )
-    }
+        var reported: [Int] = []
+        await sensei.analyzeAll(lyrics: lyrics, songTitle: "곡", artist: "가수") { done, total in
+            reported.append(done)
+            #expect(total == 2)
+        }
 
-    @Test("가사의 분절과 맞지 않으면 건드리지 않는다")
-    func leavesUnalignedCandidatesAlone() {
-        #expect(ground("走る", in: "その一言で全てが分かった") == .unknown)
+        #expect(reported == [1, 2])
+        #expect(sensei.pendingLines(in: lyrics).isEmpty)
     }
 }
 
@@ -640,63 +541,6 @@ struct HomographTests {
     func unaffectedForSingleSenseWords() {
         #expect(dictionary.entry(forSpelling: "帰る", reading: "かえる")?.l == "帰る")
         #expect(dictionary.entry(forSpelling: "帰る", reading: nil)?.l == "帰る")
-    }
-}
-
-@Suite("문법을 나르는 가나는 단어가 아니다")
-struct GrammaticalFormTests {
-    private let tokenizer = JapaneseTokenizer()
-
-    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
-        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
-    }
-
-    @Test("문법 형태는 단어에서 뺀다")
-    func rejectsGrammaticalForms() {
-        // 본 것: 「だけ」가 사전의 「丈」(길이)에 붙었다. 읽기를 공유하기 때문이다.
-        #expect(ground("だけ", in: "君だけの空が広がる朝に") == .glue)
-        #expect(ground("なんて", in: "もう無理だって 疲れたよなんて") == .glue)
-        #expect(ground("って", in: "もう無理だって 疲れたよなんて") == .glue)
-    }
-
-    @Test("문법 형태를 포함한 단어는 남는다")
-    func keepsWordsThatMerelyContainThem() {
-        // 「言いたい」는 [言い][たい]지만 통째로는 문법 형태가 아니다.
-        #expect(
-            ground("言いたい", in: "本当は僕も言いたいんだ")
-                == .word(surface: "言いたい", headword: "言いたい", reading: "いいたい")
-        )
-    }
-
-    @Test("한자 단어는 영향이 없다")
-    func leavesRealWordsAlone() {
-        #expect(
-            ground("空", in: "君だけの空が広がる朝に")
-                == .word(surface: "空", headword: "空", reading: "そら")
-        )
-    }
-}
-
-@Suite("가사에 보이는 형태는 잘리지 않는다")
-struct SurfaceIntegrityTests {
-    private let tokenizer = JapaneseTokenizer()
-
-    private func ground(_ surface: String, in line: String) -> Sensei.Grounding {
-        Sensei.grounding(for: surface, in: tokenizer.tokenize(line))
-    }
-
-    @Test("활용형은 가사에 나온 대로 남고 표제어만 다듬는다")
-    func keepsTheInflectedSurface() {
-        // 보고서에 「疲れ (가사: 疲れ)」로 찍혀 있었다. 가사는 「疲れた」다. 이 형태가
-        // 빈칸 문제로 넘어가면 「___たよなんて」처럼 조각이 남는다.
-        #expect(
-            ground("疲れた", in: "もう無理だって 疲れたよなんて")
-                == .word(surface: "疲れた", headword: "疲れ", reading: "つかれ")
-        )
-        #expect(
-            ground("分かった", in: "その一言で全てが分かった")
-                == .word(surface: "分かった", headword: "分かっ", reading: "わかっ")
-        )
     }
 }
 
@@ -742,55 +586,6 @@ struct RepeatedLineTests {
         let unique = Set(lines)
         #expect(unique.count == 5)
         #expect(lines.count - unique.count == 2)
-    }
-}
-
-@Suite("모델 세션 재활용")
-struct SessionRecyclerTests {
-    @Test("한도까지는 세션을 새로 만들지 않는다")
-    func reusesUpToTheLimit() {
-        var recycler = SessionRecycler(limit: 3)
-        #expect(recycler.claim() == false)
-        #expect(recycler.claim() == false)
-        #expect(recycler.claim() == false)
-        #expect(recycler.claim() == true)
-    }
-
-    @Test("새 세션을 만든 줄부터 한도를 다시 센다")
-    func countsTheLimitFromTheNewSession() {
-        var recycler = SessionRecycler(limit: 2)
-        _ = recycler.claim()
-        _ = recycler.claim()
-        #expect(recycler.claim() == true)
-        #expect(recycler.claim() == false)
-        #expect(recycler.claim() == true)
-    }
-
-    @Test("곡이 바뀌면 남은 한도를 버리고 새로 시작한다")
-    func startsFreshWhateverIsLeft() {
-        var recycler = SessionRecycler(limit: 8)
-        _ = recycler.claim()
-        recycler.startFresh()
-        // The next line must not be answered by a session that still holds the
-        // previous song's lines — that is what leaks one song into another.
-        #expect(recycler.claim() == true)
-        #expect(recycler.claim() == false)
-    }
-
-    @Test("이미 새로 시작한 상태에서 또 불러도 한 번만 새로 만든다")
-    func startingFreshTwiceBuildsOneSession() {
-        var recycler = SessionRecycler(limit: 8)
-        recycler.startFresh()
-        recycler.startFresh()
-        #expect(recycler.claim() == true)
-        #expect(recycler.claim() == false)
-    }
-
-    @Test("한도가 말이 안 되면 줄마다 새로 만든다")
-    func nonsenseLimitMeansOneLinePerSession() {
-        var recycler = SessionRecycler(limit: 0)
-        #expect(recycler.claim() == false)
-        #expect(recycler.claim() == true)
     }
 }
 
@@ -1050,7 +845,7 @@ struct PlainTranslationTests {
         // model that is every line, every time.
         let sensei = Sensei(
             dictionary: DictionarySensei(),
-            modelIsAvailable: true,
+            translatorReady: true,
             translate: { _ in "꿈을 꿨다" }
         )
         sensei.reset(for: "songC")
@@ -1069,7 +864,7 @@ struct PlainTranslationTests {
         // arrive later, so the line has to stay askable.
         let sensei = Sensei(
             dictionary: DictionarySensei(),
-            modelIsAvailable: true,
+            translatorReady: true,
             translate: { _ in nil }
         )
         sensei.reset(for: "songD")
@@ -1087,7 +882,7 @@ struct PlainTranslationTests {
         // same rule catches it.
         let sensei = Sensei(
             dictionary: DictionarySensei(),
-            modelIsAvailable: true,
+            translatorReady: true,
             translate: { line in line }
         )
         sensei.reset(for: "songE")
@@ -1292,161 +1087,6 @@ struct GrammarPatternTests {
 }
 
 // MARK: - Analysis depth
-
-@MainActor
-@Suite("해석 방식 선택")
-struct AnalysisDepthTests {
-    private func sensei(depth: AnalysisDepth) -> Sensei {
-        Sensei(
-            dictionary: DictionarySensei(entries: [
-                .init(l: "夢", r: "ゆめ", k: "꿈", p: "명사", j: "N4")
-            ]),
-            modelIsAvailable: true,
-            depth: depth,
-            translate: { _ in "번역된 문장" }
-        )
-    }
-
-    private let lyrics = Lyrics(
-        lines: [LyricLine(id: 0, time: 0, text: "夢を見ている")],
-        isSynced: true,
-        source: "test"
-    )
-
-    /// The whole point of the fast mode: it does not wait for the model, and it
-    /// still fills the sentence.
-    @Test("빠른 모드는 모델을 기다리지 않고 문장을 채운다")
-    func quickFillsWithoutModel() async {
-        let sensei = sensei(depth: .quick)
-        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(study?.translationKo == "번역된 문장")
-        #expect(study?.words.contains { $0.dictionaryForm == "夢" } == true)
-    }
-
-    /// Without this, a song analysed quickly would stay quick forever: the
-    /// dictionary's answers carry a translation, and a translation used to be
-    /// enough to settle a line.
-    @Test("빠른 모드 결과는 정확 모드에서 다시 해석된다")
-    func quickResultsAreRedoneWhenDeep() async {
-        let sensei = sensei(depth: .quick)
-        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(sensei.pendingLines(in: lyrics).isEmpty)
-
-        sensei.depth = .deep
-        #expect(sensei.pendingLines(in: lyrics).count == 1)
-    }
-
-    /// The reverse is not symmetrical on purpose — being fast is no reason to
-    /// throw away the better answer already in hand.
-    @Test("정확 모드 결과는 빠른 모드로 바꿔도 남는다")
-    func deepResultsSurviveSwitchToQuick() {
-        let sensei = sensei(depth: .deep)
-        sensei.preload([0: LineStudy(
-            lineIndex: 0,
-            original: "夢を見ている",
-            translationKo: "꿈을 꾸고 있어",
-            words: [],
-            grammar: [],
-            engine: .onDevice
-        )])
-        sensei.depth = .quick
-        #expect(sensei.cached(0)?.translationKo == "꿈을 꾸고 있어")
-        #expect(sensei.pendingLines(in: lyrics).isEmpty)
-    }
-
-    @Test("빠른 모드에서도 문법이 채워진다")
-    func quickModeHasGrammar() async {
-        let sensei = sensei(depth: .quick)
-        let study = await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(study?.grammar.contains { $0.pattern == "〜ている" } == true)
-    }
-
-    /// Choosing a mode the device cannot run would leave the reader waiting on a
-    /// model that is never asked.
-    @Test("모델이 없는 기기는 정확 모드를 선택해도 빠른 모드로 동작한다")
-    func unavailableModelForcesQuick() {
-        let sensei = Sensei(
-            dictionary: DictionarySensei(entries: []),
-            modelIsAvailable: false,
-            depth: .deep
-        )
-        #expect(sensei.depth == .quick)
-    }
-}
-
-@MainActor
-@Suite("줄 하나만 정확하게")
-struct DeepenTests {
-    private let lyrics = Lyrics(
-        lines: [LyricLine(id: 0, time: 0, text: "夢を見ている")],
-        isSynced: true,
-        source: "test"
-    )
-
-    private func sensei(modelIsAvailable: Bool = true) -> Sensei {
-        Sensei(
-            dictionary: DictionarySensei(entries: [
-                .init(l: "夢", r: "ゆめ", k: "꿈", p: "명사", j: "N4")
-            ]),
-            modelIsAvailable: modelIsAvailable,
-            depth: .quick,
-            translate: { _ in "직역된 문장" }
-        )
-    }
-
-    /// A quick answer is settled as far as `isFinal` is concerned, and asking to
-    /// improve it is exactly a request to ignore that.
-    @Test("빠른 결과가 있는 줄은 다시 해석할 수 있다")
-    func offersDeepenOnQuickResult() async {
-        let sensei = sensei()
-        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(sensei.canDeepen(0))
-    }
-
-    @Test("모델이 낸 답은 다시 해석하자고 하지 않는다")
-    func noDeepenOnModelResult() {
-        let sensei = sensei()
-        sensei.preload([0: LineStudy(
-            lineIndex: 0,
-            original: "夢を見ている",
-            translationKo: "꿈을 꾸고 있어",
-            words: [],
-            grammar: [],
-            engine: .onDevice
-        )])
-        #expect(!sensei.canDeepen(0))
-    }
-
-    @Test("해석되지 않은 줄에는 제안하지 않는다")
-    func noDeepenBeforeAnalysis() {
-        #expect(!sensei().canDeepen(0))
-    }
-
-    @Test("모델이 없는 기기에서는 제안하지 않는다")
-    func noDeepenWithoutModel() async {
-        let sensei = sensei(modelIsAvailable: false)
-        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(!sensei.canDeepen(0))
-        #expect(await sensei.deepen(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수") == nil)
-    }
-
-    /// Asking for an improvement must never cost the reader what they had. The
-    /// model's failure path falls back to the dictionary, which has no
-    /// translation of its own — so without this the line comes back blank.
-    @Test("다시 해석이 실패해도 이미 있던 번역은 남는다")
-    func failedDeepenKeepsTranslation() async {
-        let sensei = sensei()
-        await sensei.analyze(lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수")
-        #expect(sensei.cached(0)?.translationKo == "직역된 문장")
-
-        // The seam has no model, so `deepen` takes the model's failure path.
-        let result = await sensei.deepen(
-            lineIndex: 0, in: lyrics, songTitle: "곡", artist: "가수"
-        )
-        #expect(result?.translationKo == "직역된 문장")
-        #expect(sensei.cached(0)?.translationKo == "직역된 문장")
-    }
-}
 
 /// The false positives that substring matching produces, each one taken from a
 /// real lyric line the report ran over. Every one of these was a note the reader
@@ -1905,7 +1545,7 @@ struct SongChangeDuringAnalysisTests {
     private func senseiThatSwitchesSongs(_ handle: SenseiHandle) -> Sensei {
         let sensei = Sensei(
             dictionary: DictionarySensei(entries: []),
-            modelIsAvailable: false,
+            translatorReady: true,
             translate: { _ in
                 handle.calls += 1
                 handle.sensei?.reset(for: "songB")
@@ -1948,7 +1588,7 @@ struct SongChangeDuringAnalysisTests {
     func keepsTheResultWhenTheSongStays() async {
         let sensei = Sensei(
             dictionary: DictionarySensei(entries: []),
-            modelIsAvailable: false,
+            translatorReady: true,
             translate: { _ in "꿈을 꿨다" }
         )
         sensei.reset(for: "songA")
@@ -1957,73 +1597,5 @@ struct SongChangeDuringAnalysisTests {
 
         #expect(study?.translationKo == "꿈을 꿨다")
         #expect(sensei.cache(for: "songA")?[0]?.translationKo == "꿈을 꿨다")
-    }
-}
-
-@MainActor
-@Suite("모델 요청은 한 번에 하나씩")
-struct RequestGateTests {
-    /// Awaiting the model releases the main actor, so a second request could
-    /// start while the first was still out — and the session answers that
-    /// with `concurrentRequests`. The gate is what makes them take turns.
-    @Test("앞 요청이 끝나기 전에는 다음 요청이 들어가지 않는다")
-    func secondWaitsForFirst() async {
-        let gate = RequestGate()
-        var log: [String] = []
-
-        await gate.acquire()
-        log.append("first in")
-
-        let second = Task { @MainActor in
-            await gate.acquire()
-            log.append("second in")
-            gate.release()
-        }
-        // Give the second request every chance to barge in.
-        for _ in 0..<20 { await Task.yield() }
-        log.append("first out")
-        gate.release()
-
-        await second.value
-        #expect(log == ["first in", "first out", "second in"])
-    }
-
-    @Test("기다리는 순서대로 들어간다")
-    func waitersGoInArrivalOrder() async {
-        let gate = RequestGate()
-        var order: [Int] = []
-
-        await gate.acquire()
-        var tasks: [Task<Void, Never>] = []
-        for index in 0..<3 {
-            tasks.append(Task { @MainActor in
-                await gate.acquire()
-                order.append(index)
-                gate.release()
-            })
-            // Each one reaches the queue before the next is created.
-            for _ in 0..<5 { await Task.yield() }
-        }
-        gate.release()
-        for task in tasks { await task.value }
-
-        #expect(order == [0, 1, 2])
-    }
-}
-
-@Suite("모델 오류 분류")
-struct ModelFailureMappingTests {
-    @Test("iOS 27의 가드레일 검사기·모델 관리자 오류는 시스템 오류")
-    func systemFailures() {
-        let classifier = NSError(domain: "FoundationModels.LanguageModelError", code: -1, userInfo: [
-            NSLocalizedDescriptionKey: "작업을 완료할 수 없습니다.(com.apple.SensitiveContentAnalysisML 오류 15.)",
-        ])
-        #expect(ModelFailure(classifier) == .system)
-        #expect(ModelFailure(NSError(domain: "ModelManagerServices.ModelManagerError", code: 1026)) == .system)
-    }
-
-    @Test("그 밖의 오류는 기타")
-    func otherFailures() {
-        #expect(ModelFailure(URLError(.timedOut)) == .other)
     }
 }

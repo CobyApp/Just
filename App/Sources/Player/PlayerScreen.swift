@@ -1,8 +1,11 @@
 import RingRingCore
 import RingRingDesign
 import RingRingMusic
+import RingRingSensei
 import SwiftData
 import SwiftUI
+// The pack download is offered from a view; see `packDownload`.
+@preconcurrency import Translation
 
 struct PlayerScreen: View {
     let track: Track
@@ -16,6 +19,10 @@ struct PlayerScreen: View {
     @State private var showsWords = false
     @State private var showsSyncOffset = false
     @State private var savedBanner: String?
+    /// Non-nil while the translation language pack is being downloaded, the one
+    /// time it is needed. This is what makes sentence translations actually
+    /// appear on a fresh device rather than only word meanings.
+    @State private var packDownload: TranslationSession.Configuration?
 
     var body: some View {
         ZStack {
@@ -69,15 +76,7 @@ struct PlayerScreen: View {
                 PreparingView(
                     track: track,
                     artwork: artwork.image,
-                    phase: session?.phase ?? .loadingLyrics,
-                    onCancel: { app.closePlayer() },
-                    onSkip: (session?.canSkipWaiting ?? false)
-                        ? { session?.skipWaiting() }
-                        : nil,
-                    onUseQuick: (session?.canUseQuickAnalysis ?? false)
-                        ? { session?.useQuickAnalysis() }
-                        : nil,
-                    onChoose: { depth, remember in session?.choose(depth, remember: remember) }
+                    onCancel: { app.closePlayer() }
                 )
             }
         }
@@ -101,6 +100,16 @@ struct PlayerScreen: View {
                 autoAnalysis: app.autoAnalysis.allowsAutoRun
             )
             self.session = session
+
+            // The app's one ad, during the lyric lookup — the moment the reader
+            // is waiting and nothing they do shortens it. A cached song is ready
+            // at once, so `stillWaiting` returns false before the ad loads and
+            // none is shown; a song fetched over the network gets the wait.
+            AnalysisInterstitial.shared.show(
+                for: track.id,
+                pendingLines: AnalysisInterstitial.minimumPendingLines
+            ) { session.phase == .loadingLyrics }
+
             await session.prepare()
 
             // Backing out during preparation must leave no trace, so the song
@@ -125,33 +134,26 @@ struct PlayerScreen: View {
             )
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
-        // The app's one ad: a full-screen ad while this song is analysed. Asked
-        // for when analysis actually starts — after the quick/AI choice — and
-        // declined by `AnalysisInterstitial` when the wait is too short to
-        // matter or this song already had one.
+        // Fetched at launch so the first song's ad is ready the moment its
+        // player opens rather than loading while the reader waits.
         .task { await AnalysisInterstitial.shared.preload() }
-        .onChange(of: session?.phase) { _, phase in
-            guard let session, case .analyzing(let done, let total, _) = phase else { return }
-            AnalysisInterstitial.shared.show(for: track.id, pendingLines: total - done) {
-                if case .analyzing = session.phase { return true }
-                return false
-            }
-        }
-        // The ad is the wait. The analysis runs behind it the whole time, and
-        // once it is closed the reader has waited enough: the song opens at
-        // once and whatever lines are left fill in behind the lyrics, the
-        // same way 「지금 듣기」 hands over. Making them watch a progress bar
-        // after an ad is what read as 「the analysis only starts after the ad」.
-        //
-        // Quick readings only. An AI reading runs for minutes; opened the
-        // moment a five-second ad closes, the song showed almost every line
-        // untranslated and read as the AI not working at all. It keeps its
-        // progress screen, its own early-open rule and 「지금 듣기」.
-        .onChange(of: AnalysisInterstitial.shared.isPresenting) { wasPresenting, isPresenting in
-            guard wasPresenting, !isPresenting, let session, session.canSkipWaiting,
-                  app.sensei.depth == .quick
+        // The sentence half of the reading needs a language pack. It downloads
+        // once, offered here where a reader has just opened a song and wants the
+        // translation — not buried in settings. Only when it is downloadable and
+        // the reader has not turned sentence translation off.
+        .task {
+            guard PlainTranslator.shared.isEnabled,
+                  await PlainTranslator.shared.availability() == .supported
             else { return }
-            session.skipWaiting()
+            packDownload = PlainTranslator.configuration
+        }
+        .translationTask(packDownload) { translation in
+            try? await translation.prepareTranslation()
+            // The translator gave up before the pack arrived; tell it that
+            // changed, then fill the lines this song left blank.
+            await app.sensei.refreshTranslator()
+            session?.analyzeAll()
+            packDownload = nil
         }
         .sheet(isPresented: $showsSyncOffset) {
             if let session {

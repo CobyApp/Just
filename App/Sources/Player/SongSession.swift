@@ -5,7 +5,6 @@ import RingRingSensei
 import Observation
 import SwiftData
 import SwiftUI
-import os
 
 /// Everything that belongs to the song currently open: its lyrics, its
 /// analysis progress, and the library record they get written back to.
@@ -20,13 +19,11 @@ final class SongSession {
 
     /// How far the song is from being ready to read.
     ///
-    /// The player shows a finished song or nothing at all, so this is what
-    /// stands between choosing a song and hearing it.
+    /// Only the lyrics stand between choosing a song and hearing it now: the
+    /// quick reading is fast enough to fill in behind the words rather than
+    /// before them, so there is no analysis wait to show.
     enum Phase: Equatable {
         case loadingLyrics
-        /// Waiting for the reader to say quick or AI.
-        case choosingDepth
-        case analyzing(done: Int, total: Int, remaining: TimeInterval?)
         case ready
     }
 
@@ -51,10 +48,6 @@ final class SongSession {
     private let sensei: Sensei
     private let client = LRCLIBClient()
     private var bulkTask: Task<Void, Never>?
-    /// The analysis `prepare()` is waiting on, so it can be let go of.
-    private var prepareAnalysis: Task<Void, Never>?
-    /// Set when the user chose to start listening before analysis finished.
-    private var skipRequested = false
 
     private let autoAnalysis: Bool
 
@@ -87,9 +80,10 @@ final class SongSession {
 
     /// Everything that has to happen before the player may open.
     ///
-    /// Analysis is awaited rather than left running behind the lyrics: the
-    /// player shows a finished song, and a song filling in line by line under
-    /// the reader is the thing this replaces.
+    /// Only the lyrics are waited for. The quick reading is fast, so it runs
+    /// behind the words — the song opens the moment the lyrics are in, and the
+    /// translations fill in line by line, reported by the same progress bar a
+    /// manual pass uses.
     func prepare() async {
         // Claiming the shared cache is the session's own job, not the caller's.
         // Doing it here is what orders it correctly against the outgoing
@@ -97,9 +91,10 @@ final class SongSession {
         // scope, so its work is saved before this song takes the cache over.
         // Re-opening the same song is a no-op and keeps everything cached.
         sensei.reset(for: track.id)
-        // Before the quick/AI question, which is only asked when the model
-        // can be used — read now, not as it was at launch.
-        sensei.refreshAvailability()
+        // The language pack may have been downloaded, or the setting changed,
+        // since the last song — read now so lines are not left blank on a stale
+        // "no translator" answer.
+        await sensei.refreshTranslator()
 
         // The song enters the library as soon as it is opened, so "recently
         // played" works without an explicit save step.
@@ -121,181 +116,19 @@ final class SongSession {
             await fetchLyrics()
         }
 
-        // Asked here, once the lyrics are in and before any work starts. Only
-        // where there is a choice to make — a device without the AI has one
-        // reading, and asking would offer something it cannot do.
-        if autoAnalysis, sensei.usesOnDeviceModel, AnalysisDepthPreference.asksEveryTime,
-           let lyrics, !sensei.pendingLines(in: lyrics).isEmpty {
-            // Only when there is something left to translate. A song already
-            // read through has nothing the answer could change, and being asked
-            // how to translate a finished song reads as the app forgetting.
-            //
-            // Waited for here rather than returned from. The first version
-            // returned at this point and let `choose` start the analysis on its
-            // own task — which meant `prepare()` came back while the phase was
-            // still the question, the caller's `phase == .ready` check failed,
-            // and playback was never started. The song opened, translated, and
-            // sat at 0:00. Suspending keeps the caller's sequence intact: it
-            // awaits `prepare()`, and when that returns the song is ready.
-            phase = .choosingDepth
-            await withTaskCancellationHandler {
-                await withCheckedContinuation { continuation in
-                    choiceContinuation = continuation
-                }
-            } onCancel: {
-                // 「중단」 tears the task down. The continuation must not be
-                // left hanging, so it is resumed and the cancellation check
-                // below does the rest.
-                Task { @MainActor [weak self] in self?.resumeChoice() }
-            }
-            guard !Task.isCancelled else { return }
-        }
-        await runAnalysis()
-    }
-
-    private var choiceContinuation: CheckedContinuation<Void, Never>?
-
-    private func resumeChoice() {
-        choiceContinuation?.resume()
-        choiceContinuation = nil
-    }
-
-    /// The reader answered the prompt.
-    ///
-    /// `remember` turns the prompt off and keeps this answer as the default;
-    /// otherwise the choice is for this song only and the next one asks again.
-    func choose(_ depth: AnalysisDepth, remember: Bool) {
-        guard phase == .choosingDepth else { return }
-        sensei.depth = depth
-        if remember {
-            AnalysisDepthPreference.chosen = depth
-            AnalysisDepthPreference.asksEveryTime = false
-        }
-        resumeChoice()
-    }
-
-    /// Everything after the lyrics: the analysis pass and the hand-over.
-    private func runAnalysis() async {
-        // "안 함" and low-power mode keep their meaning: a setting made to save
-        // energy must not turn into a ten-minute wait. Those songs open at once
-        // and analyse the lines the reader taps, as before.
-        if autoAnalysis {
-            // Run as a child task so the wait can be abandoned without
-            // abandoning the work — `skipWaiting` cancels the wait, and what the
-            // model already produced is flushed either way.
-            let analysis = Task { await self.analyzeRemaining() }
-            prepareAnalysis = analysis
-            await analysis.value
-            prepareAnalysis = nil
-        }
-
         guard !Task.isCancelled else { return }
         phase = .ready
-
-        // The rest of the song keeps going behind the lyrics, reported by the
-        // progress bar the player already has for a manual pass.
-        if skipRequested { analyzeAll() }
+        // Behind the lyrics, when the reader has not turned it off.
+        if autoAnalysis { analyzeAll() }
     }
 
-    /// Opens the player now and finishes analysing behind it.
-    ///
-    /// The default is still to wait: a song that fills in under the reader is
-    /// what the waiting screen exists to avoid. But on a long song the wait runs
-    /// into minutes, and "listen now, read what is ready" is a reasonable thing
-    /// to want — so it is offered rather than assumed.
-    func skipWaiting() {
-        guard case .analyzing = phase else { return }
-        skipRequested = true
-        prepareAnalysis?.cancel()
-    }
-
-    /// Abandons the slow reading and lets the fast one finish the song.
-    ///
-    /// Nothing is cancelled and nothing is thrown away. The run in flight asks
-    /// `sensei` which mode it is in once per line, so the line already with the
-    /// model still comes back as the model's — and every line after it is
-    /// answered from the dictionary immediately. The lines already analysed
-    /// keep the better answer they were given.
-    ///
-    /// The choice is remembered, and the button says so. Leaving it to expire
-    /// at the next launch would be a mode the reader cannot see, cannot find in
-    /// settings, and did not know they were still in.
-    func useQuickAnalysis() {
-        guard sensei.depth == .deep else { return }
-        sensei.depth = .quick
-        AnalysisDepthPreference.chosen = .quick
-    }
-
-    /// Whether there is a slow reading in progress to abandon.
-    var canUseQuickAnalysis: Bool {
-        guard sensei.usesOnDeviceModel, sensei.depth == .deep else { return false }
-        if case .analyzing = phase { return true }
-        return false
-    }
-
-    var canSkipWaiting: Bool {
-        if case .analyzing = phase { return true }
-        return false
-    }
-
-    /// One pass over the lines that still need the model.
-    ///
-    /// Exactly one. A line the model keeps failing on stays unsettled, so
-    /// looping until nothing is pending would never let the song open.
-    private static let log = Logger(subsystem: "com.coby.ringring", category: "analysis")
-
-    private func analyzeRemaining() async {
-        guard let lyrics else { return }
-        let pending = sensei.pendingLines(in: lyrics)
-        guard !pending.isEmpty else { return }
-
-        var pace = AnalysisPace()
-        var lastTick = Date.now
-        phase = .analyzing(done: 0, total: pending.count, remaining: nil)
-
-        await sensei.analyzeAll(
-            lyrics: lyrics,
-            songTitle: track.title,
-            artist: track.artist
-        ) { done, total in
-            let now = Date.now
-            pace.record(now.timeIntervalSince(lastTick))
-            lastTick = now
-            let remaining = pace.estimate(remaining: total - done)
-            Self.log.info("analysed \(done)/\(total)")
-            self.phase = .analyzing(done: done, total: total, remaining: remaining)
-
-            // Handed over rather than endured. Waiting for a finished song is
-            // still the default and still what happens on a song that finishes
-            // quickly — but once the first few lines have been timed and say
-            // this one runs into minutes, the reader gets the lyrics now and
-            // the rest fills in behind them. Same mechanism as the button,
-            // decided from the same number the label is showing.
-            if WaitBudget.shouldOpenEarly(estimate: remaining, done: done) {
-                self.skipWaiting()
-            }
-            // Flushed periodically rather than per line: `flush` re-encodes the
-            // whole analysis dictionary, so doing it on every line makes saving
-            // quadratic in the length of the song. Every fifth line still keeps
-            // a cancelled run's work.
-            if done % 5 == 0 { self.flush() }
-        }
-        flush()
-    }
-
-    /// Re-runs the search with a corrected artist and title, then prepares the
-    /// song properly.
-    ///
-    /// Going back through preparation rather than analysing behind the lyrics
-    /// keeps one rule: the player only ever shows a finished song.
+    /// Re-runs the search with a corrected artist and title.
     func retryLyrics(artistOverride: String?, titleOverride: String?) async {
         phase = .loadingLyrics
         await fetchLyrics(artistOverride: artistOverride, titleOverride: titleOverride)
-        if autoAnalysis {
-            await analyzeRemaining()
-        }
         guard !Task.isCancelled else { return }
         phase = .ready
+        if autoAnalysis { analyzeAll() }
     }
 
     /// Lyrics the reader pasted in, because no database had them.
@@ -311,11 +144,9 @@ final class SongSession {
         let lyrics = LRCParser.parse(trimmed, source: "직접 입력")
         lyricsState = .ready(lyrics)
         song?.lyrics = lyrics
-        if autoAnalysis {
-            await analyzeRemaining()
-        }
         guard !Task.isCancelled else { return }
         phase = .ready
+        if autoAnalysis { analyzeAll() }
     }
 
     /// Sends pasted lyrics back to LRCLIB so the song is found automatically
@@ -385,10 +216,10 @@ final class SongSession {
     /// Analyses every line that has none yet, once, and writes the result to
     /// the song record.
     ///
-    /// Only reachable from the player's menu now. Opening a song runs the same
-    /// pass through `prepare()` and waits for it, so what is left here is the
-    /// leftovers: lines the model failed on, which stay unsettled and are worth
-    /// another attempt without reopening the song.
+    /// Runs behind the lyrics: `prepare()` starts it as soon as the song opens,
+    /// and the player's menu can start it again for whatever is still blank —
+    /// lines the translator could not reach the first time, now that a language
+    /// pack may have arrived.
     func analyzeAll() {
         guard let lyrics, bulkTask == nil else { return }
         let pending = sensei.pendingLines(in: lyrics)

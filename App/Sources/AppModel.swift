@@ -118,7 +118,6 @@ final class AppModel {
         dailyGoal = storedGoal > 0 ? storedGoal : 20
         autoAnalysis = UserDefaults.standard.string(forKey: Self.autoAnalysisKey)
             .flatMap(AutoAnalysisPolicy.init(rawValue:)) ?? .unlessLowPower
-        sensei.prewarm()
 
         // The store publishes the schedule after every grade and save; the
         // reminder and the badge are how it reaches the user outside the app.
@@ -127,17 +126,9 @@ final class AppModel {
         JustStore.oshi = widgetOshi
     }
 
-    /// What is answering right now — the mode, not merely what the device can
-    /// do. Availability used to be the whole story; now the reader chooses, and
-    /// a device that *can* run Apple Intelligence but is set to quick should not
-    /// claim to be using it.
-    var engineLabel: String {
-        guard sensei.usesOnDeviceModel else { return "사전 (오프라인)" }
-        switch sensei.depth {
-        case .quick: return "빠른 번역"
-        case .deep: return "AI 번역"
-        }
-    }
+    /// How a line is read: the bundled dictionary for the words and grammar, the
+    /// system translator for the sentence.
+    var engineLabel: String { "사전 + 시스템 번역" }
 
     var playbackLabel: String {
         player.isPreview ? "미리듣기 30초" : "YouTube 영상"
