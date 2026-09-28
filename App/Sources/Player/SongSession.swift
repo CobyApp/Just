@@ -242,7 +242,7 @@ final class SongSession {
     ///
     /// Exactly one. A line the model keeps failing on stays unsettled, so
     /// looping until nothing is pending would never let the song open.
-    private static let log = Logger(subsystem: "com.coby.just", category: "analysis")
+    private static let log = Logger(subsystem: "com.coby.ringring", category: "analysis")
 
     private func analyzeRemaining() async {
         guard let lyrics else { return }

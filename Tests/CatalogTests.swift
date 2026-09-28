@@ -149,7 +149,7 @@ struct YouTubeClientTests {
     func groupForArtist() {
         #expect(IdolGroup.group(forArtist: "FRUITS ZIPPER")?.name == "FRUITS ZIPPER")
         #expect(IdolGroup.group(forArtist: "=LOVE")?.name == "=LOVE")
-        #expect(IdolGroup.group(forArtist: "米津玄師") == nil)
+        #expect(IdolGroup.group(forArtist: "宇多田ヒカル") == nil)
     }
 
     @Test("공식 MV가 자막 재업로드를 이긴다")

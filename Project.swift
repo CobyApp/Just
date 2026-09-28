@@ -2,7 +2,7 @@ import ProjectDescription
 
 // MARK: - Shared configuration
 
-private let bundlePrefix = "com.coby.just"
+private let bundlePrefix = "com.coby.ringring"
 private let iOSTarget: DeploymentTargets = .iOS("26.0")
 private let allDevices: Destinations = [.iPhone, .iPad]
 
@@ -75,7 +75,7 @@ private func module(
 // MARK: - Project
 
 let project = Project(
-    name: "Just",
+    name: "RingRing",
     organizationName: "Coby",
     options: .options(
         defaultKnownRegions: ["ko", "ja", "en"],
@@ -105,13 +105,13 @@ let project = Project(
         ),
 
         .target(
-            name: "Just",
+            name: "RingRing",
             destinations: allDevices,
             product: .app,
             bundleId: bundlePrefix,
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "우타링",
+                "CFBundleDisplayName": "링링",
                 // Driven by the build settings, not literals. Tuist's default
                 // hardcodes these, which would silently discard the build
                 // number fastlane passes as CURRENT_PROJECT_VERSION and make
@@ -203,7 +203,7 @@ let project = Project(
             bundleId: "\(bundlePrefix).widget",
             deploymentTargets: iOSTarget,
             infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "우타링",
+                "CFBundleDisplayName": "링링",
                 // Same reason as the app target, and additionally: an extension
                 // whose version differs from its container is rejected at
                 // upload. Tuist's default hardcodes 1.0/1, so without these the
@@ -263,7 +263,7 @@ let project = Project(
             infoPlist: .default,
             sources: ["Report/**"],
             dependencies: [
-                .target(name: "Just"),
+                .target(name: "RingRing"),
                 .target(name: "JustCore"),
                 .target(name: "JustLyrics"),
                 .target(name: "JustSensei"),
@@ -275,18 +275,18 @@ let project = Project(
         // The default scheme tests the fast suite only, so `xcodebuild test`
         // and CI stay as they were. The report is asked for by name.
         .scheme(
-            name: "Just",
+            name: "RingRing",
             shared: true,
-            buildAction: .buildAction(targets: ["Just"]),
+            buildAction: .buildAction(targets: ["RingRing"]),
             testAction: .targets(["JustTests"]),
-            runAction: .runAction(executable: "Just")
+            runAction: .runAction(executable: "RingRing")
         ),
         .scheme(
-            name: "JustReport",
+            name: "RingRingReport",
             shared: true,
-            buildAction: .buildAction(targets: ["Just", "JustReport"]),
+            buildAction: .buildAction(targets: ["RingRing", "JustReport"]),
             testAction: .targets(["JustReport"]),
-            runAction: .runAction(executable: "Just")
+            runAction: .runAction(executable: "RingRing")
         ),
     ]
 )

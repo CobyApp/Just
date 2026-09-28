@@ -235,10 +235,10 @@ public final class OnDeviceSensei {
     public static var isAvailable: Bool { availability == nil }
 
     /// Tries the smallest possible requests and logs every error in full
-    /// (subsystem com.coby.just, category model) — for telling a broken
+    /// (subsystem com.coby.ringring, category model) — for telling a broken
     /// model apart from a prompt the model dislikes.
     public static func probe() async {
-        let log = Logger(subsystem: "com.coby.just", category: "model")
+        let log = Logger(subsystem: "com.coby.ringring", category: "model")
         for (name, model) in [("default", SystemLanguageModel.default), ("permissive", SystemLanguageModel(guardrails: .permissiveContentTransformations))] {
             log.info("probe \(name, privacy: .public): availability \(String(describing: model.availability), privacy: .public)")
             for prompt in ["Say hello.", "「君の笑顔が大好きだよ」を韓国語に訳してください。"] {

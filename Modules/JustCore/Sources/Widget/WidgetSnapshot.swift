@@ -164,7 +164,7 @@ public struct WidgetSnapshot: Codable, Sendable, Equatable {
 
 /// Reads and writes the snapshot in the shared container.
 public enum WidgetStore {
-    public static let appGroup = "group.com.coby.just"
+    public static let appGroup = "group.com.coby.ringring"
     private static let filename = "widget-snapshot.json"
 
     private static var url: URL? {

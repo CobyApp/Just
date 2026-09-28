@@ -47,6 +47,6 @@ jobs:
       - name: Test
         run: |
           set -o pipefail
-          xcodebuild -workspace Just.xcworkspace -scheme Just \
+          xcodebuild -workspace RingRing.xcworkspace -scheme RingRing \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -configuration Debug test | xcbeautify

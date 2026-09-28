@@ -14,6 +14,9 @@ struct GroupsScreen: View {
     @Query(sort: \StudySong.lastOpenedAt, order: .reverse) private var songs: [StudySong]
 
     @State private var showsSettings = false
+    /// The home filter. Nil shows everything (with the oshi and continue
+    /// shelves); a genre narrows to its sections so 96 groups stay findable.
+    @State private var genre: IdolGroup.Genre?
 
     /// Shared through `AppModel` so constructing this screen stays cheap —
     /// see `AppModel.groupArtwork`.
@@ -33,10 +36,13 @@ struct GroupsScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: JustTheme.Space.section) {
                         header
-                        if let oshi = app.oshi { oshiShelf(oshi) }
-                        learningGuide
-                        if !songs.isEmpty { continueShelf }
-                        ForEach(IdolGroup.Label.allCases, id: \.self) { label in
+                        genreBar
+                        if genre == nil {
+                            if let oshi = app.oshi { oshiShelf(oshi) }
+                            learningGuide
+                            if !songs.isEmpty { continueShelf }
+                        }
+                        ForEach(visibleLabels, id: \.self) { label in
                             groupSection(label)
                         }
                     }
@@ -122,6 +128,48 @@ struct GroupsScreen: View {
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    private var visibleLabels: [IdolGroup.Label] {
+        genre.map { $0.labels } ?? IdolGroup.Label.allCases
+    }
+
+    /// Genre chips: a coarse filter over the ten fine sections.
+    private var genreBar: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: JustTheme.Space.tight) {
+                genreChip(nil, "전체")
+                ForEach(IdolGroup.Genre.allCases, id: \.self) { g in
+                    genreChip(g, g.rawValue)
+                }
+            }
+            .padding(.horizontal, JustTheme.Space.regular)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func genreChip(_ value: IdolGroup.Genre?, _ title: String) -> some View {
+        let selected = genre == value
+        return Button {
+            withAnimation(.snappy) { genre = value }
+            Haptics.tick()
+        } label: {
+            Text(title)
+                .kawaiiFont(14, weight: .black, relativeTo: .subheadline)
+                .foregroundStyle(selected ? .white : JustTheme.Kawaii.ink)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background {
+                    if selected {
+                        Capsule().fill(JustTheme.Kitsch.candy)
+                    } else {
+                        Capsule().fill(.white)
+                        Capsule().strokeBorder(JustTheme.Kitsch.bubblegum, lineWidth: 1.5)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     // MARK: - Oshi

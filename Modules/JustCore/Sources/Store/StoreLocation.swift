@@ -8,7 +8,7 @@ import SwiftData
 /// The store used to be opened with a bare `ModelConfiguration()`, whose
 /// `groupContainer` defaults to `.automatic`. With no App Group entitlement that
 /// means the app's own Application Support; the moment the widget added
-/// `group.com.coby.just`, the same call silently switched to the group
+/// `group.com.coby.ringring`, the same call silently switched to the group
 /// container — and anyone updating from a pre-widget build opened an empty
 /// library while their words sat in the old file.
 ///
@@ -88,7 +88,7 @@ enum StoreLocation {
             guard isEmpty else {
                 // Two libraries; the group one wins and the old file stays on
                 // disk untouched. Logged, since those words are now unseen.
-                Logger(subsystem: "com.coby.just", category: "store")
+                Logger(subsystem: "com.coby.ringring", category: "store")
                     .notice("legacy store left in place: group store already has data")
                 return .keptExisting
             }

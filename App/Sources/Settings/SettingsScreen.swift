@@ -132,7 +132,7 @@ struct SettingsScreen: View {
                         )
                     }
                     if app.reminder.isDenied {
-                        Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > 우타링에서 켜 주세요.")
+                        Text("알림 권한이 거부되어 있습니다. 설정 > 알림 > 링링에서 켜 주세요.")
                             .font(JustTheme.Font.caption)
                             .foregroundStyle(JustTheme.Feedback.warning)
                     }

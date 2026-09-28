@@ -114,7 +114,7 @@ final class AnalysisInterstitial: NSObject, FullScreenContentDelegate {
     static let minimumPendingLines = 5
     static let minimumGap: TimeInterval = 120
 
-    private static let log = Logger(subsystem: "com.coby.just", category: "analysis")
+    private static let log = Logger(subsystem: "com.coby.ringring", category: "analysis")
 
     private let unitID: String
     private var ad: InterstitialAd?

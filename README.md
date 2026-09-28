@@ -1,8 +1,8 @@
-# 우타링 (Utaring)
+# 링링 (RingRing)
 
-> 앱 이름은 **우타링**입니다. 歌(우타, 노래)에 -ring을 붙인 것으로, 한국어 화자가 한눈에
-> 읽히고 무엇을 하는 앱인지 소리로 전합니다. 저장소 이름 `Just`와 번들 ID
-> `com.coby.just`는 그대로 둡니다 — 바꾸면 기기의 앱 데이터와 프로비저닝이 함께 끊깁니다.
+> 앱 이름은 **링링**입니다. Xcode 프로젝트·스킴·워크스페이스는 `RingRing`,
+> 번들 ID는 `com.coby.ringring`, App Group은 `group.com.coby.ringring`입니다.
+> SwiftPM 모듈 이름(`JustCore` 등)은 대량 변경을 피해 그대로 둡니다.
 
 좋아하는 일본 아티스트 — 여자·남자 아이돌부터 밴드까지 — 의 노래 가사로 일본어를 공부하는 iPhone / iPad 앱.
 
@@ -63,7 +63,7 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 제한을 걸어 둡니다.
 
 - **API 제한**: YouTube Data API v3만 허용
-- **애플리케이션 제한**: iOS 앱, 번들 ID `com.coby.just`
+- **애플리케이션 제한**: iOS 앱, 번들 ID `com.coby.ringring`
   (iOS 제한은 요청 헤더로 판별하는 것이라 완전한 방어는 아닙니다)
 - **할당량 알림**: Cloud Monitoring에서 일일 사용량 경보를 걸어 두기
 
@@ -99,9 +99,10 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
           └─ 듣고 받아쓰기
 ```
 
-이 앱은 **명단에 있는 일본 아티스트 60팀만** 다룹니다 — 여자 아이돌, 남자 아이돌,
-밴드·아티스트. 검색이 없는 것이 결함이 아니라 정의입니다 — 좋아하는 그룹이 첫
-화면에 있고 두 번 눌러 곡에 닿는 것이 강점입니다. 홈은 소속·계열별 섹션으로 나뉩니다.
+이 앱은 **명단에 있는 일본 아티스트 96팀만** 다룹니다 — 여자 아이돌, 남자 아이돌,
+밴드·아티스트, 보컬로이드, 애니송. 검색이 없는 것이 결함이 아니라 정의입니다 — 좋아하는 그룹이 첫
+화면에 있고 두 번 눌러 곡에 닿는 것이 강점입니다. 홈 상단의 장르 칩(전체·여자 아이돌·남자 아이돌·밴드·보컬로이드·애니송)으로
+먼저 좁히고, 그 안에서 소속·계열별 섹션으로 나뉩니다.
 
 | 섹션 | 그룹 |
 |---|---|
@@ -112,8 +113,10 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 | Hello! Project | モーニング娘。 · アンジュルム · Juice=Juice · つばきファクトリー · BEYOOOOONDS |
 | STARDUST | ももいろクローバーZ · 私立恵比寿中学 · 超ときめき♡宣伝部 · いぎなり東北産 |
 | 그 밖의 인기 그룹 | iLiFE! · 高嶺のなでしこ · #ババババンビ · ME:I · NiziU · 新しい学校のリーダーズ |
-| 남자 아이돌 | Snow Man · SixTONES · なにわ男子 · King & Prince · Hey! Say! JUMP · BE:FIRST · JO1 · INI · Da-iCE |
-| 밴드 · 아티스트 | YOASOBI · Official髭男dism · Mrs. GREEN APPLE · King Gnu · Vaundy · back number · RADWIMPS · ONE OK ROCK · Ado · あいみょん · ヨルシカ · ずっと真夜中でいいのに。 · SEKAI NO OWARI · 緑黄色社会 · Saucy Dog · マカロニえんぴつ · 結束バンド · スピッツ · BUMP OF CHICKEN · サカナクション |
+| 남자 아이돌 | Snow Man · SixTONES · なにわ男子 · King & Prince · Hey! Say! JUMP · BE:FIRST · JO1 · INI · Da-iCE · timelesz · Travis Japan · WEST. · Aぇ! group · M!LK · OWV · DXTEEN · MAZZEL · THE RAMPAGE · GENERATIONS · FANTASTICS |
+| 밴드 · 아티스트 | YOASOBI · Official髭男dism · Mrs. GREEN APPLE · King Gnu · Vaundy · back number · RADWIMPS · ONE OK ROCK · Ado · あいみょん · ヨルシカ · ずっと真夜中でいいのに。 · SEKAI NO OWARI · 緑黄色社会 · Saucy Dog · マカロニえんぴつ · 結束バンド · スピッツ · BUMP OF CHICKEN · サカナクション · 米津玄師 |
+| 보컬로이드 | 初音ミク · DECO*27 · ピノキオピー · Kikuo · wowaka · Neru · Eve · まふまふ · りぶ |
+| 애니송 | LiSA · Aimer · ClariS · fripSide · OxT · FLOW · GRANRODEO · JAM Project · 藍井エイル · 春奈るな · 高橋洋子 · 宮野真守 · 水樹奈々 · angela |
 
 카탈로그 ID·공식 YouTube 채널·일본어 별칭은 `IdolGroup.all`에 있습니다. ID는 이름으로
 추측하지 않고 iTunes 조회로, 채널은 YouTube 검색으로 확인한 값입니다. 아이돌 계열엔
@@ -457,11 +460,11 @@ MV는 음원과 시작이 다를 수 있습니다(인트로 연출). 가사가 �
 
 ```bash
 # 시뮬레이터
-xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+xcodebuild -workspace RingRing.xcworkspace -scheme JustReport \
   -destination 'platform=iOS Simulator,name=iPhone 17' test
 
 # 실기기 (모델이 진짜인 곳). 기기 잠금을 풀어야 합니다.
-xcodebuild -workspace Just.xcworkspace -scheme JustReport \
+xcodebuild -workspace RingRing.xcworkspace -scheme JustReport \
   -destination 'platform=iOS,name=Coby' -allowProvisioningUpdates test
 ```
 
@@ -613,7 +616,7 @@ VoiceOver에서 숨기고, 동작 줄이기가 켜져 있으면 반짝이도 멈
 여는 것은 스키마 변경을 따라다녀야 하고 쓰기도 못 하며, 숫자 세 개를 읽자고
 기존 사용자 데이터를 마이그레이션할 이유도 없습니다.
 
-App Group `group.com.coby.just`가 필요합니다. 자동 서명이 등록하지 못하면
+App Group `group.com.coby.ringring`가 필요합니다. 자동 서명이 등록하지 못하면
 developer.apple.com > Identifiers > App Groups에서 만들고, App ID의
 App Groups 기능에서 연결해 주세요.
 
@@ -697,7 +700,7 @@ Google 안내에 따른 항목을 적어 두었습니다 — 기기 ID, 광고 �
 ## 테스트
 
 ```bash
-xcodebuild -workspace Just.xcworkspace -scheme Just \
+xcodebuild -workspace RingRing.xcworkspace -scheme RingRing \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' test
 ```
 

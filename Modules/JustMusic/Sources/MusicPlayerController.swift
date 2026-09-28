@@ -59,7 +59,7 @@ public final class MusicPlayerController {
     /// session cut the clip off mid-way.
     @ObservationIgnored private var hasWeb = false
     /// The log, whether or not the page exists.
-    @ObservationIgnored private let log = Logger(subsystem: "com.coby.just", category: "video")
+    @ObservationIgnored private let log = Logger(subsystem: "com.coby.ringring", category: "video")
     @ObservationIgnored private let previewPlayer = AVPlayer()
     @ObservationIgnored private let catalog = ITunesCatalog()
     @ObservationIgnored private let youtube: YouTubeClient
@@ -775,7 +775,7 @@ private final class WebPlayer: NSObject, WKScriptMessageHandler, WKNavigationDel
     private unowned let owner: MusicPlayerController
     /// What the page says, for the log — the player's numeric errors are
     /// otherwise invisible from outside the web view.
-    let log = Logger(subsystem: "com.coby.just", category: "video")
+    let log = Logger(subsystem: "com.coby.ringring", category: "video")
     private(set) var pageIsReady = false
     private var queued: (videoID: String, autoplay: Bool)?
     /// Numbers each video handed to the page. The page stamps every message

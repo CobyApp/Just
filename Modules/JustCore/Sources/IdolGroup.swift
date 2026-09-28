@@ -43,12 +43,38 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
         case stardust = "STARDUST"
         case boyGroup = "남자 아이돌"
         case band = "밴드 · 아티스트"
+        case vocalo = "보컬로이드"
+        case anime = "애니송"
         case more = "그 밖의 인기 그룹"
 
         /// Whether the section names who the group belongs to, and so is
         /// worth repeating on the group's own page. The last section is only
         /// a shelf.
         public var namesAFamily: Bool { self != .more }
+
+        /// The broad genre this section belongs to, for the home filter. Ten
+        /// fine sections are too many to scan; five genres are not.
+        public var genre: Genre {
+            switch self {
+            case .boyGroup: .boy
+            case .band: .band
+            case .vocalo: .vocalo
+            case .anime: .anime
+            default: .girl
+            }
+        }
+    }
+
+    /// The home screen's top-level filter — coarser than `Label`.
+    public enum Genre: String, CaseIterable, Sendable {
+        case girl = "여자 아이돌"
+        case boy = "남자 아이돌"
+        case band = "밴드 · 아티스트"
+        case vocalo = "보컬로이드"
+        case anime = "애니송"
+
+        /// The sections under this genre, in roster order.
+        public var labels: [Label] { Label.allCases.filter { $0.genre == self } }
     }
 
     public init(id: String, name: String, readingKo: String, label: Label, hue: Double, youtubeChannels: [String] = [], aliases: [String] = []) {
@@ -236,6 +262,83 @@ public extension IdolGroup {
               aliases: ["バンプオブチキン", "バンプ"]),
         .init(id: "252312257", name: "サカナクション", readingKo: "사카낙션", label: .band, hue: 0.56,
               aliases: ["sakanaction", "サカナ"]),
+        // Boy idols — more of them.
+        .init(id: "1797624061", name: "timelesz", readingKo: "타임리즈", label: .boyGroup, hue: 0.60,
+              aliases: ["タイムレス", "セクゾ", "Sexy Zone"]),
+        .init(id: "1649344367", name: "Travis Japan", readingKo: "트래비스 재팬", label: .boyGroup, hue: 0.55,
+              aliases: ["トラビスジャパン", "トラジャ"]),
+        .init(id: "1835325063", name: "WEST.", readingKo: "웨스트", label: .boyGroup, hue: 0.08,
+              aliases: ["ジャニーズWEST", "ウエスト"]),
+        .init(id: "1877076596", name: "Aぇ! group", readingKo: "에이그룹", label: .boyGroup, hue: 0.42,
+              aliases: ["Ae! group", "エーグループ"]),
+        .init(id: "1356706755", name: "M!LK", readingKo: "밀크", label: .boyGroup, hue: 0.90,
+              aliases: ["ミルク"]),
+        .init(id: "1528939679", name: "OWV", readingKo: "오더블유브이", label: .boyGroup, hue: 0.68,
+              aliases: ["オウブ"]),
+        .init(id: "1674961337", name: "DXTEEN", readingKo: "디엑스틴", label: .boyGroup, hue: 0.78,
+              aliases: ["ディーエックスティーン"]),
+        .init(id: "1678109085", name: "MAZZEL", readingKo: "마젤", label: .boyGroup, hue: 0.20,
+              aliases: ["マーゼル"]),
+        .init(id: "1193836423", name: "THE RAMPAGE", readingKo: "더 램페이지", label: .boyGroup, hue: 0.02,
+              aliases: ["ザランページ", "ランページ"]),
+        .init(id: "591740317", name: "GENERATIONS", readingKo: "제너레이션즈", label: .boyGroup, hue: 0.62,
+              aliases: ["ジェネレーションズ", "ジェネ"]),
+        .init(id: "1443863086", name: "FANTASTICS", readingKo: "판타스틱스", label: .boyGroup, hue: 0.34,
+              aliases: ["ファンタスティックス"]),
+
+        // Vocaloid — 初音ミク and the producers who define the sound.
+        .init(id: "307078957", name: "初音ミク", readingKo: "하츠네 미쿠", label: .vocalo, hue: 0.48,
+              aliases: ["Hatsune Miku", "ミク", "ボカロ"]),
+        .init(id: "353899348", name: "DECO*27", readingKo: "데코니나", label: .vocalo, hue: 0.98,
+              aliases: ["デコ*27", "デコにーな"]),
+        .init(id: "473591721", name: "ピノキオピー", readingKo: "피노키오피", label: .vocalo, hue: 0.14,
+              aliases: ["PinocchioP", "ピノキオP"]),
+        .init(id: "329020708", name: "Kikuo", readingKo: "키쿠오", label: .vocalo, hue: 0.72,
+              aliases: ["きくお"]),
+        .init(id: "359584491", name: "wowaka", readingKo: "워와카", label: .vocalo, hue: 0.55,
+              aliases: ["ヲワカ", "ボカロP"]),
+        .init(id: "320815306", name: "Neru", readingKo: "네루", label: .vocalo, hue: 0.02,
+              aliases: ["ネル"]),
+        .init(id: "1080967231", name: "Eve", readingKo: "이브", label: .vocalo, hue: 0.62,
+              aliases: ["イブ"]),
+        .init(id: "614405787", name: "まふまふ", readingKo: "마후마후", label: .vocalo, hue: 0.86,
+              aliases: ["Mafumafu"]),
+        .init(id: "524265966", name: "りぶ", readingKo: "리부", label: .vocalo, hue: 0.30,
+              aliases: ["Rib"]),
+
+        // Anime songs (アニソン).
+        .init(id: "573943518", name: "LiSA", readingKo: "리사", label: .anime, hue: 0.95,
+              aliases: ["リサ"]),
+        .init(id: "569972619", name: "Aimer", readingKo: "에메", label: .anime, hue: 0.68,
+              aliases: ["エメ"]),
+        .init(id: "548139430", name: "ClariS", readingKo: "클라리스", label: .anime, hue: 0.90,
+              aliases: ["クラリス"]),
+        .init(id: "328794122", name: "fripSide", readingKo: "프립사이드", label: .anime, hue: 0.60,
+              aliases: ["フリップサイド"]),
+        .init(id: "986704143", name: "OxT", readingKo: "오엑스티", label: .anime, hue: 0.05,
+              aliases: ["オーエックスティー"]),
+        .init(id: "624956375", name: "FLOW", readingKo: "플로우", label: .anime, hue: 0.02,
+              aliases: ["フロウ"]),
+        .init(id: "266646351", name: "GRANRODEO", readingKo: "그랜로데오", label: .anime, hue: 0.08,
+              aliases: ["グランロデオ"]),
+        .init(id: "266646521", name: "JAM Project", readingKo: "잼 프로젝트", label: .anime, hue: 0.62,
+              aliases: ["ジャムプロジェクト", "ジャムプロ"]),
+        .init(id: "569938402", name: "藍井エイル", readingKo: "아오이 에일", label: .anime, hue: 0.58,
+              aliases: ["Eir Aoi", "エイル"]),
+        .init(id: "570031182", name: "春奈るな", readingKo: "하루나 루나", label: .anime, hue: 0.92,
+              aliases: ["Luna Haruna"]),
+        .init(id: "73407309", name: "高橋洋子", readingKo: "다카하시 요코", label: .anime, hue: 0.00,
+              aliases: ["Yoko Takahashi"]),
+        .init(id: "269552506", name: "宮野真守", readingKo: "미야노 마모루", label: .anime, hue: 0.66,
+              aliases: ["Mamoru Miyano"]),
+        .init(id: "308629932", name: "水樹奈々", readingKo: "미즈키 나나", label: .anime, hue: 0.75,
+              aliases: ["Nana Mizuki", "ナナ"]),
+        .init(id: "2299478", name: "angela", readingKo: "안젤라", label: .anime, hue: 0.30,
+              aliases: ["アンジェラ"]),
+
+        // Kenshi Yonezu — Hachi as a Vocaloid producer, now one of Japan's biggest.
+        .init(id: "530814268", name: "米津玄師", readingKo: "요네즈 켄시", label: .band, hue: 0.45,
+              aliases: ["Kenshi Yonezu", "ハチ", "ヨネヅケンシ"]),
     ]
 
     /// Channels shared by several groups.

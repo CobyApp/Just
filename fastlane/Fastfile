@@ -1,8 +1,8 @@
 default_platform(:ios)
 
-WORKSPACE = "Just.xcworkspace"
-SCHEME = "Just"
-APP_IDENTIFIER = "com.coby.just"
+WORKSPACE = "RingRing.xcworkspace"
+SCHEME = "RingRing"
+APP_IDENTIFIER = "com.coby.ringring"
 TEAM_ID = "3Y8YH8GWMM"
 
 # Google's public test publisher. Its ids always fill and never pay.

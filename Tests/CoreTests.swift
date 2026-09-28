@@ -918,7 +918,20 @@ struct IdolGroupTests {
         ]))
         #expect(names.isSuperset(of: ["≠ME", "≒JOY", "乃木坂46", "日向坂46", "AKB48", "モーニング娘。", "ももいろクローバーZ"]))
         #expect(names.isSuperset(of: ["Snow Man", "SixTONES", "YOASOBI", "Official髭男dism", "King Gnu"]))
-        #expect(IdolGroup.all.count >= 60)
+        #expect(names.isSuperset(of: ["初音ミク", "LiSA", "米津玄師", "timelesz", "Ado"]))
+        #expect(IdolGroup.all.count >= 90)
+    }
+
+    @Test("장르마다 그룹이 있고, 모든 라벨이 한 장르에 속한다")
+    func genresPartitionLabels() {
+        for g in IdolGroup.Genre.allCases {
+            #expect(!g.labels.isEmpty, "\(g.rawValue)")
+            #expect(g.labels.allSatisfy { $0.genre == g }, "\(g.rawValue)")
+        }
+        // Every label belongs to exactly one genre's list.
+        let covered = IdolGroup.Genre.allCases.flatMap(\.labels)
+        #expect(Set(covered) == Set(IdolGroup.Label.allCases))
+        #expect(covered.count == IdolGroup.Label.allCases.count)
     }
 
     @Test("모든 섹션에 그룹이 있고, 모든 그룹이 한 섹션에 있다")
