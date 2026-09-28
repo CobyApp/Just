@@ -128,6 +128,16 @@ public enum JustTheme {
         public static let section: CGFloat = 36
     }
 
+    /// Content caps for wide displays, so screens do not stretch edge-to-edge on
+    /// iPad and Mac. Below these the frames are inert, so a phone is untouched.
+    public enum Width {
+        /// A comfortable reading measure for list and detail screens.
+        public static let readable: CGFloat = 760
+        /// A wider cap for card grids, so a big window shows a few more columns
+        /// without the grid running the whole width of a monitor.
+        public static let grid: CGFloat = 1040
+    }
+
     /// Every entry follows Dynamic Type, live — see `JustFontStyle`. They are
     /// descriptions, not `Font`s: `.font(_:)` resolves the size where the text
     /// is drawn, so a change in the text-size setting reaches it at once.
@@ -147,6 +157,13 @@ public enum JustTheme {
 }
 
 public extension View {
+    /// Caps the content's width and centres it, so a screen keeps a comfortable
+    /// measure on iPad and Mac instead of stretching across the whole window. On
+    /// a phone the width is already under the cap, so this does nothing.
+    func readableColumn(_ maxWidth: CGFloat = JustTheme.Width.readable) -> some View {
+        frame(maxWidth: maxWidth).frame(maxWidth: .infinity)
+    }
+
     /// The standard raised container. On the bright screens it is a sticker —
     /// white rim, printed pink shadow; under the dark player, plain glass,
     /// because a sticker next to lyrics is noise where reading happens.

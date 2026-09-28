@@ -67,6 +67,7 @@ struct MySongsScreen: View {
 
             }
             .padding(.vertical, JustTheme.Space.regular)
+            .readableColumn()
         }
         .scrollIndicators(.hidden)
     }

@@ -45,6 +45,7 @@ struct GrammarScreen: View {
                         }
                     }
                     .padding(JustTheme.Space.regular)
+                    .readableColumn()
                 }
                 .scrollIndicators(.hidden)
             }

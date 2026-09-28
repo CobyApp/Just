@@ -73,6 +73,7 @@ struct PracticeScreen: View {
                     ForEach(Self.offeredKinds, id: \.self) { quizRow($0) }
                 }
                 .padding(JustTheme.Space.regular)
+                .readableColumn()
             }
             .scrollIndicators(.hidden)
         }

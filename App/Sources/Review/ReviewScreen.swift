@@ -35,11 +35,17 @@ struct ReviewScreen: View {
         ZStack {
             JustBrandBackground()
 
-            if let current {
-                card(current)
-            } else {
-                finished
+            Group {
+                if let current {
+                    card(current)
+                } else {
+                    finished
+                }
             }
+            // A study card has no reason to grow to a monitor's width; it reads
+            // best as a column, centred, on iPad and Mac.
+            .readableColumn(560)
+            .padding(.horizontal, JustTheme.Space.regular)
         }
         .navigationTitle("복습")
         .navigationBarTitleDisplayMode(.inline)
