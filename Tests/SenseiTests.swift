@@ -1205,9 +1205,11 @@ struct StemDeinflectionTests {
 
     @Test("이치단 동사의 어간에 る를 붙여 찾는다")
     func ichidanStems() {
+        // Stems that are not themselves standalone nouns — 疲れ (피로),
+        // 眺め (경치) now are, and a lookup rightly returns those directly.
         #expect(resolves("溶け", to: "溶ける"))
-        #expect(resolves("疲れ", to: "疲れる"))
-        #expect(resolves("眺め", to: "眺める"))
+        #expect(resolves("倒れ", to: "倒れる"))
+        #expect(resolves("込め", to: "込める"))
         #expect(resolves("忘れ", to: "忘れる"))
     }
 
@@ -1517,6 +1519,73 @@ struct GrammarPatternFalsePositiveTests {
     func realConditionalStillMatches() {
         #expect(patterns("夢ならばもう一度だけ会いたい").contains("〜なら"))
     }
+
+    /// 支える, 冴える, 遮る end in さえる, not the particle 「さえ」.
+    @Test("さえ를 품은 동사는 조사 さえ가 아니다")
+    func saeVerbsAreNotTheParticle() {
+        #expect(!patterns("君を支えるために").contains("〜さえ"))
+        #expect(patterns("君さえいればいい").contains("〜さえ"))
+    }
+
+    /// 包む contains つつ; it is one verb, not the connective 「つつ」.
+    @Test("包む의 つつ는 접속의 つつ가 아니다")
+    func tsutsumuIsNotTheConnective() {
+        #expect(!patterns("そっと花をつつむ").contains("〜つつ"))
+        #expect(patterns("泣きつつ前を向く").contains("〜つつ"))
+    }
+
+    /// 問題, 文句 contain もん without being the sentence-final 「もん」.
+    @Test("問題·文句의 もん은 종조사 もん이 아니다")
+    func monInWordsIsNotFinalParticle() {
+        #expect(!patterns("難しい問題だ").contains("〜もん"))
+        #expect(patterns("だって好きだもん").contains("〜もん"))
+    }
+
+    /// 何回 contains なんか; 鴎(かもめ) contains かも.
+    @Test("何回·かもめ는 なんか·かも가 아니다")
+    func lookalikesForNankaAndKamo() {
+        #expect(!patterns("あと何回会えるかな").contains("〜なんか"))
+        #expect(!patterns("白いかもめが飛ぶ").contains("〜かも"))
+        #expect(patterns("私なんかいらない").contains("〜なんか"))
+    }
+
+    /// A noun + うちに is 家(uchi) + に, "to home", not the temporal pattern.
+    @Test("명사 うちに는 시간의 うちに가 아니다")
+    func nounUchiIsNotTemporal() {
+        #expect(!patterns("うちに帰ろう").contains("〜うちに"))
+        #expect(!patterns("君のうちに行く").contains("〜うちに"))
+        #expect(patterns("若いうちに動こう").contains("〜うちに"))
+    }
+
+    /// 調べきれない has べき after ら, not the auxiliary 「べき」; 食べきる is a
+    /// masked false friend.
+    @Test("調べ·食べ의 べき는 당위의 べき가 아니다")
+    func bekiIsNotInOtherVerbs() {
+        #expect(!patterns("答えを調べきれない").contains("〜べき"))
+        #expect(!patterns("全部食べきる").contains("〜べき"))
+        #expect(patterns("今すぐ行くべきだ").contains("〜べき"))
+    }
+
+    /// 言い訳 ends in わけ without being the explanatory 「わけ」.
+    @Test("言い訳의 わけ는 사정의 わけ가 아니다")
+    func iiwakeIsNotTheReason() {
+        #expect(!patterns("言い訳ばかりする").contains("〜わけ"))
+        #expect(patterns("そういうわけだ").contains("〜わけ"))
+    }
+
+    /// 〜に酔って, 〜に寄って look like 〜によって but are verbs.
+    @Test("酔って·寄って는 によって가 아니다")
+    func niyotteLookalikes() {
+        #expect(!patterns("お酒に酔って眠る").contains("〜によって"))
+        #expect(patterns("風によって揺れる").contains("〜によって"))
+    }
+
+    /// ごめんなさい, おやすみなさい end in なさい without being the command.
+    @Test("ごめんなさい는 명령의 なさい가 아니다")
+    func gomennasaiIsNotACommand() {
+        #expect(!patterns("ごめんなさいと言った").contains("〜なさい"))
+        #expect(patterns("早く起きなさい").contains("〜なさい"))
+    }
 }
 
 @Suite("줄에서 사전이 찾는 뜻")
@@ -1622,6 +1691,72 @@ struct NewGrammarPatternTests {
     func givingAndReceiving() {
         #expect(displays("教えてくれた").contains("〜てくれる"))
         #expect(displays("見てみたい").contains("〜てみる"))
+    }
+
+    @Test("변화·목적 표현을 잡는다")
+    func changeAndPurpose() {
+        #expect(displays("笑えるようになる").contains("〜ようになる"))
+        #expect(displays("忘れないようにする").contains("〜ようにする"))
+        #expect(displays("君に会うために来た").contains("〜ために"))
+        // 〜ようになる/〜ようにする hide the bare 〜ように they contain.
+        #expect(!displays("笑えるようになる").contains("〜ように"))
+    }
+
+    @Test("가정·조언 표현을 잡는다")
+    func conditionsAndAdvice() {
+        #expect(displays("どうしたらいい").contains("〜たらいい"))
+        #expect(displays("言えばいいのに").contains("〜ばいい"))
+        #expect(displays("あの時言えばよかった").contains("〜ばよかった"))
+        #expect(displays("晴れるといいな").contains("〜といい"))
+    }
+
+    @Test("한정·초점 조사를 잡는다")
+    func focusParticles() {
+        #expect(displays("君さえいればいい").contains("〜さえ"))
+        #expect(displays("今こそ立ち上がる").contains("〜こそ"))
+        #expect(displays("泣くどころか笑ってる").contains("〜どころか"))
+        #expect(displays("傷だらけの心").contains("〜だらけ"))
+    }
+
+    @Test("완료·강조 축약형을 잡는다")
+    func contractions() {
+        #expect(displays("消えてった").contains("〜ていく"))
+        #expect(displays("飛んじゃった").contains("〜てしまう"))
+        #expect(displays("会いたくてたまらない").contains("〜てたまらない"))
+    }
+
+    @Test("사역·수동·희망을 구분한다")
+    func voiceAndDesire() {
+        #expect(displays("そばにいさせてください").contains("〜させてください"))
+        #expect(displays("そばにいてほしい").contains("〜てほしい"))
+        #expect(displays("会いたくない").contains("〜たくない"))
+        // 〜させてください hides the 〜させる it is built on.
+        #expect(!displays("そばにいさせてください").contains("〜させる"))
+    }
+
+    @Test("추측·전문 표현을 잡는다")
+    func conjectureAndReport() {
+        #expect(displays("もう戻れないかも").contains("〜かも"))
+        #expect(displays("そんなはずがない").contains("〜はずがない"))
+        #expect(displays("これでいいのかな").contains("〜かな"))
+        #expect(displays("好きだと思う").contains("〜と思う"))
+        // 〜かもしれない hides the shorter 〜かも it contains.
+        #expect(!displays("行けないかもしれない").contains("〜かも"))
+    }
+
+    @Test("시간·이유·역접 표현을 잡는다")
+    func timeReasonContrast() {
+        #expect(displays("若いうちに動く").contains("〜うちに"))
+        #expect(displays("見た途端に泣いた").contains("〜とたん"))
+        #expect(displays("君のおかげで笑えた").contains("〜おかげで"))
+        #expect(displays("子供のくせに生意気だ").contains("〜くせに"))
+    }
+
+    @Test("의무·금지·당위를 잡는다")
+    func obligationAndProhibition() {
+        #expect(displays("もう泣かなくてもいい").contains("〜なくてもいい"))
+        #expect(displays("ここで諦めちゃだめ").contains("〜てはいけない"))
+        #expect(displays("今すぐ行くべきだ").contains("〜べき"))
     }
 }
 

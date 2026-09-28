@@ -171,6 +171,9 @@ Just (앱)
 | 재생 | YouTube 내장 플레이어 (MV) | 영상이 없거나 재생 불가면 30초 미리듣기 |
 | 가사 | LRCLIB | 무인증, 싱크 LRC |
 | 해석 | Apple Intelligence (온디바이스) | 빠르게/정확하게 선택, 사전 + 시스템 번역 |
+| 단어 뜻·읽기 | 번들 사전 | 아래 「번들 사전」 참고 |
+| JLPT 등급 | Jonathan Waller의 JLPT 목록 (CC BY) | tanos.co.uk, [open-anki-jlpt-decks](https://github.com/jamsinclair/open-anki-jlpt-decks) 경유 |
+| 품사 | JMdict (EDRDG, CC BY-SA 4.0) | [jmdict-simplified](https://github.com/scriptin/jmdict-simplified) |
 | 한자 음훈 | 번들 (1,591자) | 한국어 학습자용 |
 
 ### 가사 싱크
@@ -487,16 +490,24 @@ xcodebuild -workspace Just.xcworkspace -scheme JustReport \
 python3 Scripts/build-dictionary.py
 ```
 
-`Scripts/build-dictionary.py`는 옆 프로젝트가 없으면 **직전 빌드에서 가져온
-항목을 그대로 유지**하고, 결과가 이전보다 10% 넘게 줄면 **쓰기를 거부**합니다.
-경고만 내고 진행하던 때에는 6,900개 사전이 179개로 덮여 쓰였고 앱은 어휘 대부분을
-잃은 채로 계속 돌았습니다 — 옆 프로젝트는 모든 기계에 있지 않습니다.
+층을 순서대로 쌓아 만듭니다 — 뒤 층이 앞 층을 덮지 않습니다.
 
-두 층으로 나뉩니다. `Scripts/curated.json`의 149개는 손으로 확인한 것이라 품사와
-JLPT 등급까지 신뢰할 수 있고, 나머지 6.8천개는 옆 프로젝트인 `jlpt-app`의
-일한 단어 데이터에서 가져왔습니다. 후자는 **뜻과 읽기만** 씁니다 — 원본의 `lv`
-필드는 난이도가 아니라 교재 소속 태그라(전 행이 `n1`, 안경과 도서관까지) 등급으로
-쓰면 없느니만 못합니다.
+- `Scripts/curated.json` — 손으로 확인한 항목. 품사·JLPT 등급까지 신뢰합니다.
+- **가져온 뜻·읽기** — 옆 프로젝트 `jlpt-app`의 일한 단어 데이터(~6.8천). 원본의
+  `lv`는 난이도가 아니라 교재 소속 태그라(전 행이 `n1`) 버립니다. 옆 프로젝트가
+  없으면 직전 빌드의 항목을 그대로 유지합니다.
+- `Scripts/corrections.json` — 가져온 뜻·읽기의 수정. JMdict 영어 뜻과 대조해
+  한자어 거짓짝(配信이 「배신」), 다른 읽기의 뜻(角 かく에 「뿔」), 읽기 오타를
+  고칩니다.
+- `Scripts/additions/*.json` — 새 단어. 사전에 없던 JLPT 단어와, 어느 목록에도
+  없지만 아이돌 가사가 기대는 어휘(외래어·의성의태어·팬 용어).
+- `Scripts/data/jlpt-levels.tsv` — JLPT 등급. 등급이 없는 행에 채웁니다.
+- `Scripts/data/jmdict-pos.tsv` — JMdict 품사. 품사가 없는 행에 채웁니다.
+  `Scripts/extract-jmdict.py`로 다시 뽑습니다(JMdict 원본 필요, 저장소엔 없음).
+
+결과가 이전보다 10% 넘게 줄면 **쓰기를 거부**합니다 — 옆 프로젝트가 사라진 채
+빌드하면 어휘 대부분을 잃기 때문입니다. 지금은 약 12,000단어이고, 그중 등급이
+붙은 것이 약 7,900개, 품사가 붙은 것이 약 11,600개입니다.
 
 ### 해석 파이프라인
 
@@ -693,7 +704,6 @@ CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 
 ## 남은 것
 
-- 번들 사전 6.9천 단어 중 등급·품사가 붙은 것은 손으로 확인한 149개뿐입니다.
 - YouTube 검색 할당량은 키 하나를 모든 설치가 나눠 씁니다. 키를 서버에 두는
   프록시(검색 결과 공유 캐시)가 필요합니다.
 
@@ -701,9 +711,15 @@ CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 
 MIT. 다만 번들 데이터의 출처는 구분해서 봐 주세요.
 
-- `Scripts/curated.json` (149단어), `Modules/JustSensei/Resources/kanji-ko.json`
-  (한자 1,591자 음훈), 그리고 `seed-dictionary.json`의 대부분은 이 저장소 소유자의
-  다른 프로젝트에서 가져온 데이터입니다.
+- `Scripts/curated.json`, `Modules/JustSensei/Resources/kanji-ko.json`
+  (한자 1,591자 음훈), 그리고 `seed-dictionary.json`의 뜻·읽기 대부분은 이 저장소
+  소유자의 다른 프로젝트에서 가져온 데이터입니다.
+- `Scripts/data/jlpt-levels.tsv`(JLPT 등급)는 Jonathan Waller의 JLPT 단어
+  목록(tanos.co.uk, CC BY)에서, [open-anki-jlpt-decks](https://github.com/jamsinclair/open-anki-jlpt-decks)를
+  거쳐 가져왔습니다.
+- `Scripts/data/jmdict-pos.tsv`(품사)는 [JMdict](https://www.edrdg.org/jmdict/j_jmdict.html)에서
+  뽑았습니다. JMdict는 Electronic Dictionary Research and Development Group의
+  자료이고 CC BY-SA 4.0으로 배포됩니다. 이 파생 표도 같은 라이선스를 따릅니다.
 - 가사는 저장소에 포함되지 않습니다. 실행 시 [LRCLIB](https://lrclib.net)에서
   받아 기기에만 저장됩니다.
 - 곡 정보와 아트워크는 Apple의 iTunes 검색 API에서, 영상은 YouTube에서 옵니다.

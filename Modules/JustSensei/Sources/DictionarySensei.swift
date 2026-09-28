@@ -11,10 +11,10 @@ public struct DictionarySensei: Sendable {
         let l: String   // lemma
         let r: String   // reading
         let k: String   // Korean meaning
-        /// Part of speech and JLPT level are present only on hand-checked
-        /// entries. The bulk-imported rows carry neither, and nil means
-        /// "unknown" rather than "none" — callers must leave the model's own
-        /// answer alone instead of overwriting it with a default.
+        /// Part of speech (from curated rows and JMdict) and JLPT level (from
+        /// curated rows and the JLPT lists). Most rows now carry both, but not
+        /// all: nil means "unknown" rather than "none" — callers must leave the
+        /// model's own answer alone instead of overwriting it with a default.
         let p: String?
         let j: String?
 
