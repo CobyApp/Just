@@ -154,7 +154,7 @@ struct QuizScreen: View {
         .padding(.top, JustTheme.Space.loose)
     }
 
-    private func instruction(for question: QuizQuestion) -> String {
+    private func instruction(for question: QuizQuestion) -> LocalizedStringKey {
         switch question.kind {
         case .cloze:
             "가사의 빈칸에 들어갈 일본어 단어를 입력하세요. 로마자로 써도 됩니다."

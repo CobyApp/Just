@@ -308,11 +308,11 @@ public struct RingRingMark: View {
 
 /// Consistent title treatment for the bright top-level screens.
 public struct JustScreenHeader: View {
-    private let title: String
-    private let subtitle: String
+    private let title: LocalizedStringKey
+    private let subtitle: LocalizedStringKey
     private let showsMark: Bool
 
-    public init(_ title: String, subtitle: String, showsMark: Bool = false) {
+    public init(_ title: LocalizedStringKey, subtitle: LocalizedStringKey, showsMark: Bool = false) {
         self.title = title
         self.subtitle = subtitle
         self.showsMark = showsMark
@@ -419,11 +419,14 @@ public struct JustProgressHeader: View {
 public struct JustGuideStep: Identifiable {
     public let id: String
     public let symbol: String
-    public let title: String
-    public let detail: String
+    public let title: LocalizedStringKey
+    public let detail: LocalizedStringKey
 
-    public init(_ symbol: String, title: String, detail: String) {
-        self.id = "\(symbol)-\(title)"
+    /// `id` defaults to the SF Symbol name, which is distinct within any one
+    /// guide's steps — enough to keep `ForEach` stable without asking every call
+    /// site for a key it does not otherwise need.
+    public init(_ symbol: String, title: LocalizedStringKey, detail: LocalizedStringKey, id: String? = nil) {
+        self.id = id ?? symbol
         self.symbol = symbol
         self.title = title
         self.detail = detail
@@ -431,12 +434,12 @@ public struct JustGuideStep: Identifiable {
 }
 
 public struct JustFeatureGuide: View {
-    private let title: String
-    private let detail: String?
+    private let title: LocalizedStringKey
+    private let detail: LocalizedStringKey?
     private let steps: [JustGuideStep]
     @Environment(\.guideIsDismissible) private var isDismissible
 
-    public init(_ title: String, detail: String? = nil, steps: [JustGuideStep]) {
+    public init(_ title: LocalizedStringKey, detail: LocalizedStringKey? = nil, steps: [JustGuideStep]) {
         self.title = title
         self.detail = detail
         self.steps = steps
@@ -501,10 +504,10 @@ public struct JustFeatureGuide: View {
 /// One-line instruction used inside an active task such as lyrics or review.
 public struct JustActionHint: View {
     private let symbol: String
-    private let text: String
+    private let text: LocalizedStringKey
     @Environment(\.guideIsDismissible) private var isDismissible
 
-    public init(_ text: String, symbol: String = "hand.tap.fill") {
+    public init(_ text: LocalizedStringKey, symbol: String = "hand.tap.fill") {
         self.symbol = symbol
         self.text = text
     }

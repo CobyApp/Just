@@ -1,0 +1,2044 @@
+{
+  "sourceLanguage": "ko",
+  "strings": {
+    " · ": {},
+    "%@": {},
+    "%@ · ": {},
+    "%@ · %@": {},
+    "%@ — %@": {},
+    "%lld": {},
+    "%lld / %lld": {},
+    "%lld/%lld": {},
+    "%lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld곡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld songs"
+          }
+        }
+      }
+    },
+    "%lld곳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld places"
+          }
+        }
+      }
+    },
+    "+ 버튼으로 담으면 단어장과 연습 문제가 자동으로 만들어져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap + to save a word, and vocabulary and practice questions are built automatically."
+          }
+        }
+      }
+    },
+    "1. 그룹과 노래 고르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Pick a group and a song"
+          }
+        }
+      }
+    },
+    "2. 가사 한 줄 누르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. Tap a line of lyrics"
+          }
+        }
+      }
+    },
+    "3. 단어장에 담기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3. Save to your vocabulary"
+          }
+        }
+      }
+    },
+    "48グループ": {},
+    "=LOVE · ≠ME · ≒JOY": {},
+    "BMSG": {},
+    "EXILE TRIBE": {},
+    "Hello! Project": {},
+    "KAWAII LAB.": {},
+    "LRCLIB에 공유": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share to LRCLIB"
+          }
+        }
+      }
+    },
+    "STARDUST": {},
+    "STARTO": {},
+    "♪": {},
+    "坂道シリーズ": {},
+    "가사": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyrics"
+          }
+        }
+      }
+    },
+    "가사 붙여넣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste lyrics"
+          }
+        }
+      }
+    },
+    "가사 싱크 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyric sync %@"
+          }
+        }
+      }
+    },
+    "가사 싱크 조절": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust lyric sync"
+          }
+        }
+      }
+    },
+    "가사 예문과 함께 %lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld with lyric examples"
+          }
+        }
+      }
+    },
+    "가사 전체화면": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-screen lyrics"
+          }
+        }
+      }
+    },
+    "가사 줄을 눌러 단어 카드에서 + 를 누르면 여기에 모입니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a lyric line, then + on a word card, and it collects here."
+          }
+        }
+      }
+    },
+    "가사 직접 붙여넣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste lyrics manually"
+          }
+        }
+      }
+    },
+    "가사 카드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyric card"
+          }
+        }
+      }
+    },
+    "가사 카드 만들기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make a lyric card"
+          }
+        }
+      }
+    },
+    "가사 크기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyric size"
+          }
+        }
+      }
+    },
+    "가사 해석": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyric breakdown"
+          }
+        }
+      }
+    },
+    "가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생되고, 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyric analysis runs on your device. The original lyrics and your study history are never uploaded anywhere. Song videos play on YouTube, ads shown while a song loads go through Google, and no personalized ads are used."
+          }
+        }
+      }
+    },
+    "가사를 복사해 붙여 넣으면 그 가사로 공부할 수 있어요. 「[00:12.34]」처럼 시간이 적힌 가사면 노래를 따라가고, 글만 있으면 줄을 눌러 공부합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy and paste lyrics to study with them. Lyrics with timestamps like 「[00:12.34]」 follow the song; plain text lets you tap a line to study."
+          }
+        }
+      }
+    },
+    "가사를 찾는 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finding lyrics"
+          }
+        }
+      }
+    },
+    "가사에서 단어를 담으면 그 단어로 문제를 만듭니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save words from lyrics and questions are built from them."
+          }
+        }
+      }
+    },
+    "가사에서 발견한 문법을 모아 둔 곳입니다. 여러 곡에 나온 표현은 곡 수로 표시해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A collection of the grammar found in lyrics. Expressions that appear across songs show a song count."
+          }
+        }
+      }
+    },
+    "가사에서 줄을 눌러 단어를 담으면 그 단어와 가사로 문제를 만듭니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a line and save words, and questions are built from those words and lyrics."
+          }
+        }
+      }
+    },
+    "가사에서 줄을 눌러 단어를 담으면 여기에 모입니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a line in the lyrics and save words, and they collect here."
+          }
+        }
+      }
+    },
+    "가사의 빈칸에 들어갈 일본어 단어를 입력하세요. 로마자로 써도 됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type the Japanese word for the blank in the lyric. Romaji is fine."
+          }
+        }
+      }
+    },
+    "개수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count"
+          }
+        }
+      }
+    },
+    "검색어 지우기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear search"
+          }
+        }
+      }
+    },
+    "결과 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See results"
+          }
+        }
+      }
+    },
+    "곡 정보": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Song info"
+          }
+        }
+      }
+    },
+    "곡 제목": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Song title"
+          }
+        }
+      }
+    },
+    "곡에서 다시 듣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play again from the song"
+          }
+        }
+      }
+    },
+    "곡을 불러오지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the songs"
+          }
+        }
+      }
+    },
+    "곡이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No songs"
+          }
+        }
+      }
+    },
+    "공개 가사 DB에 올려, 다음에 이 곡을 여는 사람이 자동으로 찾게 합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload to the public lyrics database so the next person who opens this song finds them automatically."
+          }
+        }
+      }
+    },
+    "공부 시작하고 공유하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start studying and share"
+          }
+        }
+      }
+    },
+    "공유 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing…"
+          }
+        }
+      }
+    },
+    "공유에 실패했어요. 공부는 그대로 계속할 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing failed. You can keep studying as usual."
+          }
+        }
+      }
+    },
+    "공유하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share"
+          }
+        }
+      }
+    },
+    "광고": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ads"
+          }
+        }
+      }
+    },
+    "광고 개인정보 설정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ad privacy settings"
+          }
+        }
+      }
+    },
+    "궁금한 가사 줄을 누르면 번역·읽기·단어·문법을 볼 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a lyric line you're curious about to see its translation, reading, words and grammar."
+          }
+        }
+      }
+    },
+    "그 밖의 인기 그룹": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More popular acts"
+          }
+        }
+      }
+    },
+    "그룹 보러 가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse groups"
+          }
+        }
+      }
+    },
+    "그룹에서 곡을 열면 여기에 모입니다. 해석과 진도가 함께 남습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a song from a group and it collects here, with its breakdown and progress."
+          }
+        }
+      }
+    },
+    "꺼짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "나에게 맞는 공부 리듬": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A study rhythm that fits you"
+          }
+        }
+      }
+    },
+    "나온 곳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source"
+          }
+        }
+      }
+    },
+    "나의 최애": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My oshi"
+          }
+        }
+      }
+    },
+    "남은 가사 번역하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate the rest"
+          }
+        }
+      }
+    },
+    "남자 아이돌": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boy idols"
+          }
+        }
+      }
+    },
+    "내 노래": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My songs"
+          }
+        }
+      }
+    },
+    "내보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export"
+          }
+        }
+      }
+    },
+    "노래 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find songs"
+          }
+        }
+      }
+    },
+    "노래를 누르면 재생과 함께 가사 공부가 시작됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a song to play it and start studying the lyrics."
+          }
+        }
+      }
+    },
+    "노래를 듣다가 궁금한 가사만 눌러도 공부가 시작됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just tap a lyric you're curious about while listening, and studying begins."
+          }
+        }
+      }
+    },
+    "노래를 열고 궁금한 가사 줄을 누르세요. 분석된 문법과 표현이 여기에 자동으로 모입니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a song and tap a lyric line. The grammar and expressions found there collect here automatically."
+          }
+        }
+      }
+    },
+    "노래에서 단어 담기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save words from songs"
+          }
+        }
+      }
+    },
+    "노래에서 만난 일본어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japanese you meet in songs"
+          }
+        }
+      }
+    },
+    "다시 듣고 싶은 가사 공부": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Study the lyrics you want to hear again"
+          }
+        }
+      }
+    },
+    "다시 듣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen again"
+          }
+        }
+      }
+    },
+    "다시 시도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
+    },
+    "다시 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search again"
+          }
+        }
+      }
+    },
+    "다시 확인": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check again"
+          }
+        }
+      }
+    },
+    "다음 곡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next song"
+          }
+        }
+      }
+    },
+    "다음 문제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next question"
+          }
+        }
+      }
+    },
+    "다음 복습": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next review"
+          }
+        }
+      }
+    },
+    "다음 카드는 일정에 맞춰 올라옵니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next cards appear on schedule"
+          }
+        }
+      }
+    },
+    "다음: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next: %@"
+          }
+        }
+      }
+    },
+    "단어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words"
+          }
+        }
+      }
+    },
+    "단어 %lld개 모두 담기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save all %lld words"
+          }
+        }
+      }
+    },
+    "단어 눌러 자세히 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a word for details"
+          }
+        }
+      }
+    },
+    "단어 카드의 +를 누르면 단어장에 저장됩니다. 저장한 단어로 퀴즈와 복습이 만들어져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap + on a word card to save it. Saved words become quizzes and reviews."
+          }
+        }
+      }
+    },
+    "단어, 뜻": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word, meaning"
+          }
+        }
+      }
+    },
+    "단어장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocabulary"
+          }
+        }
+      }
+    },
+    "단어장 CSV": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocabulary CSV"
+          }
+        }
+      }
+    },
+    "단어장에 넣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to vocabulary"
+          }
+        }
+      }
+    },
+    "단어장에서 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from vocabulary"
+          }
+        }
+      }
+    },
+    "단어장은 이렇게 사용해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to use your vocabulary"
+          }
+        }
+      }
+    },
+    "닫기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
+    "닫은 안내 다시 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show dismissed tips again"
+          }
+        }
+      }
+    },
+    "담은 단어 %lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld saved words"
+          }
+        }
+      }
+    },
+    "담은 단어가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved words"
+          }
+        }
+      }
+    },
+    "답 입력": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter answer"
+          }
+        }
+      }
+    },
+    "답 확인하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check answer"
+          }
+        }
+      }
+    },
+    "더 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        }
+      }
+    },
+    "등급": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level"
+          }
+        }
+      }
+    },
+    "등급 분포": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level distribution"
+          }
+        }
+      }
+    },
+    "뜻 확인하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check meaning"
+          }
+        }
+      }
+    },
+    "뜻·읽기·문법과 그 줄에 나온 단어를 보여드려요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We show the meaning, reading, grammar and the words in that line."
+          }
+        }
+      }
+    },
+    "뜻은 위에 있습니다. 일본어가 아니라서 단어장에 담을 것은 없습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meaning is above. It isn't Japanese, so there's nothing to save."
+          }
+        }
+      }
+    },
+    "링링": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RingRing"
+          }
+        }
+      }
+    },
+    "링링 · 최애의 노래로 배우는 일본어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RingRing · Learn Japanese through your oshi's songs"
+          }
+        }
+      }
+    },
+    "먼저 단어의 읽기와 뜻을 떠올린 뒤 ‘뜻 확인하기’를 누르세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recall the word's reading and meaning first, then tap 'Check meaning'."
+          }
+        }
+      }
+    },
+    "모두 저장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save all"
+          }
+        }
+      }
+    },
+    "모든 단어 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See all words"
+          }
+        }
+      }
+    },
+    "모르겠어요 · 정답 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I don't know · Show answer"
+          }
+        }
+      }
+    },
+    "모은 문법": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collected grammar"
+          }
+        }
+      }
+    },
+    "목록에서 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from list"
+          }
+        }
+      }
+    },
+    "문법 · 표현": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grammar · Expressions"
+          }
+        }
+      }
+    },
+    "문장 번역": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentence translation"
+          }
+        }
+      }
+    },
+    "미리듣기 30초 구간이라 가사가 따라가지 않습니다. 줄을 눌러 뜻을 볼 수 있습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a 30-second preview, so the lyrics don't follow along. Tap a line to see its meaning."
+          }
+        }
+      }
+    },
+    "미리듣기 · 영상을 찾지 못한 곡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview · no video found"
+          }
+        }
+      }
+    },
+    "밴드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bands"
+          }
+        }
+      }
+    },
+    "밴드 · 아티스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bands · Artists"
+          }
+        }
+      }
+    },
+    "번역 방식": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation mode"
+          }
+        }
+      }
+    },
+    "번역 파일 받기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download translation pack"
+          }
+        }
+      }
+    },
+    "보이는 한국어 뜻에 맞는 일본어 단어를 입력하세요. 로마자로 써도 됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type the Japanese word for the meaning shown. Romaji is fine."
+          }
+        }
+      }
+    },
+    "보컬로이드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocaloid"
+          }
+        }
+      }
+    },
+    "보컬로이드 P": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocaloid producers"
+          }
+        }
+      }
+    },
+    "복습": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review"
+          }
+        }
+      }
+    },
+    "복습 시작": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start review"
+          }
+        }
+      }
+    },
+    "복습 알림": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review reminders"
+          }
+        }
+      }
+    },
+    "복습 일정에 반영했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added to your review schedule"
+          }
+        }
+      }
+    },
+    "복습 카드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review cards"
+          }
+        }
+      }
+    },
+    "복습 횟수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review count"
+          }
+        }
+      }
+    },
+    "사전에 수록된 단어만 찾을 수 있습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only words in the dictionary can be found."
+          }
+        }
+      }
+    },
+    "사지선다는 뜻이 서로 다른 단어가 4개 이상 있어야 만들 수 있어요. 그때까지는 쓰기 문제로 냅니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multiple choice needs at least four words with different meanings. Until then it's a typing question."
+          }
+        }
+      }
+    },
+    "설정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "성우 아티스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice-actor artists"
+          }
+        }
+      }
+    },
+    "솔로 · 유닛": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo · Units"
+          }
+        }
+      }
+    },
+    "스피커로 발음을 듣고, 아래 가사 카드를 누르면 해당 노래를 다시 열 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the speaker to hear it, and tap the lyric card below to reopen that song."
+          }
+        }
+      }
+    },
+    "싱어 · 우타이테": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singers · Utaite"
+          }
+        }
+      }
+    },
+    "아니송 밴드 · 유닛": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anison bands · units"
+          }
+        }
+      }
+    },
+    "아니송 싱어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anison singers"
+          }
+        }
+      }
+    },
+    "아직 모인 문법이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No grammar collected yet"
+          }
+        }
+      }
+    },
+    "아직 연 곡이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No songs opened yet"
+          }
+        }
+      }
+    },
+    "아직 연습할 단어가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words to practice yet"
+          }
+        }
+      }
+    },
+    "아직 저장한 단어가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved words yet"
+          }
+        }
+      }
+    },
+    "아티스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artist"
+          }
+        }
+      }
+    },
+    "안내": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide"
+          }
+        }
+      }
+    },
+    "알림 권한이 거부되어 있습니다. 설정 > 알림 > 링링에서 켜 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications are turned off. Enable them in Settings > Notifications > RingRing."
+          }
+        }
+      }
+    },
+    "알림 시각": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reminder time"
+          }
+        }
+      }
+    },
+    "애니송": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anime songs"
+          }
+        }
+      }
+    },
+    "앱의 짚음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App's guess"
+          }
+        }
+      }
+    },
+    "앱이 오늘 외울 단어를 골라요. 뜻을 떠올린 뒤 기억난 정도를 선택하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app picks today's words. Recall the meaning, then rate how well you remembered."
+          }
+        }
+      }
+    },
+    "앱이 짚고 있는 줄이 아니라, 실제로 노래하고 있는 줄입니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not the line the app points to, but the line actually being sung."
+          }
+        }
+      }
+    },
+    "없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        }
+      }
+    },
+    "여자 아이돌": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Girl idols"
+          }
+        }
+      }
+    },
+    "연습": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Practice"
+          }
+        }
+      }
+    },
+    "연습할 단어가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words to practice"
+          }
+        }
+      }
+    },
+    "영상": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video"
+          }
+        }
+      }
+    },
+    "영어 구절 — 외울 단어가 없습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English phrase — no words to memorize."
+          }
+        }
+      }
+    },
+    "오늘 복습 끝": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's review done"
+          }
+        }
+      }
+    },
+    "오늘 복습하거나 원하는 퀴즈 풀기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review today or take any quiz"
+          }
+        }
+      }
+    },
+    "오늘 외울 단어만 일정에 맞춰 카드로 보여드려요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only today's due words, shown as cards on schedule."
+          }
+        }
+      }
+    },
+    "오늘의 추천": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's pick"
+          }
+        }
+      }
+    },
+    "오디션 · 보이그룹": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audition · Boy groups"
+          }
+        }
+      }
+    },
+    "완료": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "원하는 방식으로 연습": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Practice your way"
+          }
+        }
+      }
+    },
+    "원할 때 자유롭게 풀어요. 정답 결과도 다음 복습 일정에 반영됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take them whenever you like. Results feed into your review schedule too."
+          }
+        }
+      }
+    },
+    "이 가사로 공부하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Study with these lyrics"
+          }
+        }
+      }
+    },
+    "이 곡에서 담은 단어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words saved from this song"
+          }
+        }
+      }
+    },
+    "이 그룹의 곡을 아직 불러오지 못했습니다. 잠시 뒤 다시 열어 보세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This group's songs couldn't be loaded yet. Try again in a moment."
+          }
+        }
+      }
+    },
+    "이 노래에서 저장한 단어만 모아 봅니다. 전체 단어는 하단 ‘단어장’ 탭에서 확인하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just the words saved from this song. See every word in the 'Vocabulary' tab below."
+          }
+        }
+      }
+    },
+    "이 줄 반복": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat this line"
+          }
+        }
+      }
+    },
+    "이 줄 반복 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeating this line"
+          }
+        }
+      }
+    },
+    "이 줄에서 뽑을 단어가 없습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words to pull from this line."
+          }
+        }
+      }
+    },
+    "이어서 듣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume listening"
+          }
+        }
+      }
+    },
+    "이어서 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        }
+      }
+    },
+    "이전 곡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous song"
+          }
+        }
+      }
+    },
+    "일본어 단어와 맞는 한국어 뜻 하나를 눌러 선택하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the meaning that matches the Japanese word."
+          }
+        }
+      }
+    },
+    "일본어 키보드가 없으면 로마자로 써도 됩니다 (yume → ゆめ)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Japanese keyboard? You can type in romaji (yume → ゆめ)"
+          }
+        }
+      }
+    },
+    "일시정지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "읽기, 뜻, 나온 가사와 다음 복습일을 확인하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check its reading, meaning, the lyric it came from and the next review date."
+          }
+        }
+      }
+    },
+    "잊은 횟수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Times forgotten"
+          }
+        }
+      }
+    },
+    "자동 해석": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto analysis"
+          }
+        }
+      }
+    },
+    "재생": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play"
+          }
+        }
+      }
+    },
+    "재생 종료": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop playback"
+          }
+        }
+      }
+    },
+    "재생되는 가사를 듣고 빈칸의 일본어 단어를 입력하세요. 다시 듣기도 가능합니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen to the lyric playing and type the Japanese word for the blank. You can replay it."
+          }
+        }
+      }
+    },
+    "재생을 시작하면 이 곡의 줄이 여기에 나옵니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once playback starts, this song's lines appear here."
+          }
+        }
+      }
+    },
+    "저장한 단어는 원래 가사와 함께 남고, 퀴즈와 복습에 자동으로 사용됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved words keep their original lyric and are used automatically in quizzes and reviews."
+          }
+        }
+      }
+    },
+    "전체": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        }
+      }
+    },
+    "정렬": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort"
+          }
+        }
+      }
+    },
+    "정보": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        }
+      }
+    },
+    "좋아하는 그룹을 누르고 공부할 곡을 선택하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a group you like and choose a song to study."
+          }
+        }
+      }
+    },
+    "중단": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "중지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "지금 들리는 줄을 누르세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the line you hear now"
+          }
+        }
+      }
+    },
+    "지금 얼마나 잘 기억났는지 고르면 다음 복습일이 자동으로 정해집니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rate how well you remembered and the next review date is set automatically."
+          }
+        }
+      }
+    },
+    "처음이라면 이렇게 시작하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New here? Start like this"
+          }
+        }
+      }
+    },
+    "초기화": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        }
+      }
+    },
+    "최근에 열었던 곡과 공부 진도가 자동으로 저장됩니다. 곡을 누르면 이어서 공부해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently opened songs and your progress are saved automatically. Tap a song to pick up where you left off."
+          }
+        }
+      }
+    },
+    "최애": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oshi"
+          }
+        }
+      }
+    },
+    "최애 그룹": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oshi group"
+          }
+        }
+      }
+    },
+    "최애 그룹은 홈 맨 위에 걸리고, 탭과 위젯이 그 그룹 색으로 바뀝니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your oshi group pins to the top of Home, and the tabs and widget take on its color."
+          }
+        }
+      }
+    },
+    "최애로 정하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set as oshi"
+          }
+        }
+      }
+    },
+    "최애에서 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove as oshi"
+          }
+        }
+      }
+    },
+    "최애의 노래가 오늘의 일본어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your oshi's songs, today's Japanese"
+          }
+        }
+      }
+    },
+    "켜짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        }
+      }
+    },
+    "퀴즈": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quiz"
+          }
+        }
+      }
+    },
+    "퀴즈와 복습은 무엇이 다른가요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How are quizzes and reviews different?"
+          }
+        }
+      }
+    },
+    "플레이어 닫기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close player"
+          }
+        }
+      }
+    },
+    "플레이어 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show player"
+          }
+        }
+      }
+    },
+    "하루 목표": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily goal"
+          }
+        }
+      }
+    },
+    "한 번 더": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once more"
+          }
+        }
+      }
+    },
+    "해석 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzing"
+          }
+        }
+      }
+    },
+    "현재 줄로": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jump to current line"
+          }
+        }
+      }
+    },
+    "화면마다 있는 안내 카드는 ✕로 닫을 수 있습니다. 닫은 안내는 여기서 되살립니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The tip cards on each screen can be dismissed with ✕. Bring dismissed tips back here."
+          }
+        }
+      }
+    },
+    "후리가나": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Furigana"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

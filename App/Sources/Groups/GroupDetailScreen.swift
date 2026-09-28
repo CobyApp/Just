@@ -45,7 +45,7 @@ struct GroupDetailScreen: View {
             JustEmptyState(
                 icon: "exclamationmark.triangle",
                 title: "곡을 불러오지 못했습니다",
-                message: failure,
+                message: "\(failure)",
                 actionTitle: "다시 시도",
                 action: { Task { await load() } }
             )
@@ -79,6 +79,17 @@ struct GroupDetailScreen: View {
         }
     }
 
+    /// The group's reading (Korean only), its section, and its song count —
+    /// each part localized, and the Korean pronunciation dropped for English.
+    private var subtitle: Text {
+        let count = Text("\(tracks.count)곡")
+        let reading = AppLanguage.current == .ko ? Text("\(group.readingKo) · ") : Text("")
+        if group.label.namesAFamily {
+            return reading + Text(group.label.localizedTitle) + Text(" · ") + count
+        }
+        return reading + count
+    }
+
     /// The group's own picture, already fetched for its card.
     private var groupHeader: some View {
         HStack(spacing: JustTheme.Space.snug) {
@@ -89,9 +100,7 @@ struct GroupDetailScreen: View {
                     .foregroundStyle(JustTheme.Kawaii.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
-                Text(group.label.namesAFamily
-                     ? "\(group.readingKo) · \(group.label.rawValue) · 노래 \(tracks.count)곡"
-                     : "\(group.readingKo) · 노래 \(tracks.count)곡")
+                subtitle
                     .font(JustTheme.Font.caption)
                     .foregroundStyle(JustTheme.Kawaii.inkSoft)
             }

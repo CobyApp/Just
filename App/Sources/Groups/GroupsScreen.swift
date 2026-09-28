@@ -140,7 +140,7 @@ struct GroupsScreen: View {
             HStack(spacing: JustTheme.Space.tight) {
                 genreChip(nil, "전체")
                 ForEach(IdolGroup.Genre.allCases, id: \.self) { g in
-                    genreChip(g, g.rawValue)
+                    genreChip(g, g.localizedTitle)
                 }
             }
             .padding(.horizontal, JustTheme.Space.regular)
@@ -148,7 +148,7 @@ struct GroupsScreen: View {
         .scrollIndicators(.hidden)
     }
 
-    private func genreChip(_ value: IdolGroup.Genre?, _ title: String) -> some View {
+    private func genreChip(_ value: IdolGroup.Genre?, _ title: LocalizedStringKey) -> some View {
         let selected = genre == value
         return Button {
             withAnimation(.snappy) { genre = value }
@@ -196,7 +196,7 @@ struct GroupsScreen: View {
 
     private func groupSection(_ label: IdolGroup.Label) -> some View {
         VStack(alignment: .leading, spacing: JustTheme.Space.snug) {
-            Text(label.rawValue).kawaiiSectionTitle()
+            Text(label.localizedTitle).kawaiiSectionTitle()
             LazyVGrid(columns: columns, spacing: JustTheme.Space.snug) {
                 ForEach(IdolGroup.groups(in: label)) { group in
                     let order = IdolGroup.all.firstIndex(of: group) ?? 0
@@ -268,9 +268,13 @@ private struct GroupCard: View {
                     .shadow(color: Color(hue: group.hue, saturation: 0.7, brightness: 0.45), radius: 0, x: 1.5, y: 2)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
-                Text(group.readingKo)
-                    .font(JustTheme.Font.caption)
-                    .foregroundStyle(.white.opacity(0.9))
+                // The Korean pronunciation is a reading aid for Korean readers;
+                // it says nothing to an English one, so it is shown only there.
+                if AppLanguage.current == .ko {
+                    Text(group.readingKo)
+                        .font(JustTheme.Font.caption)
+                        .foregroundStyle(.white.opacity(0.9))
+                }
             }
             .padding(JustTheme.Space.snug)
         }

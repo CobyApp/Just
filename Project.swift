@@ -44,6 +44,8 @@ private let baseSettings: SettingsDictionary = [
     "SWIFT_STRICT_CONCURRENCY": "complete",
     "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
     "DEAD_CODE_STRIPPING": "YES",
+    "SWIFT_EMIT_LOC_STRINGS": "YES",
+    "LOCALIZED_STRING_SWIFTUI_SUPPORT": "YES",
 ]
 
 /// Every module in `Modules/` is an iOS framework with the same shape,
@@ -215,6 +217,7 @@ let project = Project(
                 ],
             ]),
             sources: ["Widget/Sources/**"],
+            resources: ["Widget/Resources/**"],
             entitlements: "Widget/RingRingWidget.entitlements",
             dependencies: [.target(name: "RingRingCore")],
             settings: .settings(base: baseSettings)

@@ -60,7 +60,7 @@ struct SettingsScreen: View {
                         OshiPicker()
                     } label: {
                         LabeledContent {
-                            Text(app.oshi?.name ?? "없음")
+                            Text(app.oshi?.name ?? String(localized: "없음"))
                         } label: {
                             Label("최애 그룹", systemImage: "crown.fill")
                         }
@@ -215,10 +215,10 @@ private struct OshiPicker: View {
     var body: some View {
         List {
             Section {
-                row(title: "없음", color: nil, isSelected: app.oshiID == nil) { app.oshiID = nil }
+                row(title: String(localized: "없음"), color: nil, isSelected: app.oshiID == nil) { app.oshiID = nil }
             }
             ForEach(IdolGroup.Label.allCases, id: \.self) { label in
-                Section(label.rawValue) {
+                Section(label.localizedTitle) {
                     ForEach(IdolGroup.all.filter { $0.label == label }) { group in
                         row(title: group.name, color: group.memberColor, isSelected: app.isOshi(group)) {
                             app.oshiID = group.id

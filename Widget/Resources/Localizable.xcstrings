@@ -1,0 +1,90 @@
+{
+  "sourceLanguage": "ko",
+  "strings": {
+    "%lld개 모음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld collected"
+          }
+        }
+      }
+    },
+    "%lld일 연속": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld-day streak"
+          }
+        }
+      }
+    },
+    "♡": {},
+    "♪ %@": {},
+    "✦": {},
+    "✧": {},
+    "가사에서 단어를 담아 보세요 ♡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save words from lyrics ♡"
+          }
+        }
+      }
+    },
+    "링링": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RingRing"
+          }
+        }
+      }
+    },
+    "복습 %lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld to review"
+          }
+        }
+      }
+    },
+    "복습할 단어 수와 오늘 볼 단어를 보여줍니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows how many words are due and what to study today."
+          }
+        }
+      }
+    },
+    "오늘 복습 완료": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's review done"
+          }
+        }
+      }
+    },
+    "최애 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oshi %@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

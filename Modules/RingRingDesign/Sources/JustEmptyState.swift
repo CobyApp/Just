@@ -12,9 +12,9 @@ import SwiftUI
 /// were dead ends the reader could only leave by finding the tab bar themselves.
 public struct JustEmptyState: View {
     private let icon: String
-    private let title: String
-    private let message: String
-    private let actionTitle: String?
+    private let title: LocalizedStringKey
+    private let message: LocalizedStringKey
+    private let actionTitle: LocalizedStringKey?
     private let action: (() -> Void)?
 
     /// - Parameters:
@@ -23,9 +23,9 @@ public struct JustEmptyState: View {
     ///     left to review" is a finish line rather than a failure.
     public init(
         icon: String,
-        title: String,
-        message: String,
-        actionTitle: String? = nil,
+        title: LocalizedStringKey,
+        message: LocalizedStringKey,
+        actionTitle: LocalizedStringKey? = nil,
         action: (() -> Void)? = nil
     ) {
         self.icon = icon
