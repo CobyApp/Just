@@ -69,7 +69,7 @@ struct GrammarScreen: View {
                 // The count is the point of pooling: a pattern in four songs is
                 // the one to learn next.
                 if note.songCount > 1 {
-                    JustChip("\(note.songCount)곡", tint: JustTheme.Accent.end)
+                    JustChip(String(localized: "\(note.songCount)곡"), tint: JustTheme.Accent.end)
                 }
             }
 

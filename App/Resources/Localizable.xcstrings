@@ -2,10 +2,30 @@
   "sourceLanguage": "ko",
   "strings": {
     " · ": {},
+    "%.1f년": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.1f years"
+          }
+        }
+      }
+    },
     "%@": {},
     "%@ · ": {},
     "%@ · %@": {},
     "%@ — %@": {},
+    "%@ 단어는 아직 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No %@ words yet"
+          }
+        }
+      }
+    },
     "%lld": {},
     "%lld / %lld": {},
     "%lld/%lld": {},
@@ -15,6 +35,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld개 담았습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved %lld words"
+          }
+        }
+      }
+    },
+    "%lld개를 복습했습니다. ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reviewed %lld words. "
+          }
+        }
+      }
+    },
+    "%lld개월": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld months"
           }
         }
       }
@@ -39,6 +89,26 @@
         }
       }
     },
+    "%lld일": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days"
+          }
+        }
+      }
+    },
+    "%lld회": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld times"
+          }
+        }
+      }
+    },
     "+ 버튼으로 담으면 단어장과 연습 문제가 자동으로 만들어져요.": {
       "localizations": {
         "en": {
@@ -55,6 +125,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "1. Pick a group and a song"
+          }
+        }
+      }
+    },
+    "10분": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 min"
           }
         }
       }
@@ -98,6 +178,16 @@
     "STARDUST": {},
     "STARTO": {},
     "♪": {},
+    "「%@」에 맞는 단어가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words match 「%@」"
+          }
+        }
+      }
+    },
     "坂道シリーズ": {},
     "가사": {
       "localizations": {
@@ -239,6 +329,36 @@
         }
       }
     },
+    "가사가 노래와 맞습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The lyrics line up with the song."
+          }
+        }
+      }
+    },
+    "가사를 %.1f초 늦춥니다. 가사가 노래보다 앞서 갈 때.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delays the lyrics by %.1fs — for when they run ahead of the song."
+          }
+        }
+      }
+    },
+    "가사를 %.1f초 당깁니다. 가사가 노래보다 늦게 올 때.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advances the lyrics by %.1fs — for when they lag behind the song."
+          }
+        }
+      }
+    },
     "가사를 복사해 붙여 넣으면 그 가사로 공부할 수 있어요. 「[00:12.34]」처럼 시간이 적힌 가사면 노래를 따라가고, 글만 있으면 줄을 눌러 공부합니다.": {
       "localizations": {
         "en": {
@@ -265,6 +385,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save words from lyrics and questions are built from them."
+          }
+        }
+      }
+    },
+    "가사에서 단어를 담으면 여기에서 복습할 수 있습니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save words from lyrics and you can review them here."
+          }
+        }
+      }
+    },
+    "가사에서 담은 단어를 예문과 함께 다시 봅니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisit the words you saved, with their example lines."
           }
         }
       }
@@ -589,6 +729,16 @@
         }
       }
     },
+    "내일": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomorrow"
+          }
+        }
+      }
+    },
     "노래 찾기": {
       "localizations": {
         "en": {
@@ -729,6 +879,26 @@
         }
       }
     },
+    "다음 카드는 %@에 올라와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next cards: %@."
+          }
+        }
+      }
+    },
+    "다음 카드는 일정에 맞춰 다시 올라옵니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next cards will arrive on schedule."
+          }
+        }
+      }
+    },
     "다음 카드는 일정에 맞춰 올라옵니다": {
       "localizations": {
         "en": {
@@ -795,6 +965,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Word, meaning"
+          }
+        }
+      }
+    },
+    "단어가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words"
           }
         }
       }
@@ -1029,6 +1209,16 @@
         }
       }
     },
+    "모은 단어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collected"
+          }
+        }
+      }
+    },
     "모은 문법": {
       "localizations": {
         "en": {
@@ -1169,6 +1359,16 @@
         }
       }
     },
+    "복습 대기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due"
+          }
+        }
+      }
+    },
     "복습 시작": {
       "localizations": {
         "en": {
@@ -1215,6 +1415,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Review count"
+          }
+        }
+      }
+    },
+    "복습할 단어가 기다리고 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words are waiting for review"
           }
         }
       }
@@ -1459,6 +1669,16 @@
         }
       }
     },
+    "연속": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streak"
+          }
+        }
+      }
+    },
     "연습": {
       "localizations": {
         "en": {
@@ -1505,6 +1725,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "English phrase — no words to memorize."
+          }
+        }
+      }
+    },
+    "오늘": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
           }
         }
       }
@@ -1875,6 +2105,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stop"
+          }
+        }
+      }
+    },
+    "지금": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
           }
         }
       }

@@ -253,24 +253,23 @@ struct ReviewScreen: View {
     }
 
     private var finishedMessage: String {
-        let next = nextDue.map { "다음 카드는 \(Self.dayLabel($0))에 올라와요." }
+        let next = nextDue.map { String(localized: "다음 카드는 \(Self.dayLabel($0))에 올라와요.") }
         if completed > 0 {
-            return "\(completed)개를 복습했습니다. " + (next ?? "다음 카드는 일정에 맞춰 다시 올라옵니다.")
+            return String(localized: "\(completed)개를 복습했습니다. ")
+                + (next ?? String(localized: "다음 카드는 일정에 맞춰 다시 올라옵니다."))
         }
-        return next ?? "가사에서 단어를 담으면 여기에서 복습할 수 있습니다."
+        return next ?? String(localized: "가사에서 단어를 담으면 여기에서 복습할 수 있습니다.")
     }
 
     /// 「오늘」「내일」, else a date: the day is what matters, now that cards
     /// come due at the start of one.
     private static func dayLabel(_ date: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "오늘" }
-        if calendar.isDateInTomorrow(date) { return "내일" }
-        // 「10월 10일 (토)」, as it is said. The locale's numeric style gave
-        // 「10. 10. (토)」.
-        let parts = calendar.dateComponents([.month, .day, .weekday], from: date)
-        let weekday = ["일", "월", "화", "수", "목", "금", "토"][(parts.weekday ?? 1) - 1]
-        return "\(parts.month ?? 0)월 \(parts.day ?? 0)일 (\(weekday))"
+        if calendar.isDateInToday(date) { return String(localized: "오늘") }
+        if calendar.isDateInTomorrow(date) { return String(localized: "내일") }
+        // A locale-aware date so it reads naturally in either language:
+        // 「10월 10일 (토)」 in Korean, "Oct 10, Sat" in English.
+        return date.formatted(.dateTime.month().day().weekday(.abbreviated))
     }
 
     // MARK: - Actions
@@ -338,10 +337,10 @@ struct ReviewScreen: View {
 
     private static func intervalLabel(_ days: Double) -> String {
         switch days {
-        case ..<1: "10분"
-        case ..<30: "\(Int(days))일"
-        case ..<365: "\(Int(days / 30))개월"
-        default: String(format: "%.1f년", days / 365)
+        case ..<1: String(localized: "10분")
+        case ..<30: String(localized: "\(Int(days))일")
+        case ..<365: String(localized: "\(Int(days / 30))개월")
+        default: String(localized: "\(days / 365, specifier: "%.1f")년")
         }
     }
 }

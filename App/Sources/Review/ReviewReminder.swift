@@ -135,8 +135,8 @@ final class ReviewReminder {
         ) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "복습할 단어가 기다리고 있어요"
-        content.body = "가사에서 담은 단어를 예문과 함께 다시 봅니다."
+        content.title = String(localized: "복습할 단어가 기다리고 있어요")
+        content.body = String(localized: "가사에서 담은 단어를 예문과 함께 다시 봅니다.")
         content.sound = .default
         // What the badge should read by then, since the app will not be
         // running to update it.

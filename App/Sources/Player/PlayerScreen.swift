@@ -273,7 +273,7 @@ struct PlayerScreen: View {
                 if session.unsavedWordCount > 0 {
                     Button {
                         let added = session.saveAllWords()
-                        savedBanner = "\(added)개 담았습니다"
+                        savedBanner = String(localized: "\(added)개 담았습니다")
                         Haptics.correct()
                     } label: {
                         Label(

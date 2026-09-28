@@ -72,10 +72,10 @@ struct SyncOffsetSheet: View {
     /// Says which way it moved in the reader's own terms — the sign alone does
     /// not tell anyone whether the words come sooner or later.
     static func explanation(for offset: TimeInterval) -> String {
-        if offset == 0 { return "가사가 노래와 맞습니다." }
+        if offset == 0 { return String(localized: "가사가 노래와 맞습니다.") }
         return offset > 0
-            ? "가사를 \(String(format: "%.1f", offset))초 늦춥니다. 가사가 노래보다 앞서 갈 때."
-            : "가사를 \(String(format: "%.1f", -offset))초 당깁니다. 가사가 노래보다 늦게 올 때."
+            ? String(localized: "가사를 \(offset, specifier: "%.1f")초 늦춥니다. 가사가 노래보다 앞서 갈 때.")
+            : String(localized: "가사를 \(-offset, specifier: "%.1f")초 당깁니다. 가사가 노래보다 늦게 올 때.")
     }
 
     // MARK: - By hand

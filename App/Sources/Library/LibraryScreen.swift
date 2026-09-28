@@ -294,9 +294,9 @@ struct LibraryScreen: View {
     }
 
     private var noMatchesTitle: String {
-        if !search.isEmpty { return "「\(search)」에 맞는 단어가 없어요" }
-        if let levelFilter { return "\(levelFilter.label) 단어는 아직 없어요" }
-        return "단어가 없어요"
+        if !search.isEmpty { return String(localized: "「\(search)」에 맞는 단어가 없어요") }
+        if let levelFilter { return String(localized: "\(levelFilter.label) 단어는 아직 없어요") }
+        return String(localized: "단어가 없어요")
     }
 
     private var levelFilterBar: some View {
@@ -428,11 +428,11 @@ struct VocabDetailView: View {
                             // read as a review that had already happened.
                             LabeledContent(
                                 "다음 복습",
-                                value: review.due <= .now ? "지금" : review.due.formatted(.relative(presentation: .named))
+                                value: review.due <= .now ? String(localized: "지금") : review.due.formatted(.relative(presentation: .named))
                             )
-                            LabeledContent("복습 횟수", value: "\(review.reps)회")
+                            LabeledContent("복습 횟수", value: String(localized: "\(review.reps)회"))
                             if review.lapses > 0 {
-                                LabeledContent("잊은 횟수", value: "\(review.lapses)회")
+                                LabeledContent("잊은 횟수", value: String(localized: "\(review.lapses)회"))
                             }
                         }
                         .font(JustTheme.Font.body)

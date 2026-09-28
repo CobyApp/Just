@@ -30,7 +30,7 @@ struct StatsHeader: View {
             divider
             metric(
                 // A streak reads as an achievement, so it carries a unit.
-                value: stats.streak > 0 ? "\(stats.streak)일" : "—",
+                value: stats.streak > 0 ? String(localized: "\(stats.streak)일") : "—",
                 label: "연속",
                 emphasised: false
             )
@@ -77,7 +77,7 @@ struct StatsHeader: View {
             .frame(width: 0.5, height: 28)
     }
 
-    private func metric(value: String, label: String, emphasised: Bool) -> some View {
+    private func metric(value: String, label: LocalizedStringKey, emphasised: Bool) -> some View {
         VStack(spacing: 3) {
             // Candy numerals: pink when there is something to do, the soft
             // ink otherwise, with the sticker-letter offset beneath.
