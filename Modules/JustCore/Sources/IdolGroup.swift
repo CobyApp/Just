@@ -41,10 +41,17 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
         case fortyEight = "48グループ"
         case helloProject = "Hello! Project"
         case stardust = "STARDUST"
-        case boyGroup = "남자 아이돌"
-        case band = "밴드 · 아티스트"
-        case vocalo = "보컬로이드"
-        case anime = "애니송"
+        case starto = "STARTO"
+        case exileTribe = "EXILE TRIBE"
+        case bmsg = "BMSG"
+        case boyOther = "오디션 · 보이그룹"
+        case bandRock = "밴드"
+        case soloUnit = "솔로 · 유닛"
+        case vocaloP = "보컬로이드 P"
+        case vocaloSinger = "싱어 · 우타이테"
+        case anisongSinger = "아니송 싱어"
+        case anisongBand = "아니송 밴드 · 유닛"
+        case seiyuu = "성우 아티스트"
         case more = "그 밖의 인기 그룹"
 
         /// Whether the section names who the group belongs to, and so is
@@ -56,10 +63,10 @@ public struct IdolGroup: Identifiable, Hashable, Sendable {
         /// fine sections are too many to scan; five genres are not.
         public var genre: Genre {
             switch self {
-            case .boyGroup: .boy
-            case .band: .band
-            case .vocalo: .vocalo
-            case .anime: .anime
+            case .starto, .exileTribe, .bmsg, .boyOther: .boy
+            case .bandRock, .soloUnit: .band
+            case .vocaloP, .vocaloSinger: .vocalo
+            case .anisongSinger, .anisongBand, .seiyuu: .anime
             default: .girl
             }
         }
@@ -202,142 +209,142 @@ public extension IdolGroup {
               youtubeChannels: ["UCp0iCvHGMwyfPHpYq7n2sPw", "UCGjPxZv5YraYh_EJk1sH8Tg"],
               aliases: ["ATARASHII GAKKO!"]),
         // Boy idols and dance & vocal groups.
-        .init(id: "1772019148", name: "Snow Man", readingKo: "스노우맨", label: .boyGroup, hue: 0.58,
+        .init(id: "1772019148", name: "Snow Man", readingKo: "스노우맨", label: .starto, hue: 0.58,
               aliases: ["スノーマン", "スノ"]),
-        .init(id: "1808322699", name: "SixTONES", readingKo: "스톤즈", label: .boyGroup, hue: 0.02,
+        .init(id: "1808322699", name: "SixTONES", readingKo: "스톤즈", label: .starto, hue: 0.02,
               aliases: ["ストーンズ", "スト"]),
-        .init(id: "1758080234", name: "なにわ男子", readingKo: "나니와단시", label: .boyGroup, hue: 0.14,
+        .init(id: "1758080234", name: "なにわ男子", readingKo: "나니와단시", label: .starto, hue: 0.14,
               aliases: ["Naniwa Danshi", "なにわ"]),
-        .init(id: "1745727874", name: "King & Prince", readingKo: "킹앤프린스", label: .boyGroup, hue: 0.72,
+        .init(id: "1745727874", name: "King & Prince", readingKo: "킹앤프린스", label: .starto, hue: 0.72,
               aliases: ["キング＆プリンス", "キンプリ"]),
-        .init(id: "555230743", name: "Hey! Say! JUMP", readingKo: "헤이세이점프", label: .boyGroup, hue: 0.50,
+        .init(id: "555230743", name: "Hey! Say! JUMP", readingKo: "헤이세이점프", label: .starto, hue: 0.50,
               aliases: ["ヘイセイジャンプ"]),
-        .init(id: "1579021180", name: "BE:FIRST", readingKo: "비퍼스트", label: .boyGroup, hue: 0.66,
+        .init(id: "1579021180", name: "BE:FIRST", readingKo: "비퍼스트", label: .bmsg, hue: 0.66,
               aliases: ["ビーファースト"]),
-        .init(id: "1500272115", name: "JO1", readingKo: "제이오원", label: .boyGroup, hue: 0.98,
+        .init(id: "1500272115", name: "JO1", readingKo: "제이오원", label: .boyOther, hue: 0.98,
               aliases: ["ジェイオーワン"]),
-        .init(id: "1587161346", name: "INI", readingKo: "아이엔아이", label: .boyGroup, hue: 0.86,
+        .init(id: "1587161346", name: "INI", readingKo: "아이엔아이", label: .boyOther, hue: 0.86,
               aliases: ["アイエヌアイ"]),
-        .init(id: "786833865", name: "Da-iCE", readingKo: "다이스", label: .boyGroup, hue: 0.30,
+        .init(id: "786833865", name: "Da-iCE", readingKo: "다이스", label: .boyOther, hue: 0.30,
               aliases: ["ダイス"]),
 
         // Bands and solo artists.
-        .init(id: "1490256993", name: "YOASOBI", readingKo: "요아소비", label: .band, hue: 0.62,
+        .init(id: "1490256993", name: "YOASOBI", readingKo: "요아소비", label: .soloUnit, hue: 0.62,
               aliases: ["ヨアソビ", "よあそび"]),
-        .init(id: "960568308", name: "Official髭男dism", readingKo: "히게단", label: .band, hue: 0.55,
+        .init(id: "960568308", name: "Official髭男dism", readingKo: "히게단", label: .bandRock, hue: 0.55,
               aliases: ["OFFICIAL HIGE DANDISM", "ヒゲダン", "髭男"]),
-        .init(id: "962221033", name: "Mrs. GREEN APPLE", readingKo: "미세스 그린 애플", label: .band, hue: 0.34,
+        .init(id: "962221033", name: "Mrs. GREEN APPLE", readingKo: "미세스 그린 애플", label: .bandRock, hue: 0.34,
               aliases: ["ミセスグリーンアップル", "ミセス"]),
-        .init(id: "1258439196", name: "King Gnu", readingKo: "킹누", label: .band, hue: 0.00,
+        .init(id: "1258439196", name: "King Gnu", readingKo: "킹누", label: .bandRock, hue: 0.00,
               aliases: ["キングヌー"]),
-        .init(id: "1487570516", name: "Vaundy", readingKo: "바운디", label: .band, hue: 0.08,
+        .init(id: "1487570516", name: "Vaundy", readingKo: "바운디", label: .soloUnit, hue: 0.08,
               aliases: ["バウンディ"]),
-        .init(id: "302361237", name: "back number", readingKo: "백넘버", label: .band, hue: 0.60,
+        .init(id: "302361237", name: "back number", readingKo: "백넘버", label: .bandRock, hue: 0.60,
               aliases: ["バックナンバー", "バクナン"]),
-        .init(id: "91160335", name: "RADWIMPS", readingKo: "래드윔프스", label: .band, hue: 0.52,
+        .init(id: "91160335", name: "RADWIMPS", readingKo: "래드윔프스", label: .bandRock, hue: 0.52,
               aliases: ["ラッドウィンプス", "ラッド"]),
-        .init(id: "252239625", name: "ONE OK ROCK", readingKo: "원오크록", label: .band, hue: 0.03,
+        .init(id: "252239625", name: "ONE OK ROCK", readingKo: "원오크록", label: .bandRock, hue: 0.03,
               aliases: ["ワンオクロック", "ワンオク"]),
-        .init(id: "1492604670", name: "Ado", readingKo: "아도", label: .band, hue: 0.75,
+        .init(id: "1492604670", name: "Ado", readingKo: "아도", label: .soloUnit, hue: 0.75,
               aliases: ["アド"]),
-        .init(id: "1165017710", name: "あいみょん", readingKo: "아이묭", label: .band, hue: 0.95,
+        .init(id: "1165017710", name: "あいみょん", readingKo: "아이묭", label: .soloUnit, hue: 0.95,
               aliases: ["aimyon", "アイミョン"]),
-        .init(id: "1250709916", name: "ヨルシカ", readingKo: "요루시카", label: .band, hue: 0.48,
+        .init(id: "1250709916", name: "ヨルシカ", readingKo: "요루시카", label: .soloUnit, hue: 0.48,
               aliases: ["Yorushika", "よるしか"]),
-        .init(id: "1428083875", name: "ずっと真夜中でいいのに。", readingKo: "즈토마요", label: .band, hue: 0.70,
+        .init(id: "1428083875", name: "ずっと真夜中でいいのに。", readingKo: "즈토마요", label: .soloUnit, hue: 0.70,
               aliases: ["ZUTOMAYO", "ずとまよ", "ずっと真夜中でいいのに"]),
-        .init(id: "454694621", name: "SEKAI NO OWARI", readingKo: "세카오와", label: .band, hue: 0.40,
+        .init(id: "454694621", name: "SEKAI NO OWARI", readingKo: "세카오와", label: .bandRock, hue: 0.40,
               aliases: ["セカイノオワリ", "セカオワ"]),
-        .init(id: "747734869", name: "緑黄色社会", readingKo: "료쿠샤카", label: .band, hue: 0.28,
+        .init(id: "747734869", name: "緑黄色社会", readingKo: "료쿠샤카", label: .bandRock, hue: 0.28,
               aliases: ["Ryokuoushoku Shakai", "リョクシャカ"]),
-        .init(id: "1229933633", name: "Saucy Dog", readingKo: "사우시독", label: .band, hue: 0.05,
+        .init(id: "1229933633", name: "Saucy Dog", readingKo: "사우시독", label: .bandRock, hue: 0.05,
               aliases: ["サウシードッグ", "サウシー"]),
-        .init(id: "956011835", name: "マカロニえんぴつ", readingKo: "마카로니엔피츠", label: .band, hue: 0.13,
+        .init(id: "956011835", name: "マカロニえんぴつ", readingKo: "마카로니엔피츠", label: .bandRock, hue: 0.13,
               aliases: ["Macaroni Empitsu", "マカえんぴつ", "マカえん"]),
-        .init(id: "1646020674", name: "結束バンド", readingKo: "결속밴드", label: .band, hue: 0.92,
+        .init(id: "1646020674", name: "結束バンド", readingKo: "결속밴드", label: .bandRock, hue: 0.92,
               aliases: ["kessoku band", "けっそくバンド"]),
-        .init(id: "74456960", name: "スピッツ", readingKo: "스핏츠", label: .band, hue: 0.35,
+        .init(id: "74456960", name: "スピッツ", readingKo: "스핏츠", label: .bandRock, hue: 0.35,
               aliases: ["Spitz"]),
-        .init(id: "185088141", name: "BUMP OF CHICKEN", readingKo: "범프 오브 치킨", label: .band, hue: 0.64,
+        .init(id: "185088141", name: "BUMP OF CHICKEN", readingKo: "범프 오브 치킨", label: .bandRock, hue: 0.64,
               aliases: ["バンプオブチキン", "バンプ"]),
-        .init(id: "252312257", name: "サカナクション", readingKo: "사카낙션", label: .band, hue: 0.56,
+        .init(id: "252312257", name: "サカナクション", readingKo: "사카낙션", label: .bandRock, hue: 0.56,
               aliases: ["sakanaction", "サカナ"]),
         // Boy idols — more of them.
-        .init(id: "1797624061", name: "timelesz", readingKo: "타임리즈", label: .boyGroup, hue: 0.60,
+        .init(id: "1797624061", name: "timelesz", readingKo: "타임리즈", label: .starto, hue: 0.60,
               aliases: ["タイムレス", "セクゾ", "Sexy Zone"]),
-        .init(id: "1649344367", name: "Travis Japan", readingKo: "트래비스 재팬", label: .boyGroup, hue: 0.55,
+        .init(id: "1649344367", name: "Travis Japan", readingKo: "트래비스 재팬", label: .starto, hue: 0.55,
               aliases: ["トラビスジャパン", "トラジャ"]),
-        .init(id: "1835325063", name: "WEST.", readingKo: "웨스트", label: .boyGroup, hue: 0.08,
+        .init(id: "1835325063", name: "WEST.", readingKo: "웨스트", label: .starto, hue: 0.08,
               aliases: ["ジャニーズWEST", "ウエスト"]),
-        .init(id: "1877076596", name: "Aぇ! group", readingKo: "에이그룹", label: .boyGroup, hue: 0.42,
+        .init(id: "1877076596", name: "Aぇ! group", readingKo: "에이그룹", label: .starto, hue: 0.42,
               aliases: ["Ae! group", "エーグループ"]),
-        .init(id: "1356706755", name: "M!LK", readingKo: "밀크", label: .boyGroup, hue: 0.90,
+        .init(id: "1356706755", name: "M!LK", readingKo: "밀크", label: .boyOther, hue: 0.90,
               aliases: ["ミルク"]),
-        .init(id: "1528939679", name: "OWV", readingKo: "오더블유브이", label: .boyGroup, hue: 0.68,
+        .init(id: "1528939679", name: "OWV", readingKo: "오더블유브이", label: .boyOther, hue: 0.68,
               aliases: ["オウブ"]),
-        .init(id: "1674961337", name: "DXTEEN", readingKo: "디엑스틴", label: .boyGroup, hue: 0.78,
+        .init(id: "1674961337", name: "DXTEEN", readingKo: "디엑스틴", label: .boyOther, hue: 0.78,
               aliases: ["ディーエックスティーン"]),
-        .init(id: "1678109085", name: "MAZZEL", readingKo: "마젤", label: .boyGroup, hue: 0.20,
+        .init(id: "1678109085", name: "MAZZEL", readingKo: "마젤", label: .bmsg, hue: 0.20,
               aliases: ["マーゼル"]),
-        .init(id: "1193836423", name: "THE RAMPAGE", readingKo: "더 램페이지", label: .boyGroup, hue: 0.02,
+        .init(id: "1193836423", name: "THE RAMPAGE", readingKo: "더 램페이지", label: .exileTribe, hue: 0.02,
               aliases: ["ザランページ", "ランページ"]),
-        .init(id: "591740317", name: "GENERATIONS", readingKo: "제너레이션즈", label: .boyGroup, hue: 0.62,
+        .init(id: "591740317", name: "GENERATIONS", readingKo: "제너레이션즈", label: .exileTribe, hue: 0.62,
               aliases: ["ジェネレーションズ", "ジェネ"]),
-        .init(id: "1443863086", name: "FANTASTICS", readingKo: "판타스틱스", label: .boyGroup, hue: 0.34,
+        .init(id: "1443863086", name: "FANTASTICS", readingKo: "판타스틱스", label: .exileTribe, hue: 0.34,
               aliases: ["ファンタスティックス"]),
 
         // Vocaloid — 初音ミク and the producers who define the sound.
-        .init(id: "307078957", name: "初音ミク", readingKo: "하츠네 미쿠", label: .vocalo, hue: 0.48,
+        .init(id: "307078957", name: "初音ミク", readingKo: "하츠네 미쿠", label: .vocaloSinger, hue: 0.48,
               aliases: ["Hatsune Miku", "ミク", "ボカロ"]),
-        .init(id: "353899348", name: "DECO*27", readingKo: "데코니나", label: .vocalo, hue: 0.98,
+        .init(id: "353899348", name: "DECO*27", readingKo: "데코니나", label: .vocaloP, hue: 0.98,
               aliases: ["デコ*27", "デコにーな"]),
-        .init(id: "473591721", name: "ピノキオピー", readingKo: "피노키오피", label: .vocalo, hue: 0.14,
+        .init(id: "473591721", name: "ピノキオピー", readingKo: "피노키오피", label: .vocaloP, hue: 0.14,
               aliases: ["PinocchioP", "ピノキオP"]),
-        .init(id: "329020708", name: "Kikuo", readingKo: "키쿠오", label: .vocalo, hue: 0.72,
+        .init(id: "329020708", name: "Kikuo", readingKo: "키쿠오", label: .vocaloP, hue: 0.72,
               aliases: ["きくお"]),
-        .init(id: "359584491", name: "wowaka", readingKo: "워와카", label: .vocalo, hue: 0.55,
+        .init(id: "359584491", name: "wowaka", readingKo: "워와카", label: .vocaloP, hue: 0.55,
               aliases: ["ヲワカ", "ボカロP"]),
-        .init(id: "320815306", name: "Neru", readingKo: "네루", label: .vocalo, hue: 0.02,
+        .init(id: "320815306", name: "Neru", readingKo: "네루", label: .vocaloP, hue: 0.02,
               aliases: ["ネル"]),
-        .init(id: "1080967231", name: "Eve", readingKo: "이브", label: .vocalo, hue: 0.62,
+        .init(id: "1080967231", name: "Eve", readingKo: "이브", label: .vocaloSinger, hue: 0.62,
               aliases: ["イブ"]),
-        .init(id: "614405787", name: "まふまふ", readingKo: "마후마후", label: .vocalo, hue: 0.86,
+        .init(id: "614405787", name: "まふまふ", readingKo: "마후마후", label: .vocaloSinger, hue: 0.86,
               aliases: ["Mafumafu"]),
-        .init(id: "524265966", name: "りぶ", readingKo: "리부", label: .vocalo, hue: 0.30,
+        .init(id: "524265966", name: "りぶ", readingKo: "리부", label: .vocaloSinger, hue: 0.30,
               aliases: ["Rib"]),
 
         // Anime songs (アニソン).
-        .init(id: "573943518", name: "LiSA", readingKo: "리사", label: .anime, hue: 0.95,
+        .init(id: "573943518", name: "LiSA", readingKo: "리사", label: .anisongSinger, hue: 0.95,
               aliases: ["リサ"]),
-        .init(id: "569972619", name: "Aimer", readingKo: "에메", label: .anime, hue: 0.68,
+        .init(id: "569972619", name: "Aimer", readingKo: "에메", label: .anisongSinger, hue: 0.68,
               aliases: ["エメ"]),
-        .init(id: "548139430", name: "ClariS", readingKo: "클라리스", label: .anime, hue: 0.90,
+        .init(id: "548139430", name: "ClariS", readingKo: "클라리스", label: .anisongSinger, hue: 0.90,
               aliases: ["クラリス"]),
-        .init(id: "328794122", name: "fripSide", readingKo: "프립사이드", label: .anime, hue: 0.60,
+        .init(id: "328794122", name: "fripSide", readingKo: "프립사이드", label: .anisongSinger, hue: 0.60,
               aliases: ["フリップサイド"]),
-        .init(id: "986704143", name: "OxT", readingKo: "오엑스티", label: .anime, hue: 0.05,
+        .init(id: "986704143", name: "OxT", readingKo: "오엑스티", label: .anisongBand, hue: 0.05,
               aliases: ["オーエックスティー"]),
-        .init(id: "624956375", name: "FLOW", readingKo: "플로우", label: .anime, hue: 0.02,
+        .init(id: "624956375", name: "FLOW", readingKo: "플로우", label: .anisongBand, hue: 0.02,
               aliases: ["フロウ"]),
-        .init(id: "266646351", name: "GRANRODEO", readingKo: "그랜로데오", label: .anime, hue: 0.08,
+        .init(id: "266646351", name: "GRANRODEO", readingKo: "그랜로데오", label: .anisongBand, hue: 0.08,
               aliases: ["グランロデオ"]),
-        .init(id: "266646521", name: "JAM Project", readingKo: "잼 프로젝트", label: .anime, hue: 0.62,
+        .init(id: "266646521", name: "JAM Project", readingKo: "잼 프로젝트", label: .anisongBand, hue: 0.62,
               aliases: ["ジャムプロジェクト", "ジャムプロ"]),
-        .init(id: "569938402", name: "藍井エイル", readingKo: "아오이 에일", label: .anime, hue: 0.58,
+        .init(id: "569938402", name: "藍井エイル", readingKo: "아오이 에일", label: .anisongSinger, hue: 0.58,
               aliases: ["Eir Aoi", "エイル"]),
-        .init(id: "570031182", name: "春奈るな", readingKo: "하루나 루나", label: .anime, hue: 0.92,
+        .init(id: "570031182", name: "春奈るな", readingKo: "하루나 루나", label: .anisongSinger, hue: 0.92,
               aliases: ["Luna Haruna"]),
-        .init(id: "73407309", name: "高橋洋子", readingKo: "다카하시 요코", label: .anime, hue: 0.00,
+        .init(id: "73407309", name: "高橋洋子", readingKo: "다카하시 요코", label: .anisongSinger, hue: 0.00,
               aliases: ["Yoko Takahashi"]),
-        .init(id: "269552506", name: "宮野真守", readingKo: "미야노 마모루", label: .anime, hue: 0.66,
+        .init(id: "269552506", name: "宮野真守", readingKo: "미야노 마모루", label: .seiyuu, hue: 0.66,
               aliases: ["Mamoru Miyano"]),
-        .init(id: "308629932", name: "水樹奈々", readingKo: "미즈키 나나", label: .anime, hue: 0.75,
+        .init(id: "308629932", name: "水樹奈々", readingKo: "미즈키 나나", label: .seiyuu, hue: 0.75,
               aliases: ["Nana Mizuki", "ナナ"]),
-        .init(id: "2299478", name: "angela", readingKo: "안젤라", label: .anime, hue: 0.30,
+        .init(id: "2299478", name: "angela", readingKo: "안젤라", label: .anisongBand, hue: 0.30,
               aliases: ["アンジェラ"]),
 
         // Kenshi Yonezu — Hachi as a Vocaloid producer, now one of Japan's biggest.
-        .init(id: "530814268", name: "米津玄師", readingKo: "요네즈 켄시", label: .band, hue: 0.45,
+        .init(id: "530814268", name: "米津玄師", readingKo: "요네즈 켄시", label: .soloUnit, hue: 0.45,
               aliases: ["Kenshi Yonezu", "ハチ", "ヨネヅケンシ"]),
     ]
 
