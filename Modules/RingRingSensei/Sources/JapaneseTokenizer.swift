@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 import NaturalLanguage
 import Synchronization
 

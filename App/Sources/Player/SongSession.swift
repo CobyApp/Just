@@ -1,7 +1,7 @@
-import JustCore
-import JustDesign
-import JustLyrics
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingLyrics
+import RingRingSensei
 import Observation
 import SwiftData
 import SwiftUI

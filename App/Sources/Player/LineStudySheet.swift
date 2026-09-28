@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingSensei
 import SwiftUI
 
 /// The word-by-word breakdown of one lyric line.

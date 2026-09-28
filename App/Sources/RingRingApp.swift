@@ -1,11 +1,11 @@
-import JustCore
-import JustDesign
+import RingRingCore
+import RingRingDesign
 import SwiftData
 import SwiftUI
 import UserNotifications
 
 @main
-struct JustApp: App {
+struct RingRingApp: App {
     @State private var app = AppModel()
     private let container: ModelContainer
     private let notifications = NotificationRouter()

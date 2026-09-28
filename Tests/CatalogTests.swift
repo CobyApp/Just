@@ -1,9 +1,9 @@
 import Foundation
-import JustCore
-@testable import JustMusic
+import RingRingCore
+@testable import RingRingMusic
 import Testing
 import UIKit
-@testable import JustDesign
+@testable import RingRingDesign
 
 @Suite("iTunes 카탈로그")
 struct ITunesCatalogTests {

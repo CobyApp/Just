@@ -2,7 +2,7 @@
 
 > 앱 이름은 **링링**입니다. Xcode 프로젝트·스킴·워크스페이스는 `RingRing`,
 > 번들 ID는 `com.coby.ringring`, App Group은 `group.com.coby.ringring`입니다.
-> SwiftPM 모듈 이름(`JustCore` 등)은 대량 변경을 피해 그대로 둡니다.
+> SwiftPM 모듈 이름(`RingRingCore` 등)은 대량 변경을 피해 그대로 둡니다.
 
 좋아하는 일본 아티스트 — 여자·남자 아이돌부터 밴드까지 — 의 노래 가사로 일본어를 공부하는 iPhone / iPad 앱.
 
@@ -161,12 +161,12 @@ TUIST_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
 ## 구조
 
 ```
-Just (앱)
- ├── JustCore     도메인 모델, SwiftData 스키마, FSRS 스케줄러
- ├── JustDesign   팔레트 추출, 메시 배경, 후리가나 조판
- ├── JustMusic    iTunes 카탈로그 + YouTube 내장 플레이어
- ├── JustLyrics   LRCLIB 클라이언트, LRC 파서
- └── JustSensei   형태소 분석, 읽기, 온디바이스 해석 엔진
+RingRing (앱)
+ ├── RingRingCore     도메인 모델, SwiftData 스키마, FSRS 스케줄러
+ ├── RingRingDesign   팔레트 추출, 메시 배경, 후리가나 조판
+ ├── RingRingMusic    iTunes 카탈로그 + YouTube 내장 플레이어
+ ├── RingRingLyrics   LRCLIB 클라이언트, LRC 파서
+ └── RingRingSensei   형태소 분석, 읽기, 온디바이스 해석 엔진
 ```
 
 ### 데이터 출처
@@ -454,21 +454,21 @@ MV는 음원과 시작이 다를 수 있습니다(인트로 연출). 가사가 �
 품질은 단언할 수 없지만 이 숫자들은 단언할 수 있고, 두 실행을 비교하는 것이
 프롬프트나 묶음 변경을 판단하는 유일한 방법입니다.
 
-**별도 타깃(`JustReport`)이고 앱이 호스트입니다.** 그래서 실기기에서 돌릴 수
+**별도 타깃(`RingRingReport`)이고 앱이 호스트입니다.** 그래서 실기기에서 돌릴 수
 있습니다 — 시뮬레이터의 온디바이스 모델 자산은 하루에 세 번 사라졌고, 그때마다
 보고서는 「모든 줄이 사전으로 대체됐습니다」라고 스스로 말합니다.
 
 ```bash
 # 시뮬레이터
-xcodebuild -workspace RingRing.xcworkspace -scheme JustReport \
+xcodebuild -workspace RingRing.xcworkspace -scheme RingRingReport \
   -destination 'platform=iOS Simulator,name=iPhone 17' test
 
 # 실기기 (모델이 진짜인 곳). 기기 잠금을 풀어야 합니다.
-xcodebuild -workspace RingRing.xcworkspace -scheme JustReport \
+xcodebuild -workspace RingRing.xcworkspace -scheme RingRingReport \
   -destination 'platform=iOS,name=Coby' -allowProvisioningUpdates test
 ```
 
-기본 `Just` 스킴의 테스트는 `JustTests`만 돌립니다. 유닛 테스트는 1초 미만이고
+기본 `RingRing` 스킴의 테스트는 `RingRingTests`만 돌립니다. 유닛 테스트는 1초 미만이고
 매 변경마다 돌리는 것이라, 그 앞에 앱 실행을 얹지 않기 위해 타깃을 나눴습니다.
 
 ### 오매칭을 재는 눈
@@ -491,7 +491,7 @@ xcodebuild -workspace RingRing.xcworkspace -scheme JustReport \
 
 ### 번들 사전
 
-`Modules/JustSensei/Resources/seed-dictionary.json`은 생성물입니다.
+`Modules/RingRingSensei/Resources/seed-dictionary.json`은 생성물입니다.
 
 ```bash
 python3 Scripts/build-dictionary.py
@@ -542,14 +542,14 @@ python3 Scripts/build-dictionary.py
 온디바이스 모델은 문맥에는 강하고 암기에는 약합니다. 「〜てる」를 「〜ている」로
 되돌리거나 가사를 자연스러운 한국어로 옮기는 일은 잘 하지만, JLPT 등급을 지어내고
 표제어 자리에 읽기를 쓰기도 합니다. 그래서 **판단은 모델에, 사실은 사전에** 맡기고,
-가사에 실제로 없는 단어는 버립니다 (`JustSensei/Sensei.swift`의 `refine`).
+가사에 실제로 없는 단어는 버립니다 (`RingRingSensei/Sensei.swift`의 `refine`).
 
 ## 디자인
 
 밝은 화면(그룹·목록·단어장·연습)은 아이돌 굿즈처럼 꾸밉니다 — 흰 테두리에
 인쇄된 핑크 그림자를 단 스티커 카드, 도트 무늬와 반짝이 배경, 마스킹 테이프를
 붙인 안내 메모, 누르면 쑥 들어가는 캔디 버튼, 형광펜 밑줄의 섹션 제목, 줄무늬
-캔디 진행 바. 전부 `JustDesign`의 공용 부품(`Kitsch.swift`, `JustTheme`)에
+캔디 진행 바. 전부 `RingRingDesign`의 공용 부품(`Kitsch.swift`, `JustTheme`)에
 있어서 화면 코드는 `justCard()`·`justSurface()`·`.justPrimary`만 씁니다.
 
 어두운 플레이어는 무대라서 담백하게 둡니다. 가사를 읽는 곳이라 무늬나 반짝이를
@@ -675,7 +675,7 @@ Google 안내에 따른 항목을 적어 두었습니다 — 기기 ID, 광고 �
 충돌·성능·기타 진단 데이터, 대략적 위치(IP 기반). 비맞춤 광고만 요청하고 ATT를
 띄우지 않으므로 추적(`NSPrivacyTracking`)은 거짓입니다.
 
-필수 사유 API는 UserDefaults(CA92.1)입니다. `JustSensei`와 `JustDesign`은 동적
+필수 사유 API는 UserDefaults(CA92.1)입니다. `RingRingSensei`와 `RingRingDesign`은 동적
 프레임워크라 앱 매니페스트가 그 안의 호출을 덮지 못하므로, 각자
 `Modules/<모듈>/Resources/PrivacyInfo.xcprivacy`를 갖습니다(ITMS-91053). 다른
 모듈에서 UserDefaults 같은 필수 사유 API를 쓰기 시작하면 그 모듈에도 매니페스트를
@@ -718,7 +718,7 @@ CRLF 가사 분할, 번역본 오선택, 동음이의어 표기 뒤바뀜.
 
 MIT. 다만 번들 데이터의 출처는 구분해서 봐 주세요.
 
-- `Scripts/curated.json`, `Modules/JustSensei/Resources/kanji-ko.json`
+- `Scripts/curated.json`, `Modules/RingRingSensei/Resources/kanji-ko.json`
   (한자 1,591자 음훈), 그리고 `seed-dictionary.json`의 뜻·읽기 대부분은 이 저장소
   소유자의 다른 프로젝트에서 가져온 데이터입니다.
 - `Scripts/data/jlpt-levels.tsv`(JLPT 등급)는 Jonathan Waller의 JLPT 단어

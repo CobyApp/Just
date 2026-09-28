@@ -1,4 +1,4 @@
-import JustSensei
+import RingRingSensei
 import SwiftUI
 
 /// Speaks a Japanese word aloud when tapped.

@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 /// Grammar patterns found by matching the line, not by asking the model.
 ///

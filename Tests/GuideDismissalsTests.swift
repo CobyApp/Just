@@ -1,5 +1,5 @@
 import Foundation
-import JustDesign
+import RingRingDesign
 import Testing
 
 @Suite("안내 닫기 기억")

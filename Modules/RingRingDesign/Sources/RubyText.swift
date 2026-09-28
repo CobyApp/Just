@@ -1,4 +1,4 @@
-import JustCore
+import RingRingCore
 import SwiftUI
 
 /// Renders Japanese text with furigana above the kanji.

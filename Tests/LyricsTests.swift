@@ -1,8 +1,8 @@
 import Foundation
-import JustCore
+import RingRingCore
 import Testing
 
-@testable import JustLyrics
+@testable import RingRingLyrics
 
 @Suite("LRC 파싱")
 struct LRCParserTests {

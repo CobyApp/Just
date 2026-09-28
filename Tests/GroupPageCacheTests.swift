@@ -1,6 +1,6 @@
 import Foundation
-import JustCore
-import JustMusic
+import RingRingCore
+import RingRingMusic
 import Testing
 
 @Suite("그룹 페이지 캐시")

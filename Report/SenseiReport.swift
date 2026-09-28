@@ -1,10 +1,10 @@
 import FoundationModels
 import Foundation
-import JustCore
-import JustLyrics
+import RingRingCore
+import RingRingLyrics
 import Testing
 
-@testable import JustSensei
+@testable import RingRingSensei
 
 /// Runs the real on-device analyser over a fixed set of lines and prints what it
 /// produced, so a change to the prompt or the refinement rules can be judged by

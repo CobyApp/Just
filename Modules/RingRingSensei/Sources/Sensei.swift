@@ -1,7 +1,7 @@
 import Foundation
 // For the refusal cases only — the model itself lives behind OnDeviceSensei.
 import FoundationModels
-import JustCore
+import RingRingCore
 import Observation
 
 /// The single entry point the app uses for lyric analysis.

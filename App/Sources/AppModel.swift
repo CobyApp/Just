@@ -1,6 +1,6 @@
-import JustCore
-import JustMusic
-import JustSensei
+import RingRingCore
+import RingRingMusic
+import RingRingSensei
 import Observation
 import SwiftUI
 
@@ -71,7 +71,7 @@ final class AppModel {
         case words
 
         /// The URL a notification or widget carries.
-        var url: URL? { URL(string: "just://\(rawValue)") }
+        var url: URL? { URL(string: "ringring://\(rawValue)") }
 
         /// Which tab the route lands on. `go(to:)` pushes anything beyond
         /// the tab's root.
@@ -83,9 +83,9 @@ final class AppModel {
         }
 
         init?(url: URL) {
-            guard url.scheme == "just" else { return nil }
-            // Both spellings appear in the wild: just://review has an empty path
-            // and a "review" host, while just:///review is the reverse.
+            guard url.scheme == "ringring" else { return nil }
+            // Both spellings appear in the wild: ringring://review has an empty path
+            // and a "review" host, while ringring:///review is the reverse.
             let name = url.host ?? url.pathComponents.last
             guard let name, let route = Route(rawValue: name) else { return nil }
             self = route

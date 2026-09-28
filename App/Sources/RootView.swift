@@ -1,5 +1,5 @@
-import JustCore
-import JustDesign
+import RingRingCore
+import RingRingDesign
 import SwiftUI
 
 /// Four tabs, one per intent: what to do now, what to study next, what I have

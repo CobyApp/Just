@@ -1,5 +1,5 @@
-import JustCore
-import JustDesign
+import RingRingCore
+import RingRingDesign
 import SwiftUI
 
 /// A song in a list — the group's songs, 「내 노래」, anywhere songs are rows.

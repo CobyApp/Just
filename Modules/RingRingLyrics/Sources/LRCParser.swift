@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 /// Parses the LRC format returned by LRCLIB.
 public enum LRCParser {

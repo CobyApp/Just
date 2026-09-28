@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 /// What one group looks like and sings — its picture and its songs.
 public struct ArtistPage: Sendable, Codable, Equatable {

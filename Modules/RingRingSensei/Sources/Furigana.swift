@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 public enum Furigana {
     /// Splits `surface` against `reading` so the ruby sits only over the kanji.

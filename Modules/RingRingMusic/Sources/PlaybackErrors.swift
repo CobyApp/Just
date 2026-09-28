@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 extension Error {
     /// The network, not the song: no connection, or one too slow to answer.

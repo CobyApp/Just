@@ -1,6 +1,6 @@
 import CryptoKit
 import Foundation
-import JustCore
+import RingRingCore
 
 /// Client for lrclib.net — an open, key-free, community lyrics database with
 /// good coverage of Japanese releases and, crucially, time-synced LRC.

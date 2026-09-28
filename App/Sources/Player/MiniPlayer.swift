@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustMusic
+import RingRingCore
+import RingRingDesign
+import RingRingMusic
 import SwiftUI
 
 /// The bar above the tab bar while a song is loaded but the player is dismissed.

@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 /// Offline fallback for devices without Apple Intelligence.
 ///

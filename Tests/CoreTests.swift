@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import Testing
 
-@testable import JustCore
+@testable import RingRingCore
 
 @Suite("FSRS 스케줄링")
 struct FSRSTests {

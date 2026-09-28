@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingSensei
 import SwiftUI
 
 /// The Korean sound/meaning readings of each kanji in a word.

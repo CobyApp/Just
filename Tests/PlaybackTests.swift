@@ -1,6 +1,6 @@
 import Foundation
-import JustCore
-@testable import JustMusic
+import RingRingCore
+@testable import RingRingMusic
 import Testing
 
 @Suite("영상 목록의 「없음」 기억")

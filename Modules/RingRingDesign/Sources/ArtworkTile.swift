@@ -1,4 +1,4 @@
-import JustCore
+import RingRingCore
 import SwiftUI
 
 /// A song as a browsable card: art on top, title and artist beneath.

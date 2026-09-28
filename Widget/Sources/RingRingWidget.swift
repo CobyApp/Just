@@ -1,4 +1,4 @@
-import JustCore
+import RingRingCore
 import SwiftUI
 import WidgetKit
 
@@ -7,21 +7,21 @@ import WidgetKit
 /// Reads a snapshot the app publishes rather than the app's database — see
 /// `WidgetSnapshot`. A missing file means the app has not run since install, so
 /// the placeholder stands in rather than showing zeroes as if they were real.
-struct JustWidgetEntry: TimelineEntry {
+struct RingRingWidgetEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetSnapshot
 }
 
-struct JustWidgetProvider: TimelineProvider {
-    func placeholder(in context: Context) -> JustWidgetEntry {
-        JustWidgetEntry(date: .now, snapshot: .placeholder)
+struct RingRingWidgetProvider: TimelineProvider {
+    func placeholder(in context: Context) -> RingRingWidgetEntry {
+        RingRingWidgetEntry(date: .now, snapshot: .placeholder)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (JustWidgetEntry) -> Void) {
-        completion(JustWidgetEntry(date: .now, snapshot: WidgetStore.read() ?? .placeholder))
+    func getSnapshot(in context: Context, completion: @escaping (RingRingWidgetEntry) -> Void) {
+        completion(RingRingWidgetEntry(date: .now, snapshot: WidgetStore.read() ?? .placeholder))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<JustWidgetEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<RingRingWidgetEntry>) -> Void) {
         let snapshot = WidgetStore.read() ?? .placeholder
         let now = Date.now
         // One entry per moment the numbers change — each card coming due, and
@@ -30,14 +30,14 @@ struct JustWidgetProvider: TimelineProvider {
         // app is closed. The app reloads the timeline whenever it writes a
         // new snapshot; `.atEnd` covers the stretch after the last entry.
         let dates = [now] + snapshot.timelineDates(after: now)
-        let entries = dates.map { JustWidgetEntry(date: $0, snapshot: snapshot) }
+        let entries = dates.map { RingRingWidgetEntry(date: $0, snapshot: snapshot) }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
-struct JustWidgetView: View {
+struct RingRingWidgetView: View {
     @Environment(\.widgetFamily) private var family
-    let entry: JustWidgetEntry
+    let entry: RingRingWidgetEntry
 
     private var dueCount: Int { entry.snapshot.dueCount(at: entry.date) }
     private var streak: Int { entry.snapshot.streak(at: entry.date) }
@@ -192,10 +192,10 @@ struct WidgetBackdrop: View {
     }
 }
 
-struct JustWidget: Widget {
+struct RingRingWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "JustWidget", provider: JustWidgetProvider()) { entry in
-            JustWidgetView(entry: entry)
+        StaticConfiguration(kind: "RingRingWidget", provider: RingRingWidgetProvider()) { entry in
+            RingRingWidgetView(entry: entry)
                 // The background is a fixed pastel, so the ink must be fixed
                 // too: left to follow the system, `.primary` and `.secondary`
                 // turned near-white in dark mode and the text vanished into
@@ -208,7 +208,7 @@ struct JustWidget: Widget {
                 }
                 // Tapping the widget lands on the cards, not on wherever the
                 // app happened to be left.
-                .widgetURL(URL(string: entry.snapshot.dueCount(at: entry.date) > 0 ? "just://review" : "just://words"))
+                .widgetURL(URL(string: entry.snapshot.dueCount(at: entry.date) > 0 ? "ringring://review" : "ringring://words"))
         }
         .configurationDisplayName("링링")
         .description("복습할 단어 수와 오늘 볼 단어를 보여줍니다.")
@@ -217,8 +217,8 @@ struct JustWidget: Widget {
 }
 
 @main
-struct JustWidgetBundle: WidgetBundle {
+struct RingRingWidgetBundle: WidgetBundle {
     var body: some Widget {
-        JustWidget()
+        RingRingWidget()
     }
 }

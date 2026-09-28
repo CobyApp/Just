@@ -1,8 +1,8 @@
 import Foundation
-import JustCore
+import RingRingCore
 import Testing
 
-@testable import JustSensei
+@testable import RingRingSensei
 
 @Suite("후리가나 분할")
 struct FuriganaTests {

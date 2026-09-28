@@ -1,5 +1,5 @@
 import Foundation
-import JustCore
+import RingRingCore
 
 /// The Korean sound and meaning readings (음/훈) of a kanji.
 public struct KanjiGloss: Identifiable, Hashable, Sendable {

@@ -1,7 +1,7 @@
-import JustCore
-import JustDesign
-import JustMusic
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingMusic
+import RingRingSensei
 import SwiftUI
 // Same reason as JustSensei's wrapper: TranslationSession is not
 // Sendable-audited, so the download call below reads as sending it.

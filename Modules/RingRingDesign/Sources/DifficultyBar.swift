@@ -1,4 +1,4 @@
-import JustCore
+import RingRingCore
 import SwiftUI
 
 /// A song's JLPT makeup as one stacked bar.

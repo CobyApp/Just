@@ -1,6 +1,6 @@
 import Foundation
-import JustCore
-import JustMusic
+import RingRingCore
+import RingRingMusic
 import Observation
 
 /// Every group's picture and songs.

@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustMusic
+import RingRingCore
+import RingRingDesign
+import RingRingMusic
 import SwiftUI
 
 /// Lines up a lyric sheet that runs early or late against the recording.

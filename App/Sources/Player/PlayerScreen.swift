@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustMusic
+import RingRingCore
+import RingRingDesign
+import RingRingMusic
 import SwiftData
 import SwiftUI
 

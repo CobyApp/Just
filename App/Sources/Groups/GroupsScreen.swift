@@ -1,5 +1,5 @@
-import JustCore
-import JustDesign
+import RingRingCore
+import RingRingDesign
 import SwiftData
 import SwiftUI
 

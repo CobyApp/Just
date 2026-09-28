@@ -54,7 +54,7 @@ def hira(text):
 
 def rows_to_tag():
     rows = json.loads((SCRIPTS / "curated.json").read_text())
-    seed = ROOT / "Modules" / "JustSensei" / "Resources" / "seed-dictionary.json"
+    seed = ROOT / "Modules" / "RingRingSensei" / "Resources" / "seed-dictionary.json"
     if seed.exists():
         rows += json.loads(seed.read_text())
     for path in sorted((SCRIPTS / "additions").glob("*.json")):

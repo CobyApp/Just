@@ -1,4 +1,4 @@
-import JustCore
+import RingRingCore
 import SwiftUI
 
 public extension JLPTLevel {

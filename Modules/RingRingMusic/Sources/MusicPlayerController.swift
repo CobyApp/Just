@@ -1,6 +1,6 @@
 import AVFoundation
 import Foundation
-import JustCore
+import RingRingCore
 import Observation
 import os
 import WebKit

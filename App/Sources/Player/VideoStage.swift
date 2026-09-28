@@ -1,4 +1,4 @@
-import JustMusic
+import RingRingMusic
 import SwiftUI
 import UIKit
 

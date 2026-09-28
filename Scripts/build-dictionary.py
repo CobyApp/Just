@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the dictionary bundled with JustSensei.
+"""Builds the dictionary bundled with RingRingSensei.
 
 Layers, applied in this order — later ones never undo earlier ones:
 
@@ -42,7 +42,7 @@ CORRECTIONS = SCRIPTS / "corrections.json"
 ADDITIONS = SCRIPTS / "additions"
 LEVELS = SCRIPTS / "data" / "jlpt-levels.tsv"
 POS = SCRIPTS / "data" / "jmdict-pos.tsv"
-RESOURCES = ROOT / "Modules" / "JustSensei" / "Resources"
+RESOURCES = ROOT / "Modules" / "RingRingSensei" / "Resources"
 OUTPUT = RESOURCES / "seed-dictionary.json"
 KANJI_OUTPUT = RESOURCES / "kanji-ko.json"
 JLPT_APP = pathlib.Path.home() / "Git" / "jlpt-app" / "assets" / "data"

@@ -1,7 +1,7 @@
 import CoreTransferable
-import JustCore
-import JustDesign
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingSensei
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers

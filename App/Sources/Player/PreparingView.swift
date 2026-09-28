@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingSensei
 import SwiftUI
 
 /// What the user looks at between choosing a song and hearing it.

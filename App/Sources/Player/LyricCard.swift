@@ -1,6 +1,6 @@
-import JustCore
-import JustDesign
-import JustSensei
+import RingRingCore
+import RingRingDesign
+import RingRingSensei
 import SwiftUI
 
 /// One lyric line as a picture to post: the line with its readings, what it

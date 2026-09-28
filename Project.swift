@@ -84,23 +84,23 @@ let project = Project(
     settings: .settings(base: baseSettings),
     targets: [
         // Domain models, SwiftData schema, spaced-repetition scheduler.
-        module("JustCore"),
+        module("RingRingCore"),
 
         // Design system: palette extraction, mesh background, furigana text.
-        module("JustDesign", dependencies: [
-            .target(name: "JustCore"),
-            .target(name: "JustSensei"),
+        module("RingRingDesign", dependencies: [
+            .target(name: "RingRingCore"),
+            .target(name: "RingRingSensei"),
         ], hasResources: true),
 
-        module("JustMusic", dependencies: [.target(name: "JustCore")]),
+        module("RingRingMusic", dependencies: [.target(name: "RingRingCore")]),
 
         // LRCLIB client and LRC parsing.
-        module("JustLyrics", dependencies: [.target(name: "JustCore")]),
+        module("RingRingLyrics", dependencies: [.target(name: "RingRingCore")]),
 
         // Tokenization, readings, and the on-device analysis engine.
         module(
-            "JustSensei",
-            dependencies: [.target(name: "JustCore")],
+            "RingRingSensei",
+            dependencies: [.target(name: "RingRingCore")],
             hasResources: true
         ),
 
@@ -170,20 +170,20 @@ let project = Project(
                 "CFBundleURLTypes": [
                     [
                         "CFBundleURLName": "\(bundlePrefix)",
-                        "CFBundleURLSchemes": ["just"],
+                        "CFBundleURLSchemes": ["ringring"],
                     ],
                 ],
             ]),
             sources: ["App/Sources/**"],
             resources: ["App/Resources/**"],
-            entitlements: "App/Just.entitlements",
+            entitlements: "App/RingRing.entitlements",
             dependencies: [
-                .target(name: "JustWidget"),
-                .target(name: "JustCore"),
-                .target(name: "JustDesign"),
-                .target(name: "JustMusic"),
-                .target(name: "JustLyrics"),
-                .target(name: "JustSensei"),
+                .target(name: "RingRingWidget"),
+                .target(name: "RingRingCore"),
+                .target(name: "RingRingDesign"),
+                .target(name: "RingRingMusic"),
+                .target(name: "RingRingLyrics"),
+                .target(name: "RingRingSensei"),
                 .external(name: "GoogleMobileAds"),
                 // Google's consent SDK. Already resolved as a dependency of
                 // GoogleMobileAds; named here because the app imports it.
@@ -197,7 +197,7 @@ let project = Project(
         // Reads a snapshot the app publishes into the shared container, so it
         // never opens the app's database.
         .target(
-            name: "JustWidget",
+            name: "RingRingWidget",
             destinations: allDevices,
             product: .appExtension,
             bundleId: "\(bundlePrefix).widget",
@@ -215,8 +215,8 @@ let project = Project(
                 ],
             ]),
             sources: ["Widget/Sources/**"],
-            entitlements: "Widget/JustWidget.entitlements",
-            dependencies: [.target(name: "JustCore")],
+            entitlements: "Widget/RingRingWidget.entitlements",
+            dependencies: [.target(name: "RingRingCore")],
             settings: .settings(base: baseSettings)
         ),
 
@@ -224,7 +224,7 @@ let project = Project(
         // That is where every bug so far has actually lived, and it is the part
         // that can be checked without a device, an account or a model.
         .target(
-            name: "JustTests",
+            name: "RingRingTests",
             destinations: allDevices,
             product: .unitTests,
             bundleId: "\(bundlePrefix).tests",
@@ -232,11 +232,11 @@ let project = Project(
             infoPlist: .default,
             sources: ["Tests/**"],
             dependencies: [
-                .target(name: "JustCore"),
-                .target(name: "JustLyrics"),
-                .target(name: "JustSensei"),
-                            .target(name: "JustMusic"),
-                            .target(name: "JustDesign"),
+                .target(name: "RingRingCore"),
+                .target(name: "RingRingLyrics"),
+                .target(name: "RingRingSensei"),
+                            .target(name: "RingRingMusic"),
+                            .target(name: "RingRingDesign"),
             ],
             settings: .settings(base: baseSettings)
         ),
@@ -251,11 +251,11 @@ let project = Project(
         // missing three times in a day, and the phone in the room has a real
         // one. Being unable to measure has blocked more work than any bug.
         //
-        // Hosting the existing JustTests instead would have put an app launch
+        // Hosting the existing RingRingTests instead would have put an app launch
         // in front of a suite that finishes in under a second and runs on every
         // change. Two targets keeps both properties.
         .target(
-            name: "JustReport",
+            name: "RingRingReport",
             destinations: allDevices,
             product: .unitTests,
             bundleId: "\(bundlePrefix).report",
@@ -264,9 +264,9 @@ let project = Project(
             sources: ["Report/**"],
             dependencies: [
                 .target(name: "RingRing"),
-                .target(name: "JustCore"),
-                .target(name: "JustLyrics"),
-                .target(name: "JustSensei"),
+                .target(name: "RingRingCore"),
+                .target(name: "RingRingLyrics"),
+                .target(name: "RingRingSensei"),
             ],
             settings: .settings(base: baseSettings)
         ),
@@ -278,14 +278,14 @@ let project = Project(
             name: "RingRing",
             shared: true,
             buildAction: .buildAction(targets: ["RingRing"]),
-            testAction: .targets(["JustTests"]),
+            testAction: .targets(["RingRingTests"]),
             runAction: .runAction(executable: "RingRing")
         ),
         .scheme(
             name: "RingRingReport",
             shared: true,
-            buildAction: .buildAction(targets: ["RingRing", "JustReport"]),
-            testAction: .targets(["JustReport"]),
+            buildAction: .buildAction(targets: ["RingRing", "RingRingReport"]),
+            testAction: .targets(["RingRingReport"]),
             runAction: .runAction(executable: "RingRing")
         ),
     ]

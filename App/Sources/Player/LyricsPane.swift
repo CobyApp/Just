@@ -1,8 +1,8 @@
-import JustCore
-import JustLyrics
-import JustDesign
-import JustMusic
-import JustSensei
+import RingRingCore
+import RingRingLyrics
+import RingRingDesign
+import RingRingMusic
+import RingRingSensei
 import SwiftUI
 
 struct LyricsPane: View {

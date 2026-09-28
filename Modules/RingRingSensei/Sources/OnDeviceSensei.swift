@@ -1,7 +1,7 @@
 import Foundation
 import FoundationModels
 import os
-import JustCore
+import RingRingCore
 
 // MARK: - Guided generation schema
 

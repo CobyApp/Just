@@ -1,6 +1,6 @@
 import Charts
-import JustCore
-import JustDesign
+import RingRingCore
+import RingRingDesign
 import SwiftUI
 
 /// The study summary at the top of the word list.
