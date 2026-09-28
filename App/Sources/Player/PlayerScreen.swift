@@ -101,29 +101,12 @@ struct PlayerScreen: View {
             )
             self.session = session
 
-            // The app's one ad, during the lyric lookup — the moment the reader
-            // is waiting and nothing they do shortens it. A cached song is ready
-            // at once, so `stillWaiting` returns false before the ad loads and
-            // none is shown; a song fetched over the network gets the wait.
-            AnalysisInterstitial.shared.show(
-                for: track.id,
-                pendingLines: AnalysisInterstitial.minimumPendingLines
-            ) { session.phase == .loadingLyrics }
-
             await session.prepare()
 
             // Backing out during preparation must leave no trace, so the song
             // is not adopted as "now playing" until it is about to be heard.
             guard !Task.isCancelled, session.phase == .ready else { return }
             app.confirmPlaying(track)
-
-            // Not while the analysis ad is up. A video started under a
-            // full-screen ad never got going: the page was hidden when it was
-            // told to play, and it sat on its poster with a spinner afterwards.
-            while AnalysisInterstitial.shared.isPresenting {
-                try? await Task.sleep(for: .milliseconds(250))
-                guard !Task.isCancelled else { return }
-            }
 
             // Only autoplays when this is a different song. Reopening a paused
             // one from the mini player should not start it again — but one
@@ -134,9 +117,6 @@ struct PlayerScreen: View {
             )
         }
         .task(id: track.artworkURL) { await artwork.load(track.artworkURL) }
-        // Fetched at launch so the first song's ad is ready the moment its
-        // player opens rather than loading while the reader waits.
-        .task { await AnalysisInterstitial.shared.preload() }
         // The sentence half of the reading needs a language pack. It downloads
         // once, offered here where a reader has just opened a song and wants the
         // translation — not buried in settings. Only when it is downloadable and

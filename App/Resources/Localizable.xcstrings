@@ -319,12 +319,12 @@
         }
       }
     },
-    "가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생되고, 곡을 준비하는 동안 보이는 광고는 Google을 거치며, 맞춤 광고는 쓰지 않습니다.": {
+    "가사 해석은 기기 안에서 처리됩니다. 가사 원문이나 학습 기록은 어디로도 올라가지 않습니다. 노래 영상은 YouTube에서 재생됩니다.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lyric analysis runs on your device. The original lyrics and your study history are never uploaded anywhere. Song videos play on YouTube, ads shown while a song loads go through Google, and no personalized ads are used."
+            "value": "Lyric analysis runs on your device. The original lyrics and your study history are never uploaded anywhere. Song videos play on YouTube."
           }
         }
       }
@@ -585,26 +585,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Share"
-          }
-        }
-      }
-    },
-    "광고": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ads"
-          }
-        }
-      }
-    },
-    "광고 개인정보 설정": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ad privacy settings"
           }
         }
       }
