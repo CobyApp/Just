@@ -4,6 +4,11 @@ WORKSPACE = "RingRing.xcworkspace"
 SCHEME = "RingRing"
 APP_IDENTIFIER = "com.coby.ringring"
 TEAM_ID = "3Y8YH8GWMM"
+# The App Store listing name (unique across the store) and its primary
+# language, used to create the app record the first time this bundle id is
+# uploaded. Change the name later in App Store Connect if needed.
+APP_NAME = "링링 - 최애의 노래로 일본어"
+APP_PRIMARY_LANGUAGE = "English (U.S.)"
 
 # `tuist generate` bakes these into Info.plist. A missing one does not fail the
 # build — it ships a build that quietly misbehaves (every song a 30-second
@@ -57,10 +62,24 @@ platform :ios do
       in_house: false
     )
 
+    # Registers the bundle id and creates the App Store Connect record the first
+    # time this app is uploaded — the rename to com.coby.ringring left it without
+    # one. `produce` is idempotent: once the app exists this is a no-op.
+    produce(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      app_name: APP_NAME,
+      language: APP_PRIMARY_LANGUAGE,
+      sku: APP_IDENTIFIER
+    )
+
+    # Latest TestFlight build + 1. A brand-new app has no builds, so the lookup
+    # falls back to 0 rather than raising, and the first upload becomes build 1.
     build_number = ENV["BUILD_NUMBER"] || begin
       latest = latest_testflight_build_number(
         app_identifier: APP_IDENTIFIER,
-        api_key: api_key
+        api_key: api_key,
+        initial_build_number: 0
       )
       (latest.to_i + 1).to_s
     end
