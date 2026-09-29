@@ -2,123 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- What the app itself does. Lyric analysis runs on device through Apple
-       Intelligence. The app's own network calls are the iTunes lookup API
-       (song list, artwork), the YouTube Data API and embedded player (video),
-       and LRCLIB (lyrics); none of them is given a user identifier.
-
-       The one third-party SDK is Google Mobile Ads (with Google's User
-       Messaging Platform for consent). It ships its own privacy manifest,
-       which Xcode aggregates with this one in the privacy report. The data
-       types below repeat Google's published guidance for AdMob so that this
-       file and the App Store Connect privacy label say the same thing. Ads are
-       requested as non-personalised (npa=1), no App Tracking Transparency
-       prompt is shown, and nothing is linked to the user or used for
-       tracking, so NSPrivacyTracking stays false. -->
+  <!-- What the app itself does. Lyric analysis runs on device: the bundled
+       dictionary and grammar list, plus Apple's system translator for the
+       sentence. The app's own network calls are the iTunes lookup API (song
+       list, artwork), the YouTube Data API and embedded player (video), and
+       LRCLIB (lyrics); none of them is given a user identifier. There is no
+       third-party SDK, no account and no analytics, so nothing is collected,
+       linked to the user or used for tracking. -->
   <key>NSPrivacyTracking</key>
   <false/>
   <key>NSPrivacyTrackingDomains</key>
   <array/>
   <key>NSPrivacyCollectedDataTypes</key>
-  <array>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeDeviceID</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-        <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-      </array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeAdvertisingData</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-        <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-      </array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeProductInteraction</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-        <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-      </array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeCrashData</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-      </array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypePerformanceData</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-      </array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-      </array>
-    </dict>
-    <dict>
-      <!-- Coarse location derived from the IP address, for ad delivery. The
-           app never asks for location permission. -->
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeCoarseLocation</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-      </array>
-    </dict>
-  </array>
-  <!-- Required-reason API declarations for APIs the app target itself calls.
-       JustSensei and JustDesign are dynamic frameworks and carry their own
-       manifests for the UserDefaults calls inside them. -->
+  <array/>
   <key>NSPrivacyAccessedAPITypes</key>
   <array>
     <dict>
-      <!-- UserDefaults: review reminder time, daily goal, auto-analysis
-           policy, lyric text size. All app settings, never read off-device. -->
+      <!-- UserDefaults: favourite group, review reminder time, daily goal,
+           auto-analysis policy, lyric text size. All app settings, never read
+           off-device. -->
       <key>NSPrivacyAccessedAPIType</key>
       <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
       <key>NSPrivacyAccessedAPITypeReasons</key>

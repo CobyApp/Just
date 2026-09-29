@@ -25,6 +25,6 @@ fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
 
-# Local secrets for `tuist generate` (YouTube API key, AdMob ids), loaded by
+# Local secrets for `tuist generate` (YouTube API key), loaded by
 # mise through `.mise.toml`. Never committed.
 .env

@@ -278,52 +278,6 @@ struct LyricRangeTests {
     }
 }
 
-@Suite("해석 남은 시간 추정")
-struct AnalysisPaceTests {
-    @Test("재본 적이 없으면 추정하지 않는다")
-    func noSamplesMeansNoEstimate() {
-        #expect(AnalysisPace().estimate(remaining: 10) == nil)
-    }
-
-    @Test("한 줄만 재도 추정한다")
-    func estimatesFromASingleSample() {
-        var pace = AnalysisPace()
-        pace.record(10)
-        #expect(pace.estimate(remaining: 5) == 50)
-    }
-
-    @Test("남은 줄이 없으면 0이다")
-    func nothingLeftMeansZero() {
-        var pace = AnalysisPace()
-        pace.record(10)
-        #expect(pace.estimate(remaining: 0) == 0)
-    }
-
-    @Test("한 줄이 유난히 오래 걸려도 추정을 지배하지 않는다")
-    func oneStallDoesNotDominate() {
-        var pace = AnalysisPace()
-        for seconds in [10.0, 10.0, 10.0, 600.0] { pace.record(seconds) }
-        // 평균이라면 157.5초가 된다.
-        #expect(pace.estimate(remaining: 1) == 10)
-    }
-
-    @Test("창 밖으로 밀린 표본은 버린다")
-    func forgetsSamplesOutsideTheWindow() {
-        var pace = AnalysisPace(window: 2)
-        for seconds in [100.0, 100.0, 10.0, 10.0] { pace.record(seconds) }
-        #expect(pace.estimate(remaining: 1) == 10)
-    }
-
-    @Test("말이 안 되는 표본은 세지 않는다")
-    func ignoresNonsenseSamples() {
-        var pace = AnalysisPace()
-        pace.record(-5)
-        pace.record(.infinity)
-        pace.record(.nan)
-        #expect(pace.estimate(remaining: 3) == nil)
-    }
-}
-
 @Suite("단어 내보내기")
 struct VocabularyExportTests {
     private func row(
@@ -872,38 +826,6 @@ struct LyricSyncTests {
         var offset = 0.0
         for _ in 0..<3 { offset = LyricSync.stepped(offset, by: 0.1) }
         #expect(offset == 0.3)
-    }
-}
-
-@Suite("얼마나 기다릴지")
-struct WaitBudgetTests {
-    @Test("재본 적이 없으면 계속 기다린다")
-    func waitsWithoutASample() {
-        // Nothing to judge by yet. Bailing out on no evidence would open the
-        // player for a song that was about to finish.
-        #expect(WaitBudget.shouldOpenEarly(estimate: nil, done: 0) == false)
-    }
-
-    @Test("표본이 적으면 아직 판단하지 않는다")
-    func needsAFewLinesFirst() {
-        // The first line pays for the session and the instructions, so its time
-        // says more about start-up than about the song.
-        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 1) == false)
-        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 2) == false)
-    }
-
-    @Test("남은 시간이 짧으면 끝까지 기다린다")
-    func finishesAShortWait() {
-        // A completed song is the better thing to hand over, so a wait worth
-        // sitting through is sat through.
-        #expect(WaitBudget.shouldOpenEarly(estimate: 20, done: 3) == false)
-        #expect(WaitBudget.shouldOpenEarly(estimate: 30, done: 5) == false)
-    }
-
-    @Test("남은 시간이 길면 먼저 열어준다")
-    func doesNotMakeThemWaitMinutes() {
-        #expect(WaitBudget.shouldOpenEarly(estimate: 31, done: 3))
-        #expect(WaitBudget.shouldOpenEarly(estimate: 600, done: 3))
     }
 }
 

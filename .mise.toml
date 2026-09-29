@@ -1,7 +1,7 @@
 [tools]
 tuist = "4.120.0"
 
-# Local secrets for `tuist generate` (TUIST_YOUTUBE_API_KEY, TUIST_ADMOB_*),
+# Local secrets for `tuist generate` (TUIST_YOUTUBE_API_KEY, TUIST_MARKETING_VERSION),
 # loaded into the environment whenever mise is active in this directory. The
 # file is gitignored; a missing file is not an error.
 [env]

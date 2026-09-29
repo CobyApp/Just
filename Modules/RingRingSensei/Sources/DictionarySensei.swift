@@ -1,10 +1,10 @@
 import Foundation
 import RingRingCore
 
-/// Offline fallback for devices without Apple Intelligence.
+/// The bundled dictionary: word meanings, readings and JLPT levels.
 ///
-/// It cannot translate a line — that genuinely needs a model — so it is honest
-/// about it and returns word meanings only. The engine kind is carried through
+/// It names the words in a line; it does not translate the sentence — that is
+/// the system translator's job in `Sensei`. The engine kind is carried through
 /// to `LineStudy` so the UI can say which one answered.
 public struct DictionarySensei: Sendable {
     public struct Entry: Codable, Sendable {

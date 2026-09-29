@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- JustDesign is a dynamic framework, so it needs its own manifest: the app's
+  <!-- RingRingDesign is a dynamic framework, so it needs its own manifest: the app's
        manifest does not cover required-reason API calls made from inside an
        embedded framework (ITMS-91053). This module collects nothing and
        tracks no one. -->

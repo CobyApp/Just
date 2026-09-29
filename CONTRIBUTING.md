@@ -30,7 +30,7 @@ bundle exec fastlane test
 ## Releasing to TestFlight
 
 Two ways, both of which run the tests first and refuse to build if a release
-secret (App Store key, YouTube key, real AdMob ids) is missing:
+secret (App Store key, YouTube key) is missing:
 
 1. **One click** — Actions → **Release** → run. Pick `patch` / `minor` /
    `major` (or type an exact version). It bumps from the latest tag, pushes the

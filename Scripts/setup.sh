@@ -6,10 +6,9 @@ cd "$(dirname "$0")/.."
 # committed — CI does not need Python, and a checkout is buildable as-is. This
 # script only has to produce the Xcode project.
 #
-# Build-time secrets come from the environment: TUIST_YOUTUBE_API_KEY,
-# TUIST_ADMOB_APP_ID, TUIST_ADMOB_INTERSTITIAL_ID and TUIST_MARKETING_VERSION.
-# Locally, mise loads them from `.env`; in CI they are GitHub secrets. Unset,
-# the project still generates, with no video search and Google's test ad ids.
+# Build-time values come from the environment: TUIST_YOUTUBE_API_KEY and
+# TUIST_MARKETING_VERSION. Locally, mise loads them from `.env`; in CI they are
+# GitHub secrets. Unset, the project still generates, with no video search.
 
 # Without mise (a plain Homebrew tuist), nothing else reads `.env`, so it is
 # loaded here. Values already in the environment win, which keeps CI's secrets
